@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestor de Patrimonio</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Carga de Chart.js para los quesitos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- biblioteca para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body>
+  <h1>Gestor de Patrimonio</h1>
+
+  <!-- Tabla principal: distribución global -->
+  <section class="bloque">
+    <h2>Patrimonio global</h2>
+    <p>Introduce cuánto quieres poner en cada bloque.</p>
+
+    <table id="tablaGlobal" class="tabla">
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>Importe (€)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Colchón de emergencia</td>
+          <td><input type="number" class="importe-global" data-categoria="colchon" value="300" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Renta fija</td>
+          <td><input type="number" class="importe-global" data-categoria="fija" value="200" min="0" /></td>
+        </tr>
+        <tr>
+          <td>Renta variable</td>
+          <td><input type="number" class="importe-global" data-categoria="variable" value="500" min="0" /></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="grafico-contenedor">
+      <canvas id="graficoGlobal"></canvas>
+    </div>
+  </section>
+
+  <!-- Bloque renta variable -->
+  <section class="bloque">
+    <h2>Detalle renta variable</h2>
+    <button type="button" class="btn" id="addFilaVariable">Añadir fila</button>
+    <table id="tablaVariable" class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Importe (€)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" value="Fondo oro" /></td>
+          <td><input type="number" class="importe-variable" value="200" min="0" /></td>
+          <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="MSCI World" /></td>
+          <td><input type="number" class="importe-variable" value="200" min="0" /></td>
+          <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+        </tr>
+        <tr>
+          <td><input type="text" value="S&P 500" /></td>
+          <td><input type="number" class="importe-variable" value="100" min="0" /></td>
+          <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="grafico-contenedor">
+      <canvas id="graficoVariable"></canvas>
+    </div>
+  </section>
+
+  <!-- Bloque renta fija -->
+  <section class="bloque">
+    <h2>Detalle renta fija</h2>
+    <button type="button" class="btn" id="addFilaFija">Añadir fila</button>
+    <table id="tablaFija" class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Importe (€)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" value="Bono gobierno" /></td>
+          <td><input type="number" class="importe-fija" value="200" min="0" /></td>
+          <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="grafico-contenedor">
+      <canvas id="graficoFija"></canvas>
+    </div>
+  </section>
+
+  <!-- Bloque colchón de emergencia -->
+  <section class="bloque">
+    <h2>Detalle colchón de emergencia</h2>
+    <button type="button" class="btn" id="addFilaColchon">Añadir fila</button>
+    <table id="tablaColchon" class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Importe (€)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" value="Cuenta ahorro" /></td>
+          <td><input type="number" class="importe-colchon" value="300" min="0" /></td>
+          <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="grafico-contenedor">
+      <canvas id="graficoColchon"></canvas>
+    </div>
+  </section>
+
+  <script src="scripts.js"></script>
+</body>
+</html>
