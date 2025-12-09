@@ -36,21 +36,191 @@
 
   <!-- CONTENIDO PRINCIPAL -->
   <section class="bloque">
-    <h2>¿Por qué invertir?</h2>
-    <p>Invertir es una de las herramientas más poderosas para construir riqueza y alcanzar tus objetivos financieros a largo plazo.</p>
+    <h2>¿Por qué invertir? La Verdad Incómoda sobre la Inflación</h2>
 
-    <h3>Razones principales para invertir:</h3>
-    <ul>
-      <li><strong>Combatir la inflación:</strong> El dinero en una cuenta corriente pierde poder adquisitivo cada año. Invertir te ayuda a preservar tu riqueza.</li>
-      <li><strong>Generar ingresos pasivos:</strong> Los dividendos, intereses y ganancias de capital te permiten que tu dinero trabaje por ti.</li>
-      <li><strong>Alcanzar objetivos financieros:</strong> Desde comprar una casa hasta retirarte cómodamente, la inversión disciplinada hace posible alcanzar metas.</li>
-      <li><strong>Efecto del interés compuesto:</strong> Cuanto más tiempo inviertas, mayor será el rendimiento acumulado. El tiempo es tu mejor aliado.</li>
-      <li><strong>Diversificar tu patrimonio:</strong> No depender solo de tu salario es clave para la seguridad financiera.</li>
+    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0; font-size: 18px;"><strong>⚠️ Tu dinero se está evaporando</strong></p>
+      <p style="margin: 10px 0 0; font-size: 14px;">Cada año, la inflación consume silenciosamente tu dinero. Y no, guardar dinero bajo el colchón no es una opción si quieres preservar tu riqueza.</p>
+    </div>
+
+    <h3>La Realidad: La Inflación del 3%</h3>
+    <p>La inflación en la mayoría de economías desarrolladas ronda el <strong>3% anual</strong>. Parece poco, ¿verdad? Pero es más peligrosa de lo que crees.</p>
+
+    <p>Si tienes <strong>10,000€ en una cuenta de ahorro sin rentabilidad</strong>, cada año pierdes el equivalente a lo que podías comprar con el 3% de ese dinero.</p>
+
+    <h3 style="color: #1976d2; margin-top: 20px;">La economía funciona gracias a la inflación</h3>
+    <p>Aquí está el secreto que los gobiernos y bancos centrales no quieren que sepas:</p>
+
+    <ul style="line-height: 1.8;">
+      <li><strong>Los gobiernos generan dinero constantemente:</strong> Cada vez que un banco central imprime dinero, el dinero que ya existe <strong>vale menos</strong>. Es como si repartiesen todas tus galletas entre más gente: sigues teniendo la misma cantidad de dinero, pero compra menos.</li>
+
+      <li><strong>Tu dinero se diluye:</strong> Si hay 100 billones de dinero en el mundo y crean 3 billones más, tu porción se reduce. Los gobiernos hacen esto deliberadamente para promover el crecimiento económico.</li>
+
+      <li><strong>No puedes escapar de ella:</strong> Mientras haya economía, habrá inflación. Es como la gravedad financiera. Es el costo de vivir en una sociedad moderna.</li>
+
+      <li><strong>El dinero "seguro" ya no existe:</strong> Si tu dinero no crece al menos al ritmo de la inflación, estás perdiendo. Incluso las cuentas de ahorro "seguras" pierden poder adquisitivo porque los gobiernos siguen imprimiendo dinero.</li>
     </ul>
 
-    <h3>Próximos pasos:</h3>
-    <p>Explora los <strong>Conceptos básicos</strong> para familiarizarte con ETF, acciones y fondos, y luego crea tu propia <strong>cartera de inversión</strong> personalizada.</p>
+    <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; margin: 20px 0; border-radius: 4px;">
+      <h4 style="color: #0d47a1; margin-top: 0;">💡 La Verdad Incómoda</h4>
+      <p style="margin: 10px 0;">La inflación no es el problema. <strong>La inacción es el problema.</strong></p>
+      <p style="margin: 0;">Cada año que esperas sin invertir, pierdes años de crecimiento compuesto. El tiempo es tu recurso más valioso.</p>
+    </div>
+
+    <h3 style="color: #d32f2f;">Calcula cuánto te afecta (ejemplo de las galletas)</h3>
+    <p>Introduce la cantidad que quieras "guardar" y pulsa el botón: se generará la tabla que muestra cuántas galletas (números) podrás comprar con el tiempo. La tabla se tornará más roja a medida que aumente la pérdida.</p>
+
+    <!-- TABLA DE GALLETAS (oculta por defecto) -->
+    <div id="galletasDiv" style="display: none; background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; overflow-x: auto;">
+      <table class="tabla" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Años</th>
+            <th>Tu dinero</th>
+            <th>Galletas que puedes comprar</th>
+            <th>Poder adquisitivo</th>
+            <th>Lo que perdiste</th>
+          </tr>
+        </thead>
+        <tbody id="tablaGalletas">
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size: 14px; color: #555; margin-top: 10px;"><em>💡 Nota: Cada año el precio de las galletas sube un 3%, pero tu dinero sigue siendo 10,000€. La diferencia: <strong>puedes comprar menos.</strong></em></p>
+
+    <!-- FIN TABLA GALLETAS -->
+
+    <!-- se eliminó el título secundario para mantener un único encabezado combinado -->
+
+    <!-- CALCULADORA INTERACTIVA -->
+    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <label style="display: block; margin-bottom: 10px;">
+        <strong>Dinero inicial (€):</strong><br>
+        <input type="number" id="dineroInicial" value="10000" min="0" step="100" style="width: 100%; max-width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+      </label>
+
+      <div style="margin-top: 20px;">
+        <button onclick="calcularInflacion()" style="background: #d32f2f; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px;">
+          💥 Calcular pérdidas
+        </button>
+      </div>
+    </div>
+
+    <!-- TABLA DE RESULTADOS -->
+    <div id="resultadosDiv" style="display: none; margin: 30px 0;">
+      <table class="tabla" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Años</th>
+            <th>Dinero Restante (€)</th>
+            <th>Dinero Perdido (€)</th>
+            <th>Poder adquisitivo</th>
+            <th>% Perdido</th>
+          </tr>
+        </thead>
+        <tbody id="tablaResultados">
+        </tbody>
+      </table>
+
+      <div style="background: #ffebee; border: 1px solid #ef5350; padding: 15px; border-radius: 4px; margin-top: 20px;">
+        <p id="resumenPerdida" style="font-size: 16px; margin: 0; font-weight: bold; color: #c62828;"></p>
+      </div>
+    </div>
+
+    <!-- FIN CALCULADORA -->
+
+    <h3 style="color: #388e3c; margin-top: 40px;">💪 Tienes Tres Opciones (Y Solo Una Tiene Sentido)</h3>
+
+    <div style="display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;">
+      <!-- Opción 1 -->
+      <div style="flex: 1; min-width: 250px; background: #ffebee; padding: 15px; border-radius: 8px; border: 2px solid #ef5350;">
+        <h4 style="color: #c62828; margin-top: 0;">❌ Opción 1: No hacer nada</h4>
+        <p style="margin: 10px 0;">Guarda tu dinero en una cuenta corriente. Cada año pierdes poder adquisitivo. <strong>Resultado: Ruina lenta.</strong></p>
+      </div>
+
+      <!-- Opción 2 -->
+      <div style="flex: 1; min-width: 250px; background: #fff3e0; padding: 15px; border-radius: 8px; border: 2px solid #ff9800;">
+        <h4 style="color: #e65100; margin-top: 0;">⚖️ Opción 2: Empatar la inflación</h4>
+        <p style="margin: 10px 0;">Invierte en activos que rindan el 3% anual. Mantienes el poder adquisitivo. <strong>Resultado: Supervivencia.</strong></p>
+      </div>
+
+      <!-- Opción 3 -->
+      <div style="flex: 1; min-width: 250px; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 2px solid #4caf50;">
+        <h4 style="color: #1b5e20; margin-top: 0;">✅ Opción 3: Superar la inflación</h4>
+        <p style="margin: 10px 0;">Invierte en ETF, acciones o fondos que rindan 6-8%+. Multiplicas tu dinero. <strong>Resultado: Riqueza real.</strong></p>
+      </div>
+    </div>
+
+    
+
+    <h3 style="color: #388e3c; margin-top: 40px;">✅ Tu Acción Hoy</h3>
+    <ol style="line-height: 2;">
+      <li>Acepta que tu dinero se evaporará si no haces nada</li>
+      <li>Reconoce que los gobiernos generan dinero, por eso existe la inflación (no es culpa tuya)</li>
+      <li>Protégete invirtiendo al menos al ritmo de la inflación</li>
+      <li>Busca crecer por encima de la inflación para generar riqueza real</li>
+      <li>Usa la herramienta del <strong>Gestor de Patrimonio</strong> para construir tu cartera</li>
+    </ol>
+
+    <p style="margin-top: 30px; font-size: 18px; text-align: center; font-weight: bold; color: #d32f2f;">
+      No es tarde. Empieza hoy. Tu futuro yo te lo agradecerá. 🚀
+    </p>
   </section>
+
+  <script src="nav.js"></script>
+  <script>
+    // Genera la tabla de galletas usando la cantidad introducida por el usuario
+    function generarTablaGalletas(dineroInicial) {
+      const precioGalleta = 1; // Precio inicial de una galleta
+      const inflacion = 0.03; // 3% anual
+      const anos = [0, 1, 2, 5, 10, 15, 20, 30];
+
+      let html = '';
+
+      anos.forEach(ano => {
+        const precioActual = precioGalleta * Math.pow(1 + inflacion, ano);
+        const galletasActuales = dineroInicial / precioActual;
+        const porcentajePoderNum = (galletasActuales / dineroInicial) * 100;
+        const porcentajePoder = porcentajePoderNum.toFixed(1);
+        const porcentajePerdidoNum = 100 - porcentajePoderNum;
+        const porcentajePerdido = porcentajePerdidoNum.toFixed(1);
+
+        // Color de fila que se vuelve más roja según pérdida
+        const alpha = Math.min(0.85, Math.max(0, porcentajePerdidoNum / 100));
+        const bg = `rgba(255,0,0,${alpha})`;
+        const textColor = alpha > 0.35 ? '#ffffff' : '#111';
+
+        const fila = `
+          <tr style="background: ${bg}; color: ${textColor};">
+            <td><strong>${ano === 0 ? 'Hoy' : ano + ' años'}</strong></td>
+            <td>${dineroInicial.toLocaleString('es-ES', {maximumFractionDigits:0})}€</td>
+            <td style="font-weight: bold;">${Math.round(galletasActuales)}</td>
+            <td style="font-weight: bold;">${porcentajePoder}%</td>
+            <td>${porcentajePerdido}%</td>
+          </tr>
+        `;
+
+        if (ano === 0 || ano === 1 || ano === 2 || ano === 5 || ano === 10 || ano === 15 || ano === 20 || ano === 30) {
+          html += fila;
+        }
+      });
+
+      const tabla = document.getElementById('tablaGalletas');
+      tabla.innerHTML = html;
+      document.getElementById('galletasDiv').style.display = 'block';
+    }
+
+    function calcularInflacion() {
+      const dineroInicial = parseFloat(document.getElementById('dineroInicial').value) || 10000;
+      // ocultamos la segunda tabla por si acaso
+      const resultadosDiv = document.getElementById('resultadosDiv');
+      if (resultadosDiv) resultadosDiv.style.display = 'none';
+      // Generar solo la tabla de galletas (sin la tabla de resultados)
+      generarTablaGalletas(dineroInicial);
+    }
+    
+  </script>
 
   <script src="nav.js"></script>
 </body>
