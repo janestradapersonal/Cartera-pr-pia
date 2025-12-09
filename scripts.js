@@ -12,12 +12,12 @@ const coloresBasicos = [
   "#bab0ab"
 ];
 
-// Registrar el plugin de datalabels (asegúrate de que esté incluido en index.html)
-if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+// Registrar el plugin de datalabels
+if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
   Chart.register(ChartDataLabels);
 }
 
-// Función genérica para crear un gráfico de tipo pie
+// Crear gráfico de tipo pie
 function crearPieChart(ctx, etiquetas, datos, titulo) {
   return new Chart(ctx, {
     type: "pie",
@@ -62,21 +62,20 @@ function crearPieChart(ctx, etiquetas, datos, titulo) {
   });
 }
 
-// Inicialización cuando el DOM está listo
 document.addEventListener("DOMContentLoaded", () => {
-  // Referencias a canvas
-  const ctxGlobal = document.getElementById("graficoGlobal").getContext("2d");
+  // Canvas
+  const ctxGlobal   = document.getElementById("graficoGlobal").getContext("2d");
   const ctxVariable = document.getElementById("graficoVariable").getContext("2d");
-  const ctxFija = document.getElementById("graficoFija").getContext("2d");
-  const ctxColchon = document.getElementById("graficoColchon").getContext("2d");
+  const ctxFija     = document.getElementById("graficoFija").getContext("2d");
+  const ctxColchon  = document.getElementById("graficoColchon").getContext("2d");
 
-  // Crear gráficos vacíos
-  let chartGlobal = crearPieChart(ctxGlobal, [], [], "Patrimonio global");
+  // Gráficos
+  let chartGlobal   = crearPieChart(ctxGlobal,   [], [], "Patrimonio global");
   let chartVariable = crearPieChart(ctxVariable, [], [], "Detalle renta variable");
-  let chartFija = crearPieChart(ctxFija, [], [], "Detalle renta fija");
-  let chartColchon = crearPieChart(ctxColchon, [], [], "Detalle colchón de emergencia");
+  let chartFija     = crearPieChart(ctxFija,     [], [], "Detalle renta fija");
+  let chartColchon  = crearPieChart(ctxColchon,  [], [], "Detalle colchón de emergencia");
 
-  // Función para actualizar el gráfico global según los inputs
+  // Global
   function actualizarGraficoGlobal() {
     const inputs = document.querySelectorAll(".importe-global");
     const etiquetas = [];
@@ -87,8 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (valor > 0) {
         const categoria = input.dataset.categoria;
         let nombre = "";
-        if (categoria === "colchon") nombre = "Colchón de emergencia";
-        if (categoria === "fija") nombre = "Renta fija";
+        if (categoria === "colchon")  nombre = "Colchón de emergencia";
+        if (categoria === "fija")     nombre = "Renta fija";
         if (categoria === "variable") nombre = "Renta variable";
         etiquetas.push(nombre);
         datos.push(valor);
@@ -100,14 +99,14 @@ document.addEventListener("DOMContentLoaded", () => {
     chartGlobal.update();
   }
 
-  // Función genérica para actualizar gráficos de detalle según una tabla
+  // Detalle
   function actualizarGraficoDetalle(selectorTabla, selectorInputImporte, chart, tituloBase) {
     const filas = document.querySelectorAll(selectorTabla + " tbody tr");
     const etiquetas = [];
     const datos = [];
 
     filas.forEach(fila => {
-      const nombreInput = fila.querySelector('td:nth-child(1) input');
+      const nombreInput = fila.querySelector("td:nth-child(1) input");
       const importeInput = fila.querySelector(selectorInputImporte);
       const nombre = (nombreInput && nombreInput.value.trim()) || "Sin nombre";
       const valor = importeInput ? (parseFloat(importeInput.value) || 0) : 0;
@@ -123,12 +122,12 @@ document.addEventListener("DOMContentLoaded", () => {
     chart.update();
   }
 
-  // Escuchar cambios en inputs globales
+  // Inputs globales
   document.querySelectorAll(".importe-global").forEach(input => {
     input.addEventListener("input", actualizarGraficoGlobal);
   });
 
-  // Escuchar cambios en tablas de detalle
+  // Asignar eventos a tablas de detalle
   function asignarEventosDetalle(selectorTabla, selectorClaseImporte, chart, tituloBase) {
     const tabla = document.querySelector(selectorTabla);
     tabla.addEventListener("input", (e) => {
@@ -136,18 +135,16 @@ document.addEventListener("DOMContentLoaded", () => {
         actualizarGraficoDetalle(selectorTabla, selectorClaseImporte, chart, tituloBase);
       }
     });
-    // También actualizar una vez al inicio
     actualizarGraficoDetalle(selectorTabla, selectorClaseImporte, chart, tituloBase);
   }
 
   asignarEventosDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
-  asignarEventosDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
-  asignarEventosDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
+  asignarEventosDetalle("#tablaFija",     ".importe-fija",     chartFija,     "Detalle renta fija");
+  asignarEventosDetalle("#tablaColchon",  ".importe-colchon",  chartColchon,  "Detalle colchón de emergencia");
 
-  // Actualizar gráfico global una vez al inicio
   actualizarGraficoGlobal();
 
-  // Gestión de filas: añadir y borrar con máximo 1 fila vacía
+  // Filas dinámicas
   function puedeAñadirFila(tbody) {
     let filasVacias = 0;
     tbody.querySelectorAll("tr").forEach(tr => {
@@ -176,8 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
     inputImporte.type = "number";
     inputImporte.min = "0";
     if (tipo === "variable") inputImporte.classList.add("importe-variable");
-    if (tipo === "fija") inputImporte.classList.add("importe-fija");
-    if (tipo === "colchon") inputImporte.classList.add("importe-colchon");
+    if (tipo === "fija")     inputImporte.classList.add("importe-fija");
+    if (tipo === "colchon")  inputImporte.classList.add("importe-colchon");
     tdImporte.appendChild(inputImporte);
 
     const tdAcciones = document.createElement("td");
@@ -199,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabla = document.getElementById(idTabla);
     const tbody = tabla.querySelector("tbody");
 
-    // Añadir fila
     btnAdd.addEventListener("click", () => {
       if (!puedeAñadirFila(tbody)) {
         alert("Solo puede haber una fila vacía como máximo.");
@@ -209,7 +205,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tbody.appendChild(nuevaFila);
     });
 
-    // Borrar fila y actualizar gráfico
     tbody.addEventListener("click", (e) => {
       if (e.target.classList.contains("btn-borrar")) {
         const fila = e.target.closest("tr");
@@ -220,6 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   configurarBloqueDetalle("addFilaVariable", "tablaVariable", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
-  configurarBloqueDetalle("addFilaFija", "tablaFija", "fija", chartFija, "Detalle renta fija", ".importe-fija");
-  configurarBloqueDetalle("addFilaColchon", "tablaColchon", "colchon", chartColchon, "Detalle colchón de emergencia", ".importe-colchon");
+  configurarBloqueDetalle("addFilaFija",     "tablaFija",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
+  configurarBloqueDetalle("addFilaColchon",  "tablaColchon",  "colchon",  chartColchon,  "Detalle colchón de emergencia", ".importe-colchon");
 });
