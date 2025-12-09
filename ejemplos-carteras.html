@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ejemplos de carteras - Gestor de Patrimonio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Gestor de Patrimonio</h1>
+
+  <!-- Menú desplegable -->
+  <nav class="main-nav">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-list">☰ Menú</button>
+    <ul id="nav-list" class="nav-list">
+      <li><a href="porque-invertir.html" class="nav-item" data-page="porque-invertir">1 - PORQUÉ INVERTIR</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">2 - Conceptos básicos ▼</button>
+        <ul class="sub-list">
+          <li><a href="conceptos-basicos.html#etf" class="nav-item" data-page="conceptos-basicos">ETF</a></li>
+          <li><a href="conceptos-basicos.html#acciones" class="nav-item" data-page="conceptos-basicos">Acciones</a></li>
+          <li><a href="conceptos-basicos.html#fondos" class="nav-item" data-page="conceptos-basicos">Fondos</a></li>
+        </ul>
+      </li>
+      <li><a href="index.html" class="nav-item" data-page="index">3 - Cómo crearse la cartera</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">4 - Ejemplos de carteras ▼</button>
+        <ul class="sub-list">
+          <li><a href="#nino-18" class="nav-item" data-page="ejemplos-carteras">Niño (18)</a></li>
+          <li><a href="#adulto-40" class="nav-item" data-page="ejemplos-carteras">Adulto (40)</a></li>
+          <li><a href="#abuelo-80" class="nav-item" data-page="ejemplos-carteras">Abuelo (80)</a></li>
+        </ul>
+      </li>
+      <li><a href="consejos.html" class="nav-item" data-page="consejos">5 - Consejos</a></li>
+    </ul>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <section class="bloque">
+    <h2>Ejemplos de carteras según edad y horizonte</h2>
+
+    <h3 id="nino-18">Cartera ejemplo: Niño/a de 18 años</h3>
+    <p><strong>Horizonte:</strong> 40+ años | <strong>Perfil:</strong> Muy agresivo</p>
+    <p><strong>Composición sugerida:</strong></p>
+    <ul>
+      <li>80% Renta variable (ETF global, acciones de tech)</li>
+      <li>15% Renta fija (bonos)</li>
+      <li>5% Colchón de emergencia</li>
+    </ul>
+    <p>A esta edad, el tiempo es tu mayor ventaja. Puedes asumir volatilidad sin preocuparte por fluctuaciones a corto plazo.</p>
+
+    <h3 id="adulto-40">Cartera ejemplo: Adulto de 40 años</h3>
+    <p><strong>Horizonte:</strong> 25 años | <strong>Perfil:</strong> Moderado</p>
+    <p><strong>Composición sugerida:</strong></p>
+    <ul>
+      <li>60% Renta variable (ETF diversificados)</li>
+      <li>30% Renta fija (bonos, fondos de renta fija)</li>
+      <li>10% Colchón de emergencia</li>
+    </ul>
+    <p>A los 40, buscas un balance entre crecimiento y seguridad. Probablemente tengas responsabilidades (hipoteca, familia) que justifican reducir riesgo.</p>
+
+    <h3 id="abuelo-80">Cartera ejemplo: Jubilado de 80 años</h3>
+    <p><strong>Horizonte:</strong> 10-15 años | <strong>Perfil:</strong> Conservador</p>
+    <p><strong>Composición sugerida:</strong></p>
+    <ul>
+      <li>30% Renta variable (ETF defensivos, grandes empresas)</li>
+      <li>60% Renta fija (bonos, fondos de renta fija segura)</li>
+      <li>10% Colchón de emergencia / Liquidez</li>
+    </ul>
+    <p>El objetivo ya no es crecer agresivamente, sino preservar capital y generar ingresos estables para la jubilación.</p>
+
+    <p style="margin-top: 30px;"><strong>Nota:</strong> Estos son solo ejemplos. Adapta tu cartera según tu situación personal, tolerancia al riesgo y objetivos específicos.</p>
+  </section>
+
+  <script src="nav.js"></script>
+</body>
+</html>

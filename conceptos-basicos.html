@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Conceptos básicos - Gestor de Patrimonio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Gestor de Patrimonio</h1>
+
+  <!-- Menú desplegable -->
+  <nav class="main-nav">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-list">☰ Menú</button>
+    <ul id="nav-list" class="nav-list">
+      <li><a href="porque-invertir.html" class="nav-item" data-page="porque-invertir">1 - PORQUÉ INVERTIR</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">2 - Conceptos básicos ▼</button>
+        <ul class="sub-list">
+          <li><a href="#etf" class="nav-item" data-page="conceptos-basicos">ETF</a></li>
+          <li><a href="#acciones" class="nav-item" data-page="conceptos-basicos">Acciones</a></li>
+          <li><a href="#fondos" class="nav-item" data-page="conceptos-basicos">Fondos</a></li>
+        </ul>
+      </li>
+      <li><a href="index.html" class="nav-item" data-page="index">3 - Cómo crearse la cartera</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">4 - Ejemplos de carteras ▼</button>
+        <ul class="sub-list">
+          <li><a href="ejemplos-carteras.html#nino-18" class="nav-item" data-page="ejemplos-carteras">Niño (18)</a></li>
+          <li><a href="ejemplos-carteras.html#adulto-40" class="nav-item" data-page="ejemplos-carteras">Adulto (40)</a></li>
+          <li><a href="ejemplos-carteras.html#abuelo-80" class="nav-item" data-page="ejemplos-carteras">Abuelo (80)</a></li>
+        </ul>
+      </li>
+      <li><a href="consejos.html" class="nav-item" data-page="consejos">5 - Consejos</a></li>
+    </ul>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <section class="bloque">
+    <h2>Conceptos básicos de inversión</h2>
+
+    <h3 id="etf">ETF (Exchange Traded Fund)</h3>
+    <p>Un ETF es un fondo que replica un índice (como el S&P 500 o el Ibex 35). Se compra y vende como una acción en bolsa.</p>
+    <p><strong>Ventajas:</strong> Diversificación inmediata, comisiones bajas, liquidez, transparencia.</p>
+    <p><strong>Ejemplo:</strong> Un ETF que replica el MSCI World te da exposición a empresas de todo el mundo con una sola compra.</p>
+
+    <h3 id="acciones">Acciones</h3>
+    <p>Comprar una acción significa adquirir una pequeña parte de una empresa. Como accionista, participas en sus ganancias (dividendos) y en su crecimiento.</p>
+    <p><strong>Ventajas:</strong> Potencial de revalorización alto, dividendos, influencia en decisiones empresariales.</p>
+    <p><strong>Riesgo:</strong> Mayor volatilidad, requiere conocimiento y análisis.</p>
+
+    <h3 id="fondos">Fondos de inversión</h3>
+    <p>Un fondo agrupa dinero de muchos inversores, gestionado por profesionales. El gestor decide qué comprar según la estrategia del fondo.</p>
+    <p><strong>Ventajas:</strong> Gestión profesional, diversificación, acceso a activos de difícil acceso para inversores particulares.</p>
+    <p><strong>Desventajas:</strong> Comisiones más altas que los ETF, menos transparencia día a día.</p>
+
+    <p style="margin-top: 30px; font-style: italic;"><strong>Tip:</strong> Para principiantes, los ETF suelen ser la mejor opción por su bajo coste y simplicidad. Combínalos con tus ahorros en renta fija para equilibrar riesgo.</p>
+  </section>
+
+  <script src="nav.js"></script>
+</body>
+</html>
