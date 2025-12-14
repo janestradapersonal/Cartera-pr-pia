@@ -388,21 +388,57 @@ document.addEventListener("DOMContentLoaded", () => {
     slidesContainer.addEventListener('touchend', updateActiveDot);
     // Asegurar que los inputs dentro del carrusel reciban foco en móvil
     slidesContainer.addEventListener('touchstart', (e) => {
-      const targetInput = e.target.closest && e.target.closest('input');
+      const targetInput = e.target && e.target.closest ? e.target.closest('input') : null;
+      console && console.debug && console.debug('touchstart target:', e.target, 'foundInput:', !!targetInput);
       if (targetInput) {
         // permitir que el input reciba foco sin que otros handlers interfieran
-        targetInput.focus();
+        try { targetInput.focus(); } catch (err) { /* ignore */ }
+        // stopPropagation para evitar que el contenedor trate el gesto inmediatamente
         e.stopPropagation();
       }
     }, { passive: true });
 
     slidesContainer.addEventListener('pointerdown', (e) => {
-      const targetInput = e.target.closest && e.target.closest('input');
+      const targetInput = e.target && e.target.closest ? e.target.closest('input') : null;
+      console && console.debug && console.debug('pointerdown target:', e.target, 'foundInput:', !!targetInput);
       if (targetInput) {
-        targetInput.focus();
+        try { targetInput.focus(); } catch (err) { /* ignore */ }
         e.stopPropagation();
       }
     });
+
+    // también añadir click para dispositivos que interpretan toques como clicks
+    slidesContainer.addEventListener('click', (e) => {
+      const targetInput = e.target && e.target.closest ? e.target.closest('input') : null;
+      if (targetInput) {
+        try { targetInput.focus(); } catch (err) { /* ignore */ }
+      }
+    });
+    // Evitar que el deslizamiento del carrusel quite el foco al escribir:
+    // cuando un input dentro del carrusel tiene foco, deshabilitamos el scroll del contenedor
+    const mqMobile = window.matchMedia('(max-width: 800px)');
+    function disableCarouselScrollWhileTyping() {
+      const inputs = slidesContainer.querySelectorAll('input');
+      inputs.forEach(inp => {
+        inp.addEventListener('focus', () => {
+          if (mqMobile.matches) {
+            slidesContainer.dataset.prevOverflow = slidesContainer.style.overflow || '';
+            slidesContainer.style.overflow = 'hidden';
+          }
+        });
+        inp.addEventListener('blur', () => {
+          if (mqMobile.matches) {
+            slidesContainer.style.overflow = slidesContainer.dataset.prevOverflow || 'auto';
+            delete slidesContainer.dataset.prevOverflow;
+          }
+        });
+        // También en touchstart garantizar foco
+        inp.addEventListener('touchstart', (ev) => { ev.stopPropagation(); });
+      });
+    }
+    // Llamar inicialmente y también al cambiar tamaño
+    disableCarouselScrollWhileTyping();
+    mqMobile.addEventListener && mqMobile.addEventListener('change', disableCarouselScrollWhileTyping);
     
     // Actualizar punto inicial
     updateActiveDot();
