@@ -167,6 +167,25 @@
 
   </div>
 
+  <!-- CARRUSEL MÓVIL: visible solo en pantallas pequeñas -->
+  <div class="carrusel-graficos" aria-hidden="true">
+    <div class="slides" id="slidesGraficos">
+      <div class="slide">
+        <canvas id="carouselColchon"></canvas>
+        <div class="slide-caption">Colchón de emergencia</div>
+      </div>
+      <div class="slide">
+        <canvas id="carouselFija"></canvas>
+        <div class="slide-caption">Renta fija</div>
+      </div>
+      <div class="slide">
+        <canvas id="carouselVariable"></canvas>
+        <div class="slide-caption">Renta variable</div>
+      </div>
+    </div>
+    <div class="carousel-dots" id="carouselDots" role="tablist" aria-label="Gráficos detalle"></div>
+  </div>
+
   <script src="scripts.js"></script>
   <script src="nav.js"></script>
 </body>

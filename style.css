@@ -435,3 +435,74 @@ h1 {
     margin-bottom: 15px;
   }
 }
+
+/* CARRUSEL MÓVIL PARA GRÁFICOS */
+.carrusel-graficos { display: none; }
+
+@media (max-width: 800px) {
+  /* ocultar los gráficos individuales dentro de cada bloque detalle en móvil */
+  .bloque-detalle .grafico-contenedor { display: none; }
+
+  .carrusel-graficos {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    margin: 8px auto 20px;
+  }
+
+  .carrusel-graficos .slides {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+  }
+
+  .carrusel-graficos .slide {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .carrusel-graficos .slide canvas {
+    width: 280px !important;
+    height: 280px !important;
+    max-width: 100%;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  }
+
+  .carrusel-graficos .slide-caption {
+    margin-top: 8px;
+    font-weight: 600;
+    color: #0d47a1;
+    font-size: 14px;
+  }
+
+  .carousel-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .carousel-dots button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(13,71,161,0.18);
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .carousel-dots button.active {
+    background: #0d47a1;
+    box-shadow: 0 2px 6px rgba(13,71,161,0.2);
+  }
+}

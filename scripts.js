@@ -68,12 +68,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const ctxVariable = document.getElementById("graficoVariable").getContext("2d");
   const ctxFija     = document.getElementById("graficoFija").getContext("2d");
   const ctxColchon  = document.getElementById("graficoColchon").getContext("2d");
+  // Canvas para carrusel móvil (si existen)
+  const carouselColchonEl = document.getElementById("carouselColchon");
+  const carouselFijaEl = document.getElementById("carouselFija");
+  const carouselVariableEl = document.getElementById("carouselVariable");
+  const carouselExists = carouselColchonEl && carouselFijaEl && carouselVariableEl;
 
   // Gráficos
   let chartGlobal   = crearPieChart(ctxGlobal,   [], [], "Patrimonio global");
   let chartVariable = crearPieChart(ctxVariable, [], [], "Detalle renta variable");
   let chartFija     = crearPieChart(ctxFija,     [], [], "Detalle renta fija");
   let chartColchon  = crearPieChart(ctxColchon,  [], [], "Detalle colchón de emergencia");
+
+  // Charts para carrusel (móvil)
+  let carouselChartColchon = null;
+  let carouselChartFija = null;
+  let carouselChartVariable = null;
+  if (carouselExists) {
+    carouselChartColchon = crearPieChart(carouselColchonEl.getContext('2d'), [], [], 'Colchón de emergencia');
+    carouselChartFija = crearPieChart(carouselFijaEl.getContext('2d'), [], [], 'Detalle renta fija');
+    carouselChartVariable = crearPieChart(carouselVariableEl.getContext('2d'), [], [], 'Detalle renta variable');
+  }
 
   // Global
   function actualizarGraficoGlobal() {
@@ -120,6 +135,28 @@ document.addEventListener("DOMContentLoaded", () => {
     chart.data.datasets[0].data = datos;
     chart.options.plugins.title.text = tituloBase;
     chart.update();
+
+    // Si existe el carrusel, actualizar también la versión móvil correspondiente
+    if (carouselExists) {
+      if (selectorTabla === '#tablaVariable' && carouselChartVariable) {
+        carouselChartVariable.data.labels = etiquetas;
+        carouselChartVariable.data.datasets[0].data = datos;
+        carouselChartVariable.options.plugins.title.text = tituloBase;
+        carouselChartVariable.update();
+      }
+      if (selectorTabla === '#tablaFija' && carouselChartFija) {
+        carouselChartFija.data.labels = etiquetas;
+        carouselChartFija.data.datasets[0].data = datos;
+        carouselChartFija.options.plugins.title.text = tituloBase;
+        carouselChartFija.update();
+      }
+      if (selectorTabla === '#tablaColchon' && carouselChartColchon) {
+        carouselChartColchon.data.labels = etiquetas;
+        carouselChartColchon.data.datasets[0].data = datos;
+        carouselChartColchon.options.plugins.title.text = tituloBase;
+        carouselChartColchon.update();
+      }
+    }
   }
 
   // Inputs globales
@@ -217,4 +254,48 @@ document.addEventListener("DOMContentLoaded", () => {
   configurarBloqueDetalle("addFilaVariable", "tablaVariable", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
   configurarBloqueDetalle("addFilaFija",     "tablaFija",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
   configurarBloqueDetalle("addFilaColchon",  "tablaColchon",  "colchon",  chartColchon,  "Detalle colchón de emergencia", ".importe-colchon");
+
+  // Inicializar carrusel (puntos y sincronización de índice) si existe
+  if (carouselExists) {
+    const slides = document.getElementById('slidesGraficos');
+    const dotsContainer = document.getElementById('carouselDots');
+    const slidesCount = slides.querySelectorAll('.slide').length;
+
+    // Crear puntos
+    const dots = [];
+    for (let i = 0; i < slidesCount; i++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', 'Ir al slide ' + (i+1));
+      if (i === 0) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        slides.scrollTo({ left: i * slides.clientWidth, behavior: 'smooth' });
+      });
+      dotsContainer.appendChild(btn);
+      dots.push(btn);
+    }
+
+    // Actualizar punto activo al hacer scroll
+    let ticking = false;
+    slides.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const idx = Math.round(slides.scrollLeft / slides.clientWidth);
+          dots.forEach((d, j) => d.classList.toggle('active', j === idx));
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    // Hacer que el carrusel sea accesible via toque y mantener aria-hidden del contenido principal
+    // Marcar carrusel visible para lectores cuando el viewport sea pequeño
+    function checkCarouselVisibility() {
+      const isMobile = window.matchMedia('(max-width: 800px)').matches;
+      const carr = document.querySelector('.carrusel-graficos');
+      if (carr) carr.setAttribute('aria-hidden', String(!isMobile));
+    }
+    checkCarouselVisibility();
+    window.addEventListener('resize', checkCarouselVisibility);
+  }
 });
