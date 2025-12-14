@@ -63,11 +63,12 @@ function crearPieChart(ctx, etiquetas, datos, titulo) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Canvas
+  // Canvas escritorio
   const ctxGlobal   = document.getElementById("graficoGlobal").getContext("2d");
   const ctxVariable = document.getElementById("graficoVariable").getContext("2d");
   const ctxFija     = document.getElementById("graficoFija").getContext("2d");
   const ctxColchon  = document.getElementById("graficoColchon").getContext("2d");
+  
   // Canvas para carrusel móvil (si existen)
   const carouselColchonEl = document.getElementById("carouselColchon");
   const carouselFijaEl = document.getElementById("carouselFija");
@@ -254,6 +255,96 @@ document.addEventListener("DOMContentLoaded", () => {
   configurarBloqueDetalle("addFilaVariable", "tablaVariable", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
   configurarBloqueDetalle("addFilaFija",     "tablaFija",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
   configurarBloqueDetalle("addFilaColchon",  "tablaColchon",  "colchon",  chartColchon,  "Detalle colchón de emergencia", ".importe-colchon");
+
+  // Configurar tablas del carrusel móvil (sincronizar datos con las tablas originales)
+  if (carouselExists) {
+    // Sincronizar tablas del carrusel con las originales
+    const tblCarouselColchon = document.getElementById("tablaColchonCarousel");
+    const tblCarouselFija = document.getElementById("tablaFijaCarousel");
+    const tblCarouselVariable = document.getElementById("tablaVariableCarousel");
+
+    // Función para copiar filas de una tabla a otra
+    function sincronizarTablas() {
+      const tblOrigColchon = document.getElementById("tablaColchon");
+      const tblOrigFija = document.getElementById("tablaFija");
+      const tblOrigVariable = document.getElementById("tablaVariable");
+
+      // Colchón
+      tblCarouselColchon.querySelector("tbody").innerHTML = tblOrigColchon.querySelector("tbody").innerHTML;
+      // Fija
+      tblCarouselFija.querySelector("tbody").innerHTML = tblOrigFija.querySelector("tbody").innerHTML;
+      // Variable
+      tblCarouselVariable.querySelector("tbody").innerHTML = tblOrigVariable.querySelector("tbody").innerHTML;
+    }
+
+    // Sincronizar al inicio
+    sincronizarTablas();
+
+    // Observar cambios en las tablas originales y sincronizar
+    const observerConfig = { childList: true, subtree: true };
+    const observer = new MutationObserver(() => {
+      sincronizarTablas();
+    });
+
+    document.getElementById("tablaColchon").addEventListener("input", sincronizarTablas);
+    document.getElementById("tablaFija").addEventListener("input", sincronizarTablas);
+    document.getElementById("tablaVariable").addEventListener("input", sincronizarTablas);
+
+    // Configurar botones de añadir fila en carrusel
+    configurarBloqueDetalle("addFilaColchonCarousel", "tablaColchonCarousel", "colchon", chartColchon, "Detalle colchón de emergencia", ".importe-colchon");
+    configurarBloqueDetalle("addFilaFijaCarousel",     "tablaFijaCarousel",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
+    configurarBloqueDetalle("addFilaVariableCarousel", "tablaVariableCarousel", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
+
+    // Cuando cambian las tablas del carrusel, actualizar también las originales
+    tblCarouselColchon.addEventListener("input", (e) => {
+      const tbody = tblCarouselColchon.querySelector("tbody");
+      document.getElementById("tablaColchon").querySelector("tbody").innerHTML = tbody.innerHTML;
+      sincronizarTablas();
+      actualizarGraficoDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
+    });
+
+    tblCarouselFija.addEventListener("input", (e) => {
+      const tbody = tblCarouselFija.querySelector("tbody");
+      document.getElementById("tablaFija").querySelector("tbody").innerHTML = tbody.innerHTML;
+      sincronizarTablas();
+      actualizarGraficoDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
+    });
+
+    tblCarouselVariable.addEventListener("input", (e) => {
+      const tbody = tblCarouselVariable.querySelector("tbody");
+      document.getElementById("tablaVariable").querySelector("tbody").innerHTML = tbody.innerHTML;
+      sincronizarTablas();
+      actualizarGraficoDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
+    });
+
+    // También sincronizar cuando se borran filas
+    tblCarouselColchon.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btn-borrar")) {
+        setTimeout(() => {
+          document.getElementById("tablaColchon").querySelector("tbody").innerHTML = tblCarouselColchon.querySelector("tbody").innerHTML;
+          actualizarGraficoDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
+        }, 100);
+      }
+    });
+
+    tblCarouselFija.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btn-borrar")) {
+        setTimeout(() => {
+          document.getElementById("tablaFija").querySelector("tbody").innerHTML = tblCarouselFija.querySelector("tbody").innerHTML;
+          actualizarGraficoDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
+        }, 100);
+      }
+    });
+
+    tblCarouselVariable.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btn-borrar")) {
+        setTimeout(() => {
+          document.getElementById("tablaVariable").querySelector("tbody").innerHTML = tblCarouselVariable.querySelector("tbody").innerHTML;
+          actualizarGraficoDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
+        }, 100);
+      }
+    });
+  }
 
   // Inicializar carrusel (puntos y sincronización de índice) si existe
   if (carouselExists) {

@@ -232,7 +232,7 @@ h1 {
     display: inline-block; 
   }
 
-  /* Ocultar la mini-tab en modo móvil (solo mostrar en scrolling en desktop) */
+  /* Ocultar completamente la mini-tab en móvil */
   .main-nav .mini-tab {
     display: none !important;
   }
@@ -390,6 +390,11 @@ h1 {
     flex-direction: column;
   }
 
+  /* En móvil, ocultar los bloques detalle originales */
+  .bloque-detalle {
+    display: none;
+  }
+
   /* ocultar los gráficos individuales dentro de cada bloque detalle en móvil */
   .bloque-detalle .grafico-contenedor { display: none; }
 
@@ -461,26 +466,56 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 15px 10px;
+    box-sizing: border-box;
+    background: white;
+  }
+
+  .carrusel-graficos .slide h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #0d47a1;
+  }
+
+  /* Tabla dentro del carrusel */
+  .tabla-carousel {
+    width: 100%;
+    max-width: 100%;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .tabla-carousel th,
+  .tabla-carousel td {
+    font-size: 11px;
+    padding: 5px 4px;
+  }
+
+  .tabla-carousel input[type="number"],
+  .tabla-carousel input[type="text"] {
+    font-size: 11px;
+    padding: 3px;
+    width: 100%;
     box-sizing: border-box;
   }
 
   .carrusel-graficos .slide canvas {
     width: 100% !important;
     height: auto !important;
-    max-width: 300px;
-    max-height: 300px;
+    max-width: 280px;
+    max-height: 280px;
     border-radius: 8px;
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-top: 10px;
   }
 
   .carrusel-graficos .slide-caption {
-    margin-top: 12px;
+    margin-top: 8px;
     font-weight: 600;
     color: #0d47a1;
-    font-size: 14px;
+    font-size: 12px;
     text-align: center;
   }
 

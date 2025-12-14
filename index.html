@@ -170,17 +170,86 @@
   <!-- CARRUSEL MÓVIL: visible solo en pantallas pequeñas -->
   <div class="carrusel-graficos" aria-hidden="true">
     <div class="slides" id="slidesGraficos">
+      <!-- SLIDE 1: COLCHÓN -->
       <div class="slide">
+        <h3>Colchón de emergencia</h3>
+        <button type="button" class="btn" id="addFilaColchonCarousel">Añadir fila</button>
+        <table id="tablaColchonCarousel" class="tabla tabla-carousel">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Importe (€)</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" value="Cuenta ahorro" /></td>
+              <td><input type="number" class="importe-colchon" value="300" min="0" /></td>
+              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+            </tr>
+          </tbody>
+        </table>
         <canvas id="carouselColchon"></canvas>
-        <div class="slide-caption">Colchón de emergencia</div>
+        <div class="slide-caption">Gráfico colchón</div>
       </div>
+
+      <!-- SLIDE 2: RENTA FIJA -->
       <div class="slide">
+        <h3>Renta fija</h3>
+        <button type="button" class="btn" id="addFilaFijaCarousel">Añadir fila</button>
+        <table id="tablaFijaCarousel" class="tabla tabla-carousel">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Importe (€)</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" value="Bono gobierno" /></td>
+              <td><input type="number" class="importe-fija" value="200" min="0" /></td>
+              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+            </tr>
+          </tbody>
+        </table>
         <canvas id="carouselFija"></canvas>
-        <div class="slide-caption">Renta fija</div>
+        <div class="slide-caption">Gráfico renta fija</div>
       </div>
+
+      <!-- SLIDE 3: RENTA VARIABLE -->
       <div class="slide">
+        <h3>Renta variable</h3>
+        <button type="button" class="btn" id="addFilaVariableCarousel">Añadir fila</button>
+        <table id="tablaVariableCarousel" class="tabla tabla-carousel">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Importe (€)</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" value="Fondo oro" /></td>
+              <td><input type="number" class="importe-variable" value="200" min="0" /></td>
+              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="MSCI World" /></td>
+              <td><input type="number" class="importe-variable" value="200" min="0" /></td>
+              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+            </tr>
+            <tr>
+              <td><input type="text" value="S&P 500" /></td>
+              <td><input type="number" class="importe-variable" value="100" min="0" /></td>
+              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
+            </tr>
+          </tbody>
+        </table>
         <canvas id="carouselVariable"></canvas>
-        <div class="slide-caption">Renta variable</div>
+        <div class="slide-caption">Gráfico renta variable</div>
       </div>
     </div>
     <div class="carousel-dots" id="carouselDots" role="tablist" aria-label="Gráficos detalle"></div>
