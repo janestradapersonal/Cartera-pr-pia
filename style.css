@@ -471,45 +471,65 @@ h1 {
 #graficoVariable{ border: 3px solid #e15759; border-radius: 8px; }
 /* ------------------------------------------------------------------------- */
 
-/* Tabla principal: pintar filas por categoría (desktop y móvil) */
+/* Tabla principal: tonos intensos (que coinciden con los quesitos) */
 #tablaGlobal tbody tr.fila-colchon td {
-  background: rgba(13, 72, 161, 0.5);
-  color:  #24262a;
+  background: #1565c0 !important;
+  color: #ffffff !important;
 }
-#tablaGlobal tbody tr.fila-colchon td:first-child {
-  font-weight: 600;
-}
+#tablaGlobal tbody tr.fila-colchon td:first-child { font-weight: 700; }
 
 #tablaGlobal tbody tr.fila-fija td {
-  background: rgba(39, 95, 33, 0.501);
-  color: #133d1a;
+  background: #2e7d32 !important;
+  color: #ffffff !important;
 }
-#tablaGlobal tbody tr.fila-fija td:first-child {
-  font-weight: 600;
-}
+#tablaGlobal tbody tr.fila-fija td:first-child { font-weight: 700; }
 
 #tablaGlobal tbody tr.fila-variable td {
-  background: rgba(209, 21, 21, 0.495);
-  color: #3d0b0b;
+  background: #c62828 !important;
+  color: #ffffff !important;
 }
-#tablaGlobal tbody tr.fila-variable td:first-child {
-  font-weight: 600;
-}
+#tablaGlobal tbody tr.fila-variable td:first-child { font-weight: 700; }
 
-/* Inputs dentro de la tabla: mantener fondo blanco para legibilidad pero sin borde fuerte */
-#tablaGlobal input[type="number"] {
+/* Inputs dentro de la tabla: fondo blanco para legibilidad con borde del color del bloque */
+#tablaGlobal tbody tr.fila-colchon td input[type="number"],
+#tablaGlobal tbody tr.fila-colchon td input[type="text"] {
   background: #fff;
-  border: 1px solid rgba(0,0,0,0.12);
+  border: 2px solid #115aaa;
   border-radius: 6px;
   padding: 6px 8px;
+  color: #000;
+}
+#tablaGlobal tbody tr.fila-fija td input[type="number"],
+#tablaGlobal tbody tr.fila-fija td input[type="text"] {
+  background: #fff;
+  border: 2px solid #1b5e20;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #000;
+}
+#tablaGlobal tbody tr.fila-variable td input[type="number"],
+#tablaGlobal tbody tr.fila-variable td input[type="text"] {
+  background: #fff;
+  border: 2px solid #a71c1c;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #000;
 }
 
-/* En móvil reforzar el relleno para que se vea más el color */
+/* En móvil, reforzar intensidad (mantener igual que escritorio) */
 @media (max-width: 800px) {
-  #tablaGlobal tbody tr.fila-colchon td { background: rgba(13,71,161,0.5); }
-  #tablaGlobal tbody tr.fila-fija td   { background: rgba(29, 207, 9, 0.5); }
-  #tablaGlobal tbody tr.fila-variable td{ background: rgba(176,24,24,0.5); }
+  #tablaGlobal tbody tr.fila-colchon td { background: #1565c0 !important; }
+  #tablaGlobal tbody tr.fila-fija td   { background: #2e7d32 !important; }
+  #tablaGlobal tbody tr.fila-variable td{ background: #c62828 !important; }
 }
+
+/* Botones en los bloques (escritorio): usar color del recuadro */
+.bloque-colchon .btn, .bloque-colchon .btn-borrar { background-color: #1565c0; border-color: #115aaa; color: #fff; }
+.bloque-colchon .btn:hover { background-color: #0f4fa8; }
+.bloque-fija .btn, .bloque-fija .btn-borrar     { background-color: #2e7d32; border-color: #1b5e20; color: #fff; }
+.bloque-fija .btn:hover { background-color: #1b5e20; }
+.bloque-variable .btn, .bloque-variable .btn-borrar { background-color: #c62828; border-color: #a71c1c; color: #fff; }
+.bloque-variable .btn:hover { background-color: #b71c1c; }
 
 /* Responsive: en pantallas pequeñas se apilan */
 @media (max-width: 800px) {
