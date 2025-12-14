@@ -232,6 +232,11 @@ h1 {
     display: inline-block; 
   }
 
+  /* Ocultar la mini-tab en modo móvil (solo mostrar en scrolling en desktop) */
+  .main-nav .mini-tab {
+    display: none !important;
+  }
+
   /* Panel lateral deslizable */
   .nav-list { 
     display: block;
@@ -417,18 +422,22 @@ h1 {
     display: block;
     width: 100%;
     margin: 20px auto;
-    padding: 0 10px;
+    padding: 0;
     box-sizing: border-box;
   }
 
   .carrusel-graficos .slides {
     display: flex;
     overflow-x: auto;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     gap: 0;
-    border-radius: 8px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    scroll-padding: 0;
   }
 
   .carrusel-graficos .slides::-webkit-scrollbar {
@@ -447,26 +456,28 @@ h1 {
 
   .carrusel-graficos .slide {
     flex: 0 0 100%;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px 5px;
+    padding: 15px 10px;
+    box-sizing: border-box;
   }
 
   .carrusel-graficos .slide canvas {
     width: 100% !important;
     height: auto !important;
-    max-width: 320px;
-    max-height: 320px;
+    max-width: 300px;
+    max-height: 300px;
     border-radius: 8px;
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
   .carrusel-graficos .slide-caption {
-    margin-top: 10px;
+    margin-top: 12px;
     font-weight: 600;
     color: #0d47a1;
     font-size: 14px;
@@ -478,7 +489,7 @@ h1 {
     gap: 8px;
     justify-content: center;
     margin-top: 15px;
-    padding: 0 10px;
+    padding: 0 10px 10px;
   }
 
   .carousel-dots button {

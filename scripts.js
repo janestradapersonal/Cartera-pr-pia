@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (carouselExists) {
     const slidesContainer = document.getElementById('slidesGraficos');
     const dotsContainer = document.getElementById('carouselDots');
-    const slides = slidesContainer.querySelectorAll('.slide');
+    const slides = Array.from(slidesContainer.querySelectorAll('.slide'));
     const slidesCount = slides.length;
 
     // Crear puntos
@@ -270,27 +270,37 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.setAttribute('aria-label', 'Slide ' + (i+1) + ' de ' + slidesCount);
       if (i === 0) btn.classList.add('active');
       btn.addEventListener('click', () => {
-        // Desplazar al slide correspondiente
-        const offset = i * slides[0].offsetWidth;
-        slidesContainer.scrollLeft = offset;
+        // Usar requestAnimationFrame para asegurar que el scroll ocurra después del render
+        const slideEl = slides[i];
+        if (slideEl) {
+          slideEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
       });
       dotsContainer.appendChild(btn);
       dots.push(btn);
     }
 
     // Actualizar punto activo al hacer scroll en el carrusel
+    let scrollTimeout;
     function updateActiveDot() {
-      const scrollLeft = slidesContainer.scrollLeft;
-      const slideWidth = slides[0] ? slides[0].offsetWidth : 1;
-      const activeIndex = Math.round(scrollLeft / slideWidth);
-      
-      dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === activeIndex);
-      });
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const scrollLeft = slidesContainer.scrollLeft;
+        const slideWidth = slides[0] ? slides[0].offsetWidth : 1;
+        const activeIndex = Math.round(scrollLeft / slideWidth);
+        const clampedIndex = Math.max(0, Math.min(activeIndex, slidesCount - 1));
+        
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === clampedIndex);
+        });
+      }, 50);
     }
 
     slidesContainer.addEventListener('scroll', updateActiveDot);
     slidesContainer.addEventListener('touchend', updateActiveDot);
+    
+    // Actualizar punto inicial
+    updateActiveDot();
 
     // Hacer que el carrusel sea visible/oculto según el tamaño de pantalla
     function updateCarouselVisibility() {
