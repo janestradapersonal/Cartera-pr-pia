@@ -257,45 +257,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Inicializar carrusel (puntos y sincronización de índice) si existe
   if (carouselExists) {
-    const slides = document.getElementById('slidesGraficos');
+    const slidesContainer = document.getElementById('slidesGraficos');
     const dotsContainer = document.getElementById('carouselDots');
-    const slidesCount = slides.querySelectorAll('.slide').length;
+    const slides = slidesContainer.querySelectorAll('.slide');
+    const slidesCount = slides.length;
 
     // Crear puntos
     const dots = [];
     for (let i = 0; i < slidesCount; i++) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.setAttribute('aria-label', 'Ir al slide ' + (i+1));
+      btn.setAttribute('aria-label', 'Slide ' + (i+1) + ' de ' + slidesCount);
       if (i === 0) btn.classList.add('active');
       btn.addEventListener('click', () => {
-        slides.scrollTo({ left: i * slides.clientWidth, behavior: 'smooth' });
+        // Desplazar al slide correspondiente
+        const offset = i * slides[0].offsetWidth;
+        slidesContainer.scrollLeft = offset;
       });
       dotsContainer.appendChild(btn);
       dots.push(btn);
     }
 
-    // Actualizar punto activo al hacer scroll
-    let ticking = false;
-    slides.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const idx = Math.round(slides.scrollLeft / slides.clientWidth);
-          dots.forEach((d, j) => d.classList.toggle('active', j === idx));
-          ticking = false;
-        });
-        ticking = true;
-      }
-    });
+    // Actualizar punto activo al hacer scroll en el carrusel
+    function updateActiveDot() {
+      const scrollLeft = slidesContainer.scrollLeft;
+      const slideWidth = slides[0] ? slides[0].offsetWidth : 1;
+      const activeIndex = Math.round(scrollLeft / slideWidth);
+      
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIndex);
+      });
+    }
 
-    // Hacer que el carrusel sea accesible via toque y mantener aria-hidden del contenido principal
-    // Marcar carrusel visible para lectores cuando el viewport sea pequeño
-    function checkCarouselVisibility() {
+    slidesContainer.addEventListener('scroll', updateActiveDot);
+    slidesContainer.addEventListener('touchend', updateActiveDot);
+
+    // Hacer que el carrusel sea visible/oculto según el tamaño de pantalla
+    function updateCarouselVisibility() {
       const isMobile = window.matchMedia('(max-width: 800px)').matches;
       const carr = document.querySelector('.carrusel-graficos');
-      if (carr) carr.setAttribute('aria-hidden', String(!isMobile));
+      if (carr) {
+        carr.setAttribute('aria-hidden', String(!isMobile));
+      }
     }
-    checkCarouselVisibility();
-    window.addEventListener('resize', checkCarouselVisibility);
+    updateCarouselVisibility();
+    window.addEventListener('resize', updateCarouselVisibility);
   }
 });

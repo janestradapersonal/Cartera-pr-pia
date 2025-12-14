@@ -376,11 +376,17 @@ h1 {
   flex: 1 1 0;
 }
 
+/* CARRUSEL MÓVIL PARA GRÁFICOS - Base (oculto por defecto) */
+.carrusel-graficos { display: none; }
+
 /* Responsive: en pantallas pequeñas se apilan */
 @media (max-width: 800px) {
   .fila-detalle {
     flex-direction: column;
   }
+
+  /* ocultar los gráficos individuales dentro de cada bloque detalle en móvil */
+  .bloque-detalle .grafico-contenedor { display: none; }
 
   .grafico-contenedor {
     width: 100%;
@@ -404,6 +410,95 @@ h1 {
   .tabla input[type="text"] {
     font-size: 12px;
     padding: 3px;
+  }
+
+  /* CARRUSEL MÓVIL PARA GRÁFICOS */
+  .carrusel-graficos {
+    display: block;
+    width: 100%;
+    margin: 20px auto;
+    padding: 0 10px;
+    box-sizing: border-box;
+  }
+
+  .carrusel-graficos .slides {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+    border-radius: 8px;
+  }
+
+  .carrusel-graficos .slides::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .carrusel-graficos .slides::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 3px;
+  }
+
+  .carrusel-graficos .slides::-webkit-scrollbar-thumb {
+    background: rgba(13,71,161,0.2);
+    border-radius: 3px;
+  }
+
+  .carrusel-graficos .slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 5px;
+  }
+
+  .carrusel-graficos .slide canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 320px;
+    max-height: 320px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .carrusel-graficos .slide-caption {
+    margin-top: 10px;
+    font-weight: 600;
+    color: #0d47a1;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .carousel-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 15px;
+    padding: 0 10px;
+  }
+
+  .carousel-dots button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(13,71,161,0.25);
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .carousel-dots button:hover {
+    transform: scale(1.2);
+  }
+
+  .carousel-dots button.active {
+    background: #0d47a1;
+    box-shadow: 0 2px 8px rgba(13,71,161,0.3);
   }
 }
 
@@ -433,76 +528,5 @@ h1 {
   .bloque {
     padding: 10px;
     margin-bottom: 15px;
-  }
-}
-
-/* CARRUSEL MÓVIL PARA GRÁFICOS */
-.carrusel-graficos { display: none; }
-
-@media (max-width: 800px) {
-  /* ocultar los gráficos individuales dentro de cada bloque detalle en móvil */
-  .bloque-detalle .grafico-contenedor { display: none; }
-
-  .carrusel-graficos {
-    display: block;
-    width: 100%;
-    max-width: 480px;
-    margin: 8px auto 20px;
-  }
-
-  .carrusel-graficos .slides {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    gap: 12px;
-  }
-
-  .carrusel-graficos .slide {
-    flex: 0 0 100%;
-    scroll-snap-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-  }
-
-  .carrusel-graficos .slide canvas {
-    width: 280px !important;
-    height: 280px !important;
-    max-width: 100%;
-    border-radius: 8px;
-    background: white;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-  }
-
-  .carrusel-graficos .slide-caption {
-    margin-top: 8px;
-    font-weight: 600;
-    color: #0d47a1;
-    font-size: 14px;
-  }
-
-  .carousel-dots {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 12px;
-  }
-
-  .carousel-dots button {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(13,71,161,0.18);
-    padding: 0;
-    cursor: pointer;
-  }
-
-  .carousel-dots button.active {
-    background: #0d47a1;
-    box-shadow: 0 2px 6px rgba(13,71,161,0.2);
   }
 }
