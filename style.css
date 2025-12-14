@@ -478,6 +478,148 @@ h1 {
     color: #0d47a1;
   }
 
+  /* Colores por categoría (títulos y borde del bloque en escritorio) */
+  h2.titulo-variable,
+  .carrusel-graficos .slide h3.titulo-variable {
+    color: #e15759;
+  }
+
+  h2.titulo-fija,
+  .carrusel-graficos .slide h3.titulo-fija {
+    color: #f28e2b;
+  }
+
+  h2.titulo-colchon,
+  .carrusel-graficos .slide h3.titulo-colchon {
+    color: #4e79a7;
+  }
+
+  /* Bordes coloridos en escritorio para identificar bloques */
+  .bloque-colchon {
+    border-left: 6px solid #4e79a7;
+    padding-left: 12px;
+  }
+
+  .bloque-fija {
+    border-left: 6px solid #f28e2b;
+    padding-left: 12px;
+  }
+
+  .bloque-variable {
+    border-left: 6px solid #e15759;
+    padding-left: 12px;
+  }
+
+  /* Fondo sutil y encabezados coloreados para los recuadros (escritorio) */
+  .bloque-colchon {
+    background: rgba(78,121,167,0.04);
+  }
+  .bloque-colchon .tabla thead th {
+    background: rgba(78,121,167,0.06);
+  }
+
+  .bloque-fija {
+    background: rgba(242,142,43,0.04);
+  }
+  .bloque-fija .tabla thead th {
+    background: rgba(242,142,43,0.06);
+  }
+
+  .bloque-variable {
+    background: rgba(225,87,89,0.04);
+  }
+  .bloque-variable .tabla thead th {
+    background: rgba(225,87,89,0.06);
+  }
+
+  /* Estilos para slides del carrusel (móvil) */
+  .carrusel-graficos .slide.slide-colchon {
+    border: 1px solid rgba(78,121,167,0.18);
+    background: rgba(78,121,167,0.03);
+  }
+  .carrusel-graficos .slide.slide-colchon .tabla thead th {
+    background: rgba(78,121,167,0.06);
+  }
+
+  .carrusel-graficos .slide.slide-fija {
+    border: 1px solid rgba(242,142,43,0.18);
+    background: rgba(242,142,43,0.03);
+  }
+  .carrusel-graficos .slide.slide-fija .tabla thead th {
+    background: rgba(242,142,43,0.06);
+  }
+
+  .carrusel-graficos .slide.slide-variable {
+    border: 1px solid rgba(225,87,89,0.18);
+    background: rgba(225,87,89,0.03);
+  }
+  .carrusel-graficos .slide.slide-variable .tabla thead th {
+    background: rgba(225,87,89,0.06);
+  }
+
+  /* Bordes de canvas por categoría (carrusel y escritorio) */
+  #carouselVariable, #graficoVariable {
+    border: 3px solid #e15759;
+    border-radius: 8px;
+  }
+
+  #carouselFija, #graficoFija {
+    border: 3px solid #f28e2b;
+    border-radius: 8px;
+  }
+
+  #carouselColchon, #graficoColchon {
+    border: 3px solid #4e79a7;
+    border-radius: 8px;
+  }
+
+  /* Contenedores de gráfico en escritorio: padding y fondo ligero con borde coloreado */
+  .bloque-colchon .grafico-contenedor {
+    padding: 12px;
+    background: rgba(78,121,167,0.02);
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 10px;
+  }
+
+  .bloque-fija .grafico-contenedor {
+    padding: 12px;
+    background: rgba(242,142,43,0.02);
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 10px;
+  }
+
+  .bloque-variable .grafico-contenedor {
+    padding: 12px;
+    background: rgba(225,87,89,0.02);
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 10px;
+  }
+
+  /* Canvas dentro de slides: borde más pronunciado y sombra ligera en móvil */
+  .carrusel-graficos .slide.slide-colchon canvas {
+    border: 3px solid #4e79a7;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(78,121,167,0.06);
+    background: #fff;
+  }
+
+  .carrusel-graficos .slide.slide-fija canvas {
+    border: 3px solid #f28e2b;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(242,142,43,0.06);
+    background: #fff;
+  }
+
+  .carrusel-graficos .slide.slide-variable canvas {
+    border: 3px solid #e15759;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(225,87,89,0.06);
+    background: #fff;
+  }
+
   /* Tabla dentro del carrusel */
   .tabla-carousel {
     width: 100%;

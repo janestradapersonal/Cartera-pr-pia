@@ -81,8 +81,8 @@
   <div class="fila-detalle">
 
     <!-- 1: COLCHÓN (IZQUIERDA) -->
-    <section class="bloque bloque-detalle">
-      <h2>Detalle colchón de emergencia</h2>
+    <section class="bloque bloque-detalle bloque-colchon">
+      <h2 class="titulo-colchon">Detalle colchón de emergencia</h2>
       <button type="button" class="btn" id="addFilaColchon">Añadir fila</button>
       <table id="tablaColchon" class="tabla">
         <thead>
@@ -106,8 +106,8 @@
     </section>
 
     <!-- 2: RENTA FIJA (CENTRO) -->
-    <section class="bloque bloque-detalle">
-      <h2>Detalle renta fija</h2>
+    <section class="bloque bloque-detalle bloque-fija">
+      <h2 class="titulo-fija">Detalle renta fija</h2>
       <button type="button" class="btn" id="addFilaFija">Añadir fila</button>
       <table id="tablaFija" class="tabla">
         <thead>
@@ -131,8 +131,8 @@
     </section>
 
     <!-- 3: RENTA VARIABLE (DERECHA) -->
-    <section class="bloque bloque-detalle">
-      <h2>Detalle renta variable</h2>
+    <section class="bloque bloque-detalle bloque-variable">
+      <h2 class="titulo-variable">Detalle renta variable</h2>
       <button type="button" class="btn" id="addFilaVariable">Añadir fila</button>
       <table id="tablaVariable" class="tabla">
         <thead>
@@ -171,8 +171,8 @@
   <div class="carrusel-graficos" aria-hidden="true">
     <div class="slides" id="slidesGraficos">
       <!-- SLIDE 1: COLCHÓN -->
-      <div class="slide">
-        <h3>Colchón de emergencia</h3>
+      <div class="slide slide-colchon">
+        <h3 class="titulo-colchon">Colchón de emergencia</h3>
         <button type="button" class="btn" id="addFilaColchonCarousel">Añadir fila</button>
         <table id="tablaColchonCarousel" class="tabla tabla-carousel">
           <thead>
@@ -195,8 +195,8 @@
       </div>
 
       <!-- SLIDE 2: RENTA FIJA -->
-      <div class="slide">
-        <h3>Renta fija</h3>
+      <div class="slide slide-fija">
+        <h3 class="titulo-fija">Renta fija</h3>
         <button type="button" class="btn" id="addFilaFijaCarousel">Añadir fila</button>
         <table id="tablaFijaCarousel" class="tabla tabla-carousel">
           <thead>
@@ -219,8 +219,8 @@
       </div>
 
       <!-- SLIDE 3: RENTA VARIABLE -->
-      <div class="slide">
-        <h3>Renta variable</h3>
+      <div class="slide slide-variable">
+        <h3 class="titulo-variable">Renta variable</h3>
         <button type="button" class="btn" id="addFilaVariableCarousel">Añadir fila</button>
         <table id="tablaVariableCarousel" class="tabla tabla-carousel">
           <thead>
