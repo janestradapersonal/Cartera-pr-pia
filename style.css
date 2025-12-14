@@ -368,6 +368,33 @@ h1 {
   background-color: #a71d2a;
 }
 
+/* Botones coloreados por bloque */
+.btn-colchon {
+  background-color: #1565c0;
+  border: 1px solid rgba(13,71,161,0.9);
+  color: #fff;
+}
+.btn-colchon:hover { background-color: #0f4fa8; }
+
+.btn-fija {
+  background-color: #2e7d32;
+  border: 1px solid rgba(46,125,50,0.95);
+  color: #fff;
+}
+.btn-fija:hover { background-color: #1b5e20; }
+
+.btn-variable {
+  background-color: #c62828;
+  border: 1px solid rgba(198,40,40,0.95);
+  color: #fff;
+}
+.btn-variable:hover { background-color: #b71c1c; }
+
+/* Si un btn-borrar tiene también la clase del tipo, priorizar ese color */
+.btn-borrar.btn-colchon { background-color: #1976d2; border-color: #1565c0; }
+.btn-borrar.btn-fija    { background-color: #43a047; border-color: #2e7d32; }
+.btn-borrar.btn-variable{ background-color: #e53935; border-color: #c62828; }
+
 /* FILA INFERIOR: 3 BLOQUES EN UNA LÍNEA */
 .fila-detalle {
   display: flex;
@@ -443,6 +470,46 @@ h1 {
 #graficoFija    { border: 3px solid #59a14f; border-radius: 8px; }
 #graficoVariable{ border: 3px solid #e15759; border-radius: 8px; }
 /* ------------------------------------------------------------------------- */
+
+/* Tabla principal: pintar filas por categoría (desktop y móvil) */
+#tablaGlobal tbody tr.fila-colchon td {
+  background: rgba(13, 72, 161, 0.5);
+  color:  #24262a;
+}
+#tablaGlobal tbody tr.fila-colchon td:first-child {
+  font-weight: 600;
+}
+
+#tablaGlobal tbody tr.fila-fija td {
+  background: rgba(39, 95, 33, 0.501);
+  color: #133d1a;
+}
+#tablaGlobal tbody tr.fila-fija td:first-child {
+  font-weight: 600;
+}
+
+#tablaGlobal tbody tr.fila-variable td {
+  background: rgba(209, 21, 21, 0.495);
+  color: #3d0b0b;
+}
+#tablaGlobal tbody tr.fila-variable td:first-child {
+  font-weight: 600;
+}
+
+/* Inputs dentro de la tabla: mantener fondo blanco para legibilidad pero sin borde fuerte */
+#tablaGlobal input[type="number"] {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+/* En móvil reforzar el relleno para que se vea más el color */
+@media (max-width: 800px) {
+  #tablaGlobal tbody tr.fila-colchon td { background: rgba(13,71,161,0.5); }
+  #tablaGlobal tbody tr.fila-fija td   { background: rgba(29, 207, 9, 0.5); }
+  #tablaGlobal tbody tr.fila-variable td{ background: rgba(176,24,24,0.5); }
+}
 
 /* Responsive: en pantallas pequeñas se apilan */
 @media (max-width: 800px) {

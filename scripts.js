@@ -1,8 +1,14 @@
-// Paletas por categoría
-const paletaColchon = ["#4e79a7", "#3f6e96", "#36608a", "#2e5070", "#254256"]; // azules
-const paletaFija    = ["#59a14f", "#4f913f", "#458032", "#396a27", "#2f4f1d"]; // verdes
-const paletaVariable= ["#e15759", "#cf4b4f", "#b63f44", "#9f3338", "#84272c"]; // rojos
-const coloresBasicos = [paletaColchon[0], paletaFija[0], paletaVariable[0], "#76b7b2", "#edc949"];
+// Paletas por categoría (más contraste entre tonalidades)
+const paletaColchon = [
+  "#0b3d91","#0f4fa8","#1565c0","#1976d2","#1e88e5","#42a5f5","#64b5f6","#90caf9","#b3e5fc","#e3f2fd","#cfe8ff","#9fd0ff"
+]; // azules (de más oscuro a más claro)
+const paletaFija = [
+  "#0b6623","#1b5e20","#2e7d32","#388e3c","#43a047","#66bb6a","#81c784","#a5d6a7","#c8e6c9","#e8f5e9","#eaf7ea","#f0fff4"
+]; // verdes
+const paletaVariable = [
+  "#b71c1c","#c62828","#d32f2f","#e53935","#ef5350","#f66b6b","#ff8a80","#ffab91","#ffcccb","#ffebe9","#ffecec","#fff1f1"
+]; // rojos
+const coloresBasicos = [paletaColchon[2], paletaFija[3], paletaVariable[4], "#76b7b2", "#edc949"];
 
 // Registrar el plugin de datalabels
 if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
@@ -226,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnBorrar = document.createElement("button");
     btnBorrar.type = "button";
     btnBorrar.textContent = "Borrar";
-    btnBorrar.classList.add("btn", "btn-borrar");
+    btnBorrar.classList.add("btn", "btn-borrar", `btn-${tipo}`);
     tdAcciones.appendChild(btnBorrar);
 
     tr.appendChild(tdNombre);
@@ -241,6 +247,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabla = document.getElementById(idTabla);
     const tbody = tabla.querySelector("tbody");
 
+    // colorear botón añadir según tipo
+    btnAdd.classList.add(`btn-${tipo}`);
     btnAdd.addEventListener("click", () => {
       if (!puedeAñadirFila(tbody)) {
         alert("Solo puede haber una fila vacía como máximo.");
@@ -249,6 +257,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const nuevaFila = crearFilaNueva(tipo);
       tbody.appendChild(nuevaFila);
     });
+    // asegurarnos que los botones "borrar" existentes reciban la clase de color correcta
+    tbody.querySelectorAll('.btn-borrar').forEach(b => b.classList.add(`btn-${tipo}`));
 
     tbody.addEventListener("click", (e) => {
       if (e.target.classList.contains("btn-borrar")) {
