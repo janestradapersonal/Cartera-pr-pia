@@ -684,6 +684,40 @@ h1 {
     background: rgba(225,87,89,0.16) !important;
   }
 
+  /* Asegurar que en móvil la tabla principal se pinta igual que en escritorio (tonos intensos) */
+  #tablaGlobal tbody tr.fila-colchon td {
+    background: #1565c0 !important;
+    color: #ffffff !important;
+  }
+  #tablaGlobal tbody tr.fila-fija td {
+    background: #2e7d32 !important;
+    color: #ffffff !important;
+  }
+  #tablaGlobal tbody tr.fila-variable td {
+    background: #c62828 !important;
+    color: #ffffff !important;
+  }
+
+  /* Botones dentro del carrusel: añadir y borrar con color del recuadro correspondiente */
+  .carrusel-graficos .slide .btn-colchon { background-color: #1565c0; border-color: #115aaa; color: #fff; }
+  .carrusel-graficos .slide .btn-colchon:hover { background-color: #0f4fa8; }
+  .carrusel-graficos .slide .btn-fija    { background-color: #2e7d32; border-color: #1b5e20; color: #fff; }
+  .carrusel-graficos .slide .btn-fija:hover { background-color: #1b5e20; }
+  .carrusel-graficos .slide .btn-variable{ background-color: #c62828; border-color: #a71c1c; color: #fff; }
+  .carrusel-graficos .slide .btn-variable:hover { background-color: #b71c1c; }
+
+  /* Si el botón borrar tiene también la clase del tipo dentro del slide */
+  .carrusel-graficos .slide .btn-borrar.btn-colchon { background-color: #1976d2; border-color: #1565c0; }
+  .carrusel-graficos .slide .btn-borrar.btn-fija    { background-color: #43a047; border-color: #2e7d32; }
+  .carrusel-graficos .slide .btn-borrar.btn-variable{ background-color: #e53935; border-color: #c62828; }
+
+  /* Asegurar inputs dentro del carrusel muestren borde del color correspondiente (si JS lo aplica) */
+  .carrusel-graficos .slide input[type="number"],
+  .carrusel-graficos .slide input[type="text"] {
+    background: #fff;
+    box-shadow: none;
+  }
+
   /* Bordes de canvas por categoría (carrusel y escritorio) */
   #carouselVariable, #graficoVariable {
     border: 3px solid #e15759;
