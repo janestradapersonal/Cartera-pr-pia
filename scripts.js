@@ -1,16 +1,8 @@
-// Colores reutilizables para los quesitos
-const coloresBasicos = [
-  "#4e79a7",
-  "#f28e2b",
-  "#e15759",
-  "#76b7b2",
-  "#59a14f",
-  "#edc949",
-  "#af7aa1",
-  "#ff9da7",
-  "#9c755f",
-  "#bab0ab"
-];
+// Paletas por categoría
+const paletaColchon = ["#4e79a7", "#3f6e96", "#36608a", "#2e5070", "#254256"]; // azules
+const paletaFija    = ["#59a14f", "#4f913f", "#458032", "#396a27", "#2f4f1d"]; // verdes
+const paletaVariable= ["#e15759", "#cf4b4f", "#b63f44", "#9f3338", "#84272c"]; // rojos
+const coloresBasicos = [paletaColchon[0], paletaFija[0], paletaVariable[0], "#76b7b2", "#edc949"];
 
 // Registrar el plugin de datalabels
 if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
@@ -18,14 +10,14 @@ if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
 }
 
 // Crear gráfico de tipo pie
-function crearPieChart(ctx, etiquetas, datos, titulo) {
+function crearPieChart(ctx, etiquetas, datos, titulo, backgroundColors) {
   return new Chart(ctx, {
     type: "pie",
     data: {
       labels: etiquetas,
       datasets: [{
         data: datos,
-        backgroundColor: coloresBasicos
+        backgroundColor: backgroundColors || coloresBasicos
       }]
     },
     options: {
@@ -77,18 +69,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Gráficos
   let chartGlobal   = crearPieChart(ctxGlobal,   [], [], "Patrimonio global");
-  let chartVariable = crearPieChart(ctxVariable, [], [], "Detalle renta variable");
-  let chartFija     = crearPieChart(ctxFija,     [], [], "Detalle renta fija");
-  let chartColchon  = crearPieChart(ctxColchon,  [], [], "Detalle colchón de emergencia");
+  let chartVariable = crearPieChart(ctxVariable, [], [], "Detalle renta variable", paletaVariable);
+  let chartFija     = crearPieChart(ctxFija,     [], [], "Detalle renta fija", paletaFija);
+  let chartColchon  = crearPieChart(ctxColchon,  [], [], "Detalle colchón de emergencia", paletaColchon);
 
   // Charts para carrusel (móvil)
   let carouselChartColchon = null;
   let carouselChartFija = null;
   let carouselChartVariable = null;
   if (carouselExists) {
-    carouselChartColchon = crearPieChart(carouselColchonEl.getContext('2d'), [], [], 'Colchón de emergencia');
-    carouselChartFija = crearPieChart(carouselFijaEl.getContext('2d'), [], [], 'Detalle renta fija');
-    carouselChartVariable = crearPieChart(carouselVariableEl.getContext('2d'), [], [], 'Detalle renta variable');
+    carouselChartColchon = crearPieChart(carouselColchonEl.getContext('2d'), [], [], 'Colchón de emergencia', paletaColchon);
+    carouselChartFija = crearPieChart(carouselFijaEl.getContext('2d'), [], [], 'Detalle renta fija', paletaFija);
+    carouselChartVariable = crearPieChart(carouselVariableEl.getContext('2d'), [], [], 'Detalle renta variable', paletaVariable);
   }
 
   // Global
@@ -112,6 +104,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chartGlobal.data.labels = etiquetas;
     chartGlobal.data.datasets[0].data = datos;
+    // Asignar color por categoría para el gráfico global
+    const colorMap = {
+      'Colchón de emergencia': paletaColchon[0],
+      'Renta fija': paletaFija[0],
+      'Renta variable': paletaVariable[0]
+    };
+    chartGlobal.data.datasets[0].backgroundColor = etiquetas.map(l => colorMap[l] || paletaColchon[0]);
     chartGlobal.update();
   }
 
@@ -135,6 +134,14 @@ document.addEventListener("DOMContentLoaded", () => {
     chart.data.labels = etiquetas;
     chart.data.datasets[0].data = datos;
     chart.options.plugins.title.text = tituloBase;
+    // Usar paleta según el chart (colchón/ fija/ variable)
+    if (chart === chartColchon || chart === carouselChartColchon) {
+      chart.data.datasets[0].backgroundColor = paletaColchon.slice(0, datos.length);
+    } else if (chart === chartFija || chart === carouselChartFija) {
+      chart.data.datasets[0].backgroundColor = paletaFija.slice(0, datos.length);
+    } else if (chart === chartVariable || chart === carouselChartVariable) {
+      chart.data.datasets[0].backgroundColor = paletaVariable.slice(0, datos.length);
+    }
     chart.update();
 
     // Si existe el carrusel, actualizar también la versión móvil correspondiente

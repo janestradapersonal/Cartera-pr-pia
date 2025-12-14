@@ -394,10 +394,10 @@ h1 {
 }
 
 .bloque-fija {
-  background: rgba(242,142,43,0.12);
+  background: rgba(89,161,79,0.22);
 }
 .bloque-fija .tabla thead th {
-  background: rgba(242,142,43,0.16);
+  background: rgba(89,161,79,0.28);
 }
 
 .bloque-variable {
@@ -409,7 +409,7 @@ h1 {
 
 /* Contenedores de gráfico en escritorio: relleno visible */
 .bloque-colchon .grafico-contenedor { background: rgba(78,121,167,0.06); }
-.bloque-fija .grafico-contenedor    { background: rgba(242,142,43,0.06); }
+.bloque-fija .grafico-contenedor    { background: rgba(89,161,79,0.06); }
 .bloque-variable .grafico-contenedor{ background: rgba(225,87,89,0.04); }
 
 /* Swatch de color en la primera celda de cada tabla (escritorio + carrusel) */
@@ -426,7 +426,7 @@ h1 {
 }
 #tablaFija td:first-child::before, #tablaFijaCarousel td:first-child::before {
   content: ""; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-  width: 12px; height: 12px; background: #f28e2b; border-radius: 3px;
+  width: 12px; height: 12px; background: #59a14f; border-radius: 3px;
 }
 #tablaVariable td:first-child::before, #tablaVariableCarousel td:first-child::before {
   content: ""; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
@@ -435,12 +435,12 @@ h1 {
 
 /* Ligero tintado de filas por categoría en escritorio */
 #tablaColchon tbody tr { background: rgba(78,121,167,0.02); }
-#tablaFija tbody tr   { background: rgba(242,142,43,0.02); }
+#tablaFija tbody tr   { background: rgba(89,161,79,0.02); }
 #tablaVariable tbody tr { background: rgba(225,87,89,0.01); }
 
 /* Asegurar los canvases de escritorio tengan borde coloreado */
 #graficoColchon { border: 3px solid #4e79a7; border-radius: 8px; }
-#graficoFija    { border: 3px solid #f28e2b; border-radius: 8px; }
+#graficoFija    { border: 3px solid #59a14f; border-radius: 8px; }
 #graficoVariable{ border: 3px solid #e15759; border-radius: 8px; }
 /* ------------------------------------------------------------------------- */
 
@@ -546,7 +546,7 @@ h1 {
 
   h2.titulo-fija,
   .carrusel-graficos .slide h3.titulo-fija {
-    color: #f28e2b;
+    color: #59a14f;
   }
 
   h2.titulo-colchon,
@@ -561,7 +561,7 @@ h1 {
   }
 
   .bloque-fija {
-    border-left: 6px solid #f28e2b;
+    border-left: 6px solid #59a14f;
     padding-left: 12px;
   }
 
@@ -579,10 +579,10 @@ h1 {
   }
 
   .bloque-fija {
-    background: rgba(242,142,43,0.12) !important;
+    background: rgba(89,161,79,0.22) !important;
   }
   .bloque-fija .tabla thead th {
-    background: rgba(242,142,43,0.16) !important;
+    background: rgba(89,161,79,0.28) !important;
   }
 
   .bloque-variable {
@@ -603,10 +603,10 @@ h1 {
 
   .carrusel-graficos .slide.slide-fija {
     border: none;
-    background: rgba(242,142,43,0.12) !important;
+    background: rgba(89,161,79,0.22) !important;
   }
   .carrusel-graficos .slide.slide-fija .tabla thead th {
-    background: rgba(242,142,43,0.16) !important;
+    background: rgba(89,161,79,0.28) !important;
   }
 
   .carrusel-graficos .slide.slide-variable {
@@ -624,7 +624,7 @@ h1 {
   }
 
   #carouselFija, #graficoFija {
-    border: 3px solid #f28e2b;
+    border: 3px solid #59a14f;
     border-radius: 8px;
   }
 
@@ -644,7 +644,7 @@ h1 {
 
   .bloque-fija .grafico-contenedor {
     padding: 12px;
-    background: rgba(242,142,43,0.02);
+    background: rgba(89,161,79,0.02);
     border-radius: 10px;
     display: inline-block;
     margin-top: 10px;
@@ -660,16 +660,16 @@ h1 {
 
   /* Canvas dentro de slides: borde más pronunciado y sombra ligera en móvil */
   .carrusel-graficos .slide.slide-colchon canvas {
-    border: 3px solid #4e79a7;
+    border: 3px solid #336498;
     border-radius: 10px;
     box-shadow: 0 6px 18px rgba(78,121,167,0.06);
     background: #fff;
   }
 
   .carrusel-graficos .slide.slide-fija canvas {
-    border: 3px solid #f28e2b;
+    border: 3px solid #59a14f;
     border-radius: 10px;
-    box-shadow: 0 6px 18px rgba(242,142,43,0.06);
+    box-shadow: 0 6px 18px rgba(89,161,79,0.06);
     background: #fff;
   }
 
