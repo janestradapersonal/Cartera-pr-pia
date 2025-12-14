@@ -386,6 +386,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     slidesContainer.addEventListener('scroll', updateActiveDot);
     slidesContainer.addEventListener('touchend', updateActiveDot);
+    // Asegurar que los inputs dentro del carrusel reciban foco en móvil
+    slidesContainer.addEventListener('touchstart', (e) => {
+      const targetInput = e.target.closest && e.target.closest('input');
+      if (targetInput) {
+        // permitir que el input reciba foco sin que otros handlers interfieran
+        targetInput.focus();
+        e.stopPropagation();
+      }
+    }, { passive: true });
+
+    slidesContainer.addEventListener('pointerdown', (e) => {
+      const targetInput = e.target.closest && e.target.closest('input');
+      if (targetInput) {
+        targetInput.focus();
+        e.stopPropagation();
+      }
+    });
     
     // Actualizar punto inicial
     updateActiveDot();
