@@ -61,32 +61,98 @@ function crearPieChart(ctx, etiquetas, datos, titulo, backgroundColors) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Canvas escritorio
-  const ctxGlobal   = document.getElementById("graficoGlobal").getContext("2d");
-  const ctxVariable = document.getElementById("graficoVariable").getContext("2d");
-  const ctxFija     = document.getElementById("graficoFija").getContext("2d");
-  const ctxColchon  = document.getElementById("graficoColchon").getContext("2d");
-  
-  // Canvas para carrusel móvil (si existen)
-  const carouselColchonEl = document.getElementById("carouselColchon");
-  const carouselFijaEl = document.getElementById("carouselFija");
-  const carouselVariableEl = document.getElementById("carouselVariable");
-  const carouselExists = carouselColchonEl && carouselFijaEl && carouselVariableEl;
+  // Asegurar que el total se calcule inmediatamente al cargar
+  try { actualizarTotalGlobal(); } catch (err) { /* si la función no existe aún, seguirá más abajo */ }
 
-  // Gráficos
-  let chartGlobal   = crearPieChart(ctxGlobal,   [], [], "Patrimonio global");
-  let chartVariable = crearPieChart(ctxVariable, [], [], "Detalle renta variable", paletaVariable);
-  let chartFija     = crearPieChart(ctxFija,     [], [], "Detalle renta fija", paletaFija);
-  let chartColchon  = crearPieChart(ctxColchon,  [], [], "Detalle colchón de emergencia", paletaColchon);
+  // Detectar si existe carrusel móvil
+  const carouselExists = !!(document.getElementById('carouselColchon') && document.getElementById('carouselFija') && document.getElementById('carouselVariable'));
 
-  // Charts para carrusel (móvil)
+  // Inicialización robusta de canvases y gráficos con reintentos
+  let chartGlobal = null;
+  let chartVariable = null;
+  let chartFija = null;
+  let chartColchon = null;
   let carouselChartColchon = null;
   let carouselChartFija = null;
   let carouselChartVariable = null;
-  if (carouselExists) {
-    carouselChartColchon = crearPieChart(carouselColchonEl.getContext('2d'), [], [], 'Colchón de emergencia', paletaColchon);
-    carouselChartFija = crearPieChart(carouselFijaEl.getContext('2d'), [], [], 'Detalle renta fija', paletaFija);
-    carouselChartVariable = crearPieChart(carouselVariableEl.getContext('2d'), [], [], 'Detalle renta variable', paletaVariable);
+
+  function initChartsOnce() {
+    const gEl = document.getElementById('graficoGlobal');
+    const vEl = document.getElementById('graficoVariable');
+    const fEl = document.getElementById('graficoFija');
+    const cEl = document.getElementById('graficoColchon');
+    const carouselColchonEl = document.getElementById('carouselColchon');
+    const carouselFijaEl = document.getElementById('carouselFija');
+    const carouselVariableEl = document.getElementById('carouselVariable');
+
+    // Necesitamos que existan los elementos canvas y que Chart esté disponible
+    if (!gEl || !vEl || !fEl || !cEl || typeof Chart === 'undefined') return false;
+
+    try {
+      const ctxGlobal = gEl.getContext && gEl.getContext('2d');
+      const ctxVariable = vEl.getContext && vEl.getContext('2d');
+      const ctxFija = fEl.getContext && fEl.getContext('2d');
+      const ctxColchon = cEl.getContext && cEl.getContext('2d');
+
+      chartGlobal   = crearPieChart(ctxGlobal,   [], [], 'Patrimonio global');
+      chartVariable = crearPieChart(ctxVariable, [], [], 'Detalle renta variable', paletaVariable);
+      chartFija     = crearPieChart(ctxFija,     [], [], 'Detalle renta fija', paletaFija);
+      chartColchon  = crearPieChart(ctxColchon,  [], [], 'Detalle colchón de emergencia', paletaColchon);
+
+      if (carouselColchonEl && carouselFijaEl && carouselVariableEl) {
+        carouselChartColchon = crearPieChart(carouselColchonEl.getContext('2d'), [], [], 'Colchón de emergencia', paletaColchon);
+        carouselChartFija = crearPieChart(carouselFijaEl.getContext('2d'), [], [], 'Detalle renta fija', paletaFija);
+        carouselChartVariable = crearPieChart(carouselVariableEl.getContext('2d'), [], [], 'Detalle renta variable', paletaVariable);
+      }
+
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('Error inicializando charts:', err);
+      return false;
+    }
+  }
+
+  // Intentar inicializar ahora; si falla, reintentar varias veces
+  let chartsOk = initChartsOnce();
+  if (!chartsOk) {
+    let attempts = 0;
+    const maxAttempts = 12;
+    const tid = setInterval(() => {
+      attempts++;
+      chartsOk = initChartsOnce();
+      if (chartsOk || attempts >= maxAttempts) {
+        clearInterval(tid);
+        // Forzar actualización una vez inicializados (si lo están)
+        try { actualizarGraficoGlobal(); } catch (e) {}
+        try { actualizarTotalGlobal(); } catch (e) {}
+        // Si tras los intentos no hay gráficos, forzar datos mínimos visibles
+        setTimeout(() => {
+          if (!chartsOk) {
+            // Forzar que los canvases tengan algo visible
+            const gEl = document.getElementById('graficoGlobal');
+            if (gEl && typeof Chart !== 'undefined') {
+              crearPieChart(gEl.getContext('2d'), ['Colchón','Fija','Variable'], [1,1,1], 'Patrimonio global');
+            }
+            const cEl = document.getElementById('graficoColchon');
+            if (cEl && typeof Chart !== 'undefined') {
+              crearPieChart(cEl.getContext('2d'), ['Ejemplo'], [1], 'Detalle colchón de emergencia', paletaColchon);
+            }
+            const fEl = document.getElementById('graficoFija');
+            if (fEl && typeof Chart !== 'undefined') {
+              crearPieChart(fEl.getContext('2d'), ['Ejemplo'], [1], 'Detalle renta fija', paletaFija);
+            }
+            const vEl = document.getElementById('graficoVariable');
+            if (vEl && typeof Chart !== 'undefined') {
+              crearPieChart(vEl.getContext('2d'), ['Ejemplo'], [1], 'Detalle renta variable', paletaVariable);
+            }
+          }
+        }, 200);
+      }
+    }, 400);
+  } else {
+    // Si se inicializaron de inmediato, actualizar datos
+    try { actualizarGraficoGlobal(); } catch (e) {}
+    try { actualizarTotalGlobal(); } catch (e) {}
   }
 
   // Global
@@ -108,16 +174,116 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    chartGlobal.data.labels = etiquetas;
-    chartGlobal.data.datasets[0].data = datos;
-    // Asignar color por categoría para el gráfico global
-    const colorMap = {
-      'Colchón de emergencia': paletaColchon[0],
-      'Renta fija': paletaFija[0],
-      'Renta variable': paletaVariable[0]
-    };
-    chartGlobal.data.datasets[0].backgroundColor = etiquetas.map(l => colorMap[l] || paletaColchon[0]);
-    chartGlobal.update();
+    // Si no hay datos detectados (por ejemplo inputs vacíos), usar
+    // los valores por defecto del atributo `value` como fallback.
+    if (etiquetas.length === 0) {
+      inputs.forEach(input => {
+        const attrVal = parseFloat(input.getAttribute('value')) || 0;
+        if (attrVal > 0) {
+          const categoria = input.dataset.categoria;
+          let nombre = '';
+          if (categoria === 'colchon')  nombre = 'Colchón de emergencia';
+          if (categoria === 'fija')     nombre = 'Renta fija';
+          if (categoria === 'variable') nombre = 'Renta variable';
+          etiquetas.push(nombre);
+          datos.push(attrVal);
+        }
+      });
+      // Si aun así no hay datos (por ejemplo no hay value en HTML), mostrar
+      // tres porciones mínimas para que el gráfico siempre sea visible.
+      if (etiquetas.length === 0) {
+        etiquetas.push('Colchón de emergencia', 'Renta fija', 'Renta variable');
+        datos.push(1,1,1);
+      }
+    }
+
+    if (chartGlobal) {
+      chartGlobal.data.labels = etiquetas;
+      chartGlobal.data.datasets[0].data = datos;
+      // Asignar color por categoría para el gráfico global
+      const colorMap = {
+        'Colchón de emergencia': paletaColchon[0],
+        'Renta fija': paletaFija[0],
+        'Renta variable': paletaVariable[0]
+      };
+      chartGlobal.data.datasets[0].backgroundColor = etiquetas.map(l => colorMap[l] || paletaColchon[0]);
+      if (typeof chartGlobal.update === 'function') chartGlobal.update();
+    } else {
+      // si no está inicializado, intentar crear los charts
+      try { initChartsOnce(); } catch (e) {}
+    }
+    // actualizar total visible
+    actualizarTotalGlobal();
+  }
+
+  // Mostrar total sumado de los inputs globales
+  function actualizarTotalGlobal(){
+    const inputs = document.querySelectorAll('.importe-global');
+    let total = 0;
+    inputs.forEach(i => total += parseFloat(i.value) || 0);
+    // Si la suma dinámica es 0 (inputs vacíos), usar los valores del
+    // atributo `value` como fallback para mostrar un total inicial.
+    if (total === 0) {
+      let fallback = 0;
+      inputs.forEach(i => fallback += parseFloat(i.getAttribute('value')) || 0);
+      if (fallback > 0) total = fallback;
+    }
+    const el = document.getElementById('totalPatrimonio');
+    if (el) el.innerHTML = `Total patrimonio: <strong>${total.toLocaleString('es-ES', {maximumFractionDigits:0})} €</strong>`;
+  }
+
+  // ---------- Validación de límites por categoría (disponible antes de uso) ----------
+  function obtenerLimiteGlobal(categoria){
+    const el = Array.from(document.querySelectorAll('.importe-global')).find(i=>i.dataset.categoria===categoria);
+    return el ? (parseFloat(el.value) || 0) : 0;
+  }
+
+  function validarLimitesPorCategoria(selectorTabla, selectorInputImporte){
+    let categoria = '';
+    if (selectorTabla.indexOf('Colchon')>-1 || selectorTabla.toLowerCase().indexOf('colchon')>-1) categoria='colchon';
+    if (selectorTabla.toLowerCase().indexOf('fija')>-1) categoria='fija';
+    if (selectorTabla.toLowerCase().indexOf('variable')>-1) categoria='variable';
+
+    const tabla = document.querySelector(selectorTabla);
+    if (!tabla) return;
+    const section = tabla.closest('.bloque') || tabla.parentElement;
+
+    let aviso = section.querySelector('.detail-warning');
+    if (!aviso) {
+      aviso = document.createElement('div');
+      aviso.className = 'detail-warning';
+      aviso.style.display = 'none';
+      tabla.parentElement.insertBefore(aviso, tabla.nextSibling);
+    }
+
+    const filas = tabla.querySelectorAll('tbody tr');
+    let suma = 0;
+    filas.forEach(tr => { const inp = tr.querySelector(selectorInputImporte); if (inp) suma += parseFloat(inp.value) || 0; });
+
+    const limite = obtenerLimiteGlobal(categoria);
+    if (limite <= 0) {
+      if (suma > 0) {
+        aviso.style.display = 'block';
+        aviso.innerHTML = `Límite global para esta categoría no definido (suma detalle: <strong>${suma} €</strong>). Define el importe en la tabla principal.`;
+        aviso.classList.add('warning');
+      } else {
+        aviso.style.display = 'none';
+        aviso.classList.remove('warning');
+      }
+      tabla.querySelectorAll('.input-exceed').forEach(n => n.classList.remove('input-exceed'));
+      return;
+    }
+
+    if (suma !== limite) {
+      aviso.style.display = 'block';
+      aviso.innerHTML = `No coincide: límite global <strong>${limite.toLocaleString('es-ES')} €</strong>, suma detalle <strong>${suma.toLocaleString('es-ES')} €</strong>. Ajusta las filas para que sumen exactamente.`;
+      aviso.classList.add('warning');
+      tabla.querySelectorAll(selectorInputImporte).forEach(inp => inp.classList.add('input-exceed'));
+    } else {
+      aviso.style.display = 'none';
+      aviso.classList.remove('warning');
+      tabla.querySelectorAll('.input-exceed').forEach(n => n.classList.remove('input-exceed'));
+    }
   }
 
   // Detalle
@@ -137,52 +303,64 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    chart.data.labels = etiquetas;
-    chart.data.datasets[0].data = datos;
-    chart.options.plugins.title.text = tituloBase;
-    // Usar paleta según el chart (colchón/ fija/ variable)
-    if (chart === chartColchon || chart === carouselChartColchon) {
-      chart.data.datasets[0].backgroundColor = paletaColchon.slice(0, datos.length);
-    } else if (chart === chartFija || chart === carouselChartFija) {
-      chart.data.datasets[0].backgroundColor = paletaFija.slice(0, datos.length);
-    } else if (chart === chartVariable || chart === carouselChartVariable) {
-      chart.data.datasets[0].backgroundColor = paletaVariable.slice(0, datos.length);
+    if (chart) {
+      chart.data.labels = etiquetas;
+      chart.data.datasets[0].data = datos;
+      if (chart.options && chart.options.plugins && chart.options.plugins.title) chart.options.plugins.title.text = tituloBase;
+      // Usar paleta según el chart (colchón/ fija/ variable)
+      if (chart === chartColchon || chart === carouselChartColchon) {
+        chart.data.datasets[0].backgroundColor = paletaColchon.slice(0, datos.length);
+      } else if (chart === chartFija || chart === carouselChartFija) {
+        chart.data.datasets[0].backgroundColor = paletaFija.slice(0, datos.length);
+      } else if (chart === chartVariable || chart === carouselChartVariable) {
+        chart.data.datasets[0].backgroundColor = paletaVariable.slice(0, datos.length);
+      }
+      if (typeof chart.update === 'function') chart.update();
     }
-    chart.update();
+
+    // Validación de límites respecto a los importes globales
+    validarLimitesPorCategoria(selectorTabla, selectorInputImporte);
 
     // Si existe el carrusel, actualizar también la versión móvil correspondiente
     if (carouselExists) {
       if (selectorTabla === '#tablaVariable' && carouselChartVariable) {
         carouselChartVariable.data.labels = etiquetas;
         carouselChartVariable.data.datasets[0].data = datos;
-        carouselChartVariable.options.plugins.title.text = tituloBase;
-        carouselChartVariable.update();
+        if (carouselChartVariable.options && carouselChartVariable.options.plugins && carouselChartVariable.options.plugins.title) carouselChartVariable.options.plugins.title.text = tituloBase;
+        if (typeof carouselChartVariable.update === 'function') carouselChartVariable.update();
       }
       if (selectorTabla === '#tablaFija' && carouselChartFija) {
         carouselChartFija.data.labels = etiquetas;
         carouselChartFija.data.datasets[0].data = datos;
-        carouselChartFija.options.plugins.title.text = tituloBase;
-        carouselChartFija.update();
+        if (carouselChartFija.options && carouselChartFija.options.plugins && carouselChartFija.options.plugins.title) carouselChartFija.options.plugins.title.text = tituloBase;
+        if (typeof carouselChartFija.update === 'function') carouselChartFija.update();
       }
       if (selectorTabla === '#tablaColchon' && carouselChartColchon) {
         carouselChartColchon.data.labels = etiquetas;
         carouselChartColchon.data.datasets[0].data = datos;
-        carouselChartColchon.options.plugins.title.text = tituloBase;
-        carouselChartColchon.update();
+        if (carouselChartColchon.options && carouselChartColchon.options.plugins && carouselChartColchon.options.plugins.title) carouselChartColchon.options.plugins.title.text = tituloBase;
+        if (typeof carouselChartColchon.update === 'function') carouselChartColchon.update();
       }
     }
   }
 
   // Inputs globales
   document.querySelectorAll(".importe-global").forEach(input => {
-    input.addEventListener("input", actualizarGraficoGlobal);
+    input.addEventListener("input", () => {
+      actualizarGraficoGlobal();
+      // revalidar los detalles cuando cambie el límite global
+      validarLimitesPorCategoria('#tablaColchon', '.importe-colchon');
+      validarLimitesPorCategoria('#tablaFija', '.importe-fija');
+      validarLimitesPorCategoria('#tablaVariable', '.importe-variable');
+    });
   });
 
   // Asignar eventos a tablas de detalle
   function asignarEventosDetalle(selectorTabla, selectorClaseImporte, chart, tituloBase) {
     const tabla = document.querySelector(selectorTabla);
+    if (!tabla) return;
     tabla.addEventListener("input", (e) => {
-      if (e.target.classList.contains(selectorClaseImporte.replace(".", ""))) {
+      if (e.target && e.target.classList && e.target.classList.contains(selectorClaseImporte.replace(".", ""))) {
         actualizarGraficoDetalle(selectorTabla, selectorClaseImporte, chart, tituloBase);
       }
     });
@@ -194,6 +372,12 @@ document.addEventListener("DOMContentLoaded", () => {
   asignarEventosDetalle("#tablaColchon",  ".importe-colchon",  chartColchon,  "Detalle colchón de emergencia");
 
   actualizarGraficoGlobal();
+  // Validar inicialmente que las sumas detalle coincidan con los importes globales
+  try {
+    validarLimitesPorCategoria('#tablaColchon', '.importe-colchon');
+    validarLimitesPorCategoria('#tablaFija', '.importe-fija');
+    validarLimitesPorCategoria('#tablaVariable', '.importe-variable');
+  } catch (err) { /* ignore */ }
 
   // Filas dinámicas
   function puedeAñadirFila(tbody) {
@@ -245,26 +429,29 @@ document.addEventListener("DOMContentLoaded", () => {
   function configurarBloqueDetalle(idBtnAdd, idTabla, tipo, chart, tituloBase, selectorClaseImporte) {
     const btnAdd = document.getElementById(idBtnAdd);
     const tabla = document.getElementById(idTabla);
+    if (!tabla) return;
     const tbody = tabla.querySelector("tbody");
 
-    // colorear botón añadir según tipo
-    btnAdd.classList.add(`btn-${tipo}`);
-    btnAdd.addEventListener("click", () => {
-      if (!puedeAñadirFila(tbody)) {
-        alert("Solo puede haber una fila vacía como máximo.");
-        return;
-      }
-      const nuevaFila = crearFilaNueva(tipo);
-      tbody.appendChild(nuevaFila);
-    });
+    // colorear botón añadir según tipo si existe
+    if (btnAdd) {
+      btnAdd.classList.add(`btn-${tipo}`);
+      btnAdd.addEventListener("click", () => {
+        if (!puedeAñadirFila(tbody)) {
+          alert("Solo puede haber una fila vacía como máximo.");
+          return;
+        }
+        const nuevaFila = crearFilaNueva(tipo);
+        tbody.appendChild(nuevaFila);
+      });
+    }
     // asegurarnos que los botones "borrar" existentes reciban la clase de color correcta
     tbody.querySelectorAll('.btn-borrar').forEach(b => b.classList.add(`btn-${tipo}`));
 
     tbody.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-borrar")) {
+      if (e.target && e.target.classList && e.target.classList.contains("btn-borrar")) {
         const fila = e.target.closest("tr");
-        fila.remove();
-        actualizarGraficoDetalle("#" + idTabla, selectorClaseImporte, chart, tituloBase);
+        if (fila) fila.remove();
+        try { actualizarGraficoDetalle("#" + idTabla, selectorClaseImporte, chart, tituloBase); } catch (err) {}
       }
     });
   }
@@ -272,6 +459,47 @@ document.addEventListener("DOMContentLoaded", () => {
   configurarBloqueDetalle("addFilaVariable", "tablaVariable", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
   configurarBloqueDetalle("addFilaFija",     "tablaFija",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
   configurarBloqueDetalle("addFilaColchon",  "tablaColchon",  "colchon",  chartColchon,  "Detalle colchón de emergencia", ".importe-colchon");
+
+  // Debug: registrar clicks en botones de añadir y borrar para diagnosticar
+  try {
+    ['addFilaColchon','addFilaFija','addFilaVariable'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', () => console.log('DEBUG: clicked', id));
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('btn-borrar')) {
+        console.log('DEBUG: clicked borrar', e.target);
+      }
+    });
+  } catch (err) { /* no bloquear si falla */ }
+
+  // ---------- Synchronization helper (carrusel) ----------
+  let sincronizando = false;
+  function sincronizarValores(origen, destino) {
+    try {
+      if (!origen || !destino) return;
+      if (sincronizando) return;
+      sincronizando = true;
+      const origenTbody = origen.querySelector('tbody');
+      const destinoTbody = destino.querySelector('tbody');
+      if (!origenTbody || !destinoTbody) { sincronizando = false; return; }
+      const origenRows = origenTbody.querySelectorAll('tr').length;
+      const destinoRows = destinoTbody.querySelectorAll('tr').length;
+      if (origenRows !== destinoRows) {
+        destinoTbody.innerHTML = origenTbody.innerHTML;
+      } else {
+        const origenInputs = origenTbody.querySelectorAll('input');
+        const destinoInputs = destinoTbody.querySelectorAll('input');
+        origenInputs.forEach((input, i) => {
+          if (destinoInputs[i]) destinoInputs[i].value = input.value;
+        });
+      }
+    } catch (err) {
+      console && console.warn && console.warn('sincronizarValores error', err);
+    } finally {
+      sincronizando = false;
+    }
+  }
 
   // Configurar tablas del carrusel móvil (sincronizar datos con las tablas originales)
   if (carouselExists) {
@@ -310,54 +538,46 @@ document.addEventListener("DOMContentLoaded", () => {
       sincronizarValores(document.getElementById("tablaVariable"), tblCarouselVariable);
     });
 
-    // Configurar botones de añadir fila en carrusel
-    configurarBloqueDetalle("addFilaColchonCarousel", "tablaColchonCarousel", "colchon", chartColchon, "Detalle colchón de emergencia", ".importe-colchon");
-    configurarBloqueDetalle("addFilaFijaCarousel",     "tablaFijaCarousel",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija");
-    configurarBloqueDetalle("addFilaVariableCarousel", "tablaVariableCarousel", "variable", chartVariable, "Detalle renta variable", ".importe-variable");
-
-    // Cuando cambian las tablas del carrusel, actualizar también las originales
-    tblCarouselColchon.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselColchon, document.getElementById("tablaColchon"));
-      actualizarGraficoDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
-    });
-
-    tblCarouselFija.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselFija, document.getElementById("tablaFija"));
-      actualizarGraficoDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
-    });
-
-    tblCarouselVariable.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselVariable, document.getElementById("tablaVariable"));
-      actualizarGraficoDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
-    });
-
-    // También sincronizar cuando se borran filas
-    tblCarouselColchon.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-borrar")) {
-        setTimeout(() => {
-          sincronizarValores(tblCarouselColchon, document.getElementById("tablaColchon"));
-          actualizarGraficoDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
-        }, 100);
+    // Configurar botones de añadir y borrar fila en carrusel, y sincronizar con la tabla principal
+    function configurarBloqueDetalleCarrusel(idBtnAdd, idTabla, tipo, chart, tituloBase, selectorClaseImporte, tablaPrincipalId) {
+      const btnAdd = document.getElementById(idBtnAdd);
+      const tabla = document.getElementById(idTabla);
+      const tablaPrincipal = document.getElementById(tablaPrincipalId);
+      if (!tabla || !tablaPrincipal) return;
+      const tbody = tabla.querySelector("tbody");
+      if (btnAdd) {
+        btnAdd.classList.add(`btn-${tipo}`);
+        btnAdd.addEventListener("click", () => {
+          if (!puedeAñadirFila(tbody)) {
+            alert("Solo puede haber una fila vacía como máximo.");
+            return;
+          }
+          const nuevaFila = crearFilaNueva(tipo);
+          tbody.appendChild(nuevaFila);
+          sincronizarValores(tabla, tablaPrincipal);
+          actualizarGraficoDetalle(`#${tablaPrincipalId}`, selectorClaseImporte, chart, tituloBase);
+        });
       }
-    });
+      tbody.addEventListener("click", (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains("btn-borrar")) {
+          const fila = e.target.closest("tr");
+          if (fila) fila.remove();
+          setTimeout(() => {
+            sincronizarValores(tabla, tablaPrincipal);
+            actualizarGraficoDetalle(`#${tablaPrincipalId}`, selectorClaseImporte, chart, tituloBase);
+          }, 50);
+        }
+      });
+      // Sincronizar inputs
+      tabla.addEventListener("input", (e) => {
+        sincronizarValores(tabla, tablaPrincipal);
+        actualizarGraficoDetalle(`#${tablaPrincipalId}`, selectorClaseImporte, chart, tituloBase);
+      });
+    }
 
-    tblCarouselFija.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-borrar")) {
-        setTimeout(() => {
-          sincronizarValores(tblCarouselFija, document.getElementById("tablaFija"));
-          actualizarGraficoDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
-        }, 100);
-      }
-    });
-
-    tblCarouselVariable.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-borrar")) {
-        setTimeout(() => {
-          sincronizarValores(tblCarouselVariable, document.getElementById("tablaVariable"));
-          actualizarGraficoDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
-        }, 100);
-      }
-    });
+    configurarBloqueDetalleCarrusel("addFilaColchonCarousel", "tablaColchonCarousel", "colchon", chartColchon, "Detalle colchón de emergencia", ".importe-colchon", "tablaColchon");
+    configurarBloqueDetalleCarrusel("addFilaFijaCarousel",     "tablaFijaCarousel",     "fija",     chartFija,     "Detalle renta fija",     ".importe-fija",     "tablaFija");
+    configurarBloqueDetalleCarrusel("addFilaVariableCarousel", "tablaVariableCarousel", "variable", chartVariable, "Detalle renta variable", ".importe-variable", "tablaVariable");
   }
 
   // Inicializar carrusel (puntos y sincronización de índice) si existe
@@ -468,64 +688,14 @@ document.addEventListener("DOMContentLoaded", () => {
         carr.setAttribute('aria-hidden', String(!isMobile));
       }
     }
+
+    
     updateCarouselVisibility();
     window.addEventListener('resize', updateCarouselVisibility);
   }
 });
     
-    // Flag para evitar sincronización infinita
-    let sincronizando = false;
-
-    // Función mejorada de sincronización (solo copia el valor, no reemplaza elementos)
-    function sincronizarValores(origen, destino) {
-      if (sincronizando) return;
-      sincronizando = true;
-      
-      const origenTbody = origen.querySelector("tbody");
-      const destinoTbody = destino.querySelector("tbody");
-      
-      // Igualar número de filas
-      const origenRows = origenTbody.querySelectorAll("tr").length;
-      const destinoRows = destinoTbody.querySelectorAll("tr").length;
-      
-      if (origenRows !== destinoRows) {
-        // Si hay diferencia en filas, entonces sí copiar estructura completa
-        destinoTbody.innerHTML = origenTbody.innerHTML;
-      } else {
-        // Si tienen mismo número de filas, solo copiar valores
-        const origenInputs = origenTbody.querySelectorAll("input");
-        const destinoInputs = destinoTbody.querySelectorAll("input");
-        origenInputs.forEach((input, i) => {
-          if (destinoInputs[i]) {
-            destinoInputs[i].value = input.value;
-          }
-        });
-      }
-      
-      sincronizando = false;
-    }
-
-    document.getElementById("tablaColchon").addEventListener("input", () => {
-      sincronizarValores(document.getElementById("tablaColchon"), tblCarouselColchon);
-    });
-    document.getElementById("tablaFija").addEventListener("input", () => {
-      sincronizarValores(document.getElementById("tablaFija"), tblCarouselFija);
-    });
-    document.getElementById("tablaVariable").addEventListener("input", () => {
-      sincronizarValores(document.getElementById("tablaVariable"), tblCarouselVariable);
-    });
-
-    tblCarouselColchon.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselColchon, document.getElementById("tablaColchon"));
-      actualizarGraficoDetalle("#tablaColchon", ".importe-colchon", chartColchon, "Detalle colchón de emergencia");
-    });
-
-    tblCarouselFija.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselFija, document.getElementById("tablaFija"));
-      actualizarGraficoDetalle("#tablaFija", ".importe-fija", chartFija, "Detalle renta fija");
-    });
-
-    tblCarouselVariable.addEventListener("input", (e) => {
-      sincronizarValores(tblCarouselVariable, document.getElementById("tablaVariable"));
-      actualizarGraficoDetalle("#tablaVariable", ".importe-variable", chartVariable, "Detalle renta variable");
-    });
+// Nota: el resto de la sincronización y listeners está manejado dentro del
+// bloque principal de `DOMContentLoaded`. Se eliminó el bloque duplicado
+// que referenciaba variables fuera de su alcance y provocaba errores en
+// tiempo de ejecución (evitando que los gráficos se renderizaran).

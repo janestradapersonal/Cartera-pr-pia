@@ -9,7 +9,7 @@
     const brand = document.createElement('a');
     brand.href = 'index.html';
     brand.className = 'site-brand';
-    brand.textContent = 'Gestor de Patrimonio';
+    brand.textContent = 'SenzillamentFinances';
     mainNav.insertBefore(brand, mainNav.firstChild);
   }
 

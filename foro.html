@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foro - SenzillamentFinances</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Foro de SenzillamentFinances</h1>
+
+  <nav class="main-nav">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-list" aria-label="Abrir menú">☰</button>
+    <ul id="nav-list" class="nav-list">
+      <li><a href="quien-soy.html" class="nav-item" data-page="quien-soy">1 - Quién soy</a></li>
+      <li><a href="porque-invertir.html" class="nav-item" data-page="porque-invertir">2 - Importancia de invertir</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">3 - Aprende ▼</button>
+        <ul class="sub-list">
+          <li><a href="conceptos-basicos.html#productos-financieros" class="nav-item" data-page="conceptos-basicos">Productos financieros</a></li>
+          <li><a href="conceptos-basicos.html#conceptos-basicos" class="nav-item" data-page="conceptos-basicos">Conceptos básicos</a></li>
+          <li><a href="conceptos-basicos.html#impuestos" class="nav-item" data-page="conceptos-basicos">Impuestos</a></li>
+        </ul>
+      </li>
+      <li><a href="index.html" class="nav-item" data-page="index">4 - Cómo crearse la cartera</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">5 - Ejemplos de carteras ▼</button>
+        <ul class="sub-list">
+          <li><a href="ejemplos-carteras.html#nino-18" class="nav-item" data-page="ejemplos-carteras">Niño (18)</a></li>
+          <li><a href="ejemplos-carteras.html#adulto-40" class="nav-item" data-page="ejemplos-carteras">Adulto (40)</a></li>
+          <li><a href="ejemplos-carteras.html#abuelo-80" class="nav-item" data-page="ejemplos-carteras">Abuelo (80)</a></li>
+        </ul>
+      </li>
+      <li><a href="consejos.html" class="nav-item" data-page="consejos">6 - Consejos</a></li>
+      <li><a href="foro.html" class="nav-item" data-page="foro">7 - Foro</a></li>
+    </ul>
+  </nav>
+
+  <main class="bloque">
+    <section>
+      <h2>Bienvenido al Foro</h2>
+      <p class="muted">Este foro está moderado para garantizar la calidad de las respuestas. Todo el mundo puede preguntar, pero solo los usuarios verificados pueden responder. Solicita ser respondedor si puedes aportar conocimiento valioso.</p>
+    </section>
+
+    <section id="panel-auth" class="forum-panel">
+      <div class="column left">
+        <h3>Cuenta</h3>
+        <div id="formWrap">
+          <input id="usuario" placeholder="Nombre de usuario" />
+          <input id="contrasena" type="password" placeholder="Contraseña" />
+          <div class="row">
+            <button id="registrar" class="btn">Registrar</button>
+            <button id="iniciar" class="btn">Iniciar sesión</button>
+          </div>
+          <div id="sessionInfo" style="display:none; margin-top:10px;">
+            <strong id="uNombre"></strong> — <span id="uRol"></span>
+            <div style="margin-top:8px">
+              <button id="cerrar" class="btn">Cerrar sesión</button>
+              <button id="solicitar" class="btn">Solicitar ser respondedor</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column right">
+        <h3>Publicar pregunta</h3>
+        <textarea id="pregunta" placeholder="Escribe tu pregunta aquí..."></textarea>
+        <div style="text-align:right; margin-top:6px;">
+          <button id="publicar" class="btn">Enviar pregunta</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="forum-list bloque" id="listaPreguntas">
+      <h3>Preguntas recientes</h3>
+      <div id="preguntas"></div>
+    </section>
+
+    <section id="panelModerador" class="bloque" style="display:none;">
+      <h3>Panel Moderador (solo Director)</h3>
+      <div>
+        <strong>Solicitudes pendientes:</strong>
+        <ul id="pendientes"></ul>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="nav.js"></script>
+  <script>
+    // Foro sencillo (localStorage) en español
+    (function(){
+      const LS_USERS = 'foro_users_v1';
+      const LS_Q = 'foro_questions_v1';
+      let users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
+      let questions = JSON.parse(localStorage.getItem(LS_Q) || '[]');
+      // usuario director por defecto
+      if (!users['director']) { users['director'] = { password: 'password', role: 'director' }; localStorage.setItem(LS_USERS, JSON.stringify(users)); }
+      users = JSON.parse(localStorage.getItem(LS_USERS));
+      questions = JSON.parse(localStorage.getItem(LS_Q) || '[]');
+
+      let current = null;
+      const $ = id => document.getElementById(id);
+
+      function save(){ localStorage.setItem(LS_USERS, JSON.stringify(users)); localStorage.setItem(LS_Q, JSON.stringify(questions)); }
+
+      function renderSession(){
+        if (current){
+          $('formWrap').style.display = 'none';
+          $('sessionInfo').style.display = 'block';
+          $('uNombre').textContent = current;
+          $('uRol').textContent = users[current].role || 'usuario';
+          $('panelModerador').style.display = users[current].role==='director' ? 'block' : 'none';
+          renderPendientes();
+        } else {
+          $('formWrap').style.display = 'block';
+          $('sessionInfo').style.display = 'none';
+          $('panelModerador').style.display = 'none';
+        }
+      }
+
+      function renderPendientes(){
+        const ul = $('pendientes'); ul.innerHTML='';
+        Object.keys(users).forEach(u=>{
+          if (users[u].request && users[u].role!=='responder'){
+            const li = document.createElement('li'); li.textContent = u + ' ';
+            const btn = document.createElement('button'); btn.textContent = 'Conceder'; btn.className='btn';
+            btn.addEventListener('click', ()=>{ users[u].role='responder'; delete users[u].request; save(); renderPendientes(); renderSession(); });
+            li.appendChild(btn); ul.appendChild(li);
+          }
+        });
+      }
+
+      function renderQuestions(){
+        const wrap = $('preguntas'); wrap.innerHTML = '';
+        questions.slice().reverse().forEach((q,i)=>{
+          const card = document.createElement('div'); card.className='question-card';
+          const who = document.createElement('div'); who.className='q-who'; who.textContent = q.user;
+          const txt = document.createElement('div'); txt.className='q-text'; txt.textContent = q.text;
+          card.appendChild(who); card.appendChild(txt);
+          const actions = document.createElement('div'); actions.className='q-actions';
+          const resp = document.createElement('button'); resp.className='btn'; resp.textContent='Responder';
+          resp.disabled = !(current && users[current] && users[current].role==='responder');
+          resp.addEventListener('click', ()=>{
+            if (!current) { alert('Debes iniciar sesión y ser respondedor para responder.'); return; }
+            const ans = prompt('Escribe tu respuesta:'); if (!ans) return;
+            q.answers = q.answers||[]; q.answers.push({ by: current, text: ans, at: Date.now() }); save(); renderQuestions();
+          });
+          actions.appendChild(resp);
+          if (current && users[current] && users[current].role==='director'){
+            const del = document.createElement('button'); del.className='btn'; del.textContent='Eliminar';
+            del.addEventListener('click', ()=>{ if(confirm('Eliminar pregunta?')){ const idx = questions.indexOf(q); if(idx>-1){ questions.splice(idx,1); save(); renderQuestions(); } } });
+            actions.appendChild(del);
+          }
+          card.appendChild(actions);
+
+          // respuestas
+          if (q.answers && q.answers.length){
+            const box = document.createElement('div'); box.className='answers';
+            q.answers.forEach(a=>{ const aDiv = document.createElement('div'); aDiv.className='answer'; aDiv.innerHTML = '<strong>'+a.by+'</strong>: '+a.text; box.appendChild(aDiv); });
+            card.appendChild(box);
+          }
+
+          wrap.appendChild(card);
+        });
+      }
+
+      // eventos
+      $('registrar').addEventListener('click', ()=>{
+        const u = $('usuario').value.trim(); const p = $('contrasena').value;
+        if (!u||!p) return alert('Introduce usuario y contraseña');
+        if (users[u]) return alert('Usuario ya existe');
+        users[u] = { password: p, role: 'usuario' }; save(); alert('Registrado. Inicia sesión.');
+      });
+
+      $('iniciar').addEventListener('click', ()=>{
+        const u = $('usuario').value.trim(); const p = $('contrasena').value;
+        if (!u||!p) return alert('Introduce usuario y contraseña');
+        if (!users[u] || users[u].password!==p) return alert('Credenciales incorrectas');
+        current = u; renderSession(); renderQuestions();
+      });
+
+      $('cerrar').addEventListener('click', ()=>{ current=null; renderSession(); renderQuestions(); });
+
+      $('publicar').addEventListener('click', ()=>{
+        if (!current) return alert('Debes registrarte o iniciar sesión para publicar una pregunta.');
+        const t = $('pregunta').value.trim(); if (!t) return alert('Escribe la pregunta');
+        questions.push({ user: current, text: t, at: Date.now(), answers: [] }); save(); $('pregunta').value=''; renderQuestions();
+      });
+
+      $('solicitar').addEventListener('click', ()=>{
+        if (!current) return alert('Debes iniciar sesión para solicitar ser respondedor');
+        users[current].request = true; save(); alert('Solicitud enviada al director'); renderSession();
+      });
+
+      // inicial
+      renderSession(); renderQuestions();
+    })();
+  </script>
+  <footer class="site-footer" aria-label="Contacto">
+    <div class="container footer-inner">
+      <div class="contact">
+        <span class="contact-label">Contáctanos por:</span>
+        <a class="footer-link" href="https://wa.me/34698814693?text=hola%2C%20me%20gustar%C3%ADa..." target="_blank" rel="noopener">Whatsapp</a>
+        <a class="footer-link" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to=janestrada888@gmail.com" target="_blank" rel="noopener">Gmail</a>
+      </div>
+      <div class="small">© 2025 SenzillamentFinances</div>
+    </div>
+  </footer>
+</body>
+</html>
