@@ -34,7 +34,21 @@
       <li><a href="consejos.html" class="nav-item" data-page="consejos">6 - Consejos</a></li>
       <li><a href="foro.html" class="nav-item" data-page="foro">7 - Foro</a></li>
     </ul>
+    <div id="navUser" class="nav-user" style="display:none;">
+      <img id="navUserAvatar" class="nav-user-avatar" src="imagenes/foto_de_perfil.png" alt="avatar" />
+      <span id="navUserName"></span>
+      <small id="navUserRole" style="margin-left:8px; opacity:0.9;"></small>
+    </div>
   </nav>
+
+  <!-- Banner global que aparece al iniciar sesión -->
+    <div id="globalGreeting" class="global-greeting" style="display:none;">
+      <div class="global-inner">
+        <img id="globalGreetingAvatar" class="global-avatar" src="imagenes/foto_de_perfil.png" alt="avatar" />
+        <div class="global-text"><span id="globalGreetingText"></span></div>
+        <button id="globalGreetingClose" aria-label="Cerrar">✕</button>
+      </div>
+    </div>
 
   <main class="bloque">
     <section>
@@ -52,7 +66,12 @@
             <button id="registrar" class="btn">Registrar</button>
             <button id="iniciar" class="btn">Iniciar sesión</button>
           </div>
+          <div style="margin-top:8px; font-size:14px;">
+            <label><input type="checkbox" id="recordarme" /> Recordarme en este equipo</label>
+          </div>
           <div id="sessionInfo" style="display:none; margin-top:10px;">
+            <div id="greetingBanner" class="greeting-banner" style="display:none; margin-bottom:8px;"></div>
+            <div id="persistentGreeting" class="persistent-greeting" style="display:none; margin-bottom:6px;"></div>
             <strong id="uNombre"></strong> — <span id="uRol"></span>
             <div style="margin-top:8px">
               <button id="cerrar" class="btn">Cerrar sesión</button>
@@ -94,27 +113,71 @@
       const LS_Q = 'foro_questions_v1';
       let users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
       let questions = JSON.parse(localStorage.getItem(LS_Q) || '[]');
+      // avatar por defecto: busca un archivo local 'avatar-default.png' en la misma carpeta
+      // si no existe, caerá a un SVG inline como fallback
+      const DEFAULT_AVATAR_PATH = 'imagenes/foto_de_perfil.png';
+      const DEFAULT_AVATAR_FALLBACK = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="%238e9fb3"/><path d="M12 12c1.933 0 3.5-1.567 3.5-3.5S13.933 5 12 5 8.5 6.567 8.5 8.5 10.067 12 12 12z" fill="%23fff" opacity="0.95"/><path d="M4.5 19.5c0-3.5 3.5-5.5 7.5-5.5s7.5 2 7.5 5.5v.5H4.5v-.5z" fill="%23fff" opacity="0.9"/></svg>');
       // usuario director por defecto
       if (!users['director']) { users['director'] = { password: 'password', role: 'director' }; localStorage.setItem(LS_USERS, JSON.stringify(users)); }
       users = JSON.parse(localStorage.getItem(LS_USERS));
       questions = JSON.parse(localStorage.getItem(LS_Q) || '[]');
 
-      let current = null;
+      // Restaurar sesión desde sessionStorage (permanece al navegar entre páginas en la misma pestaña)
+      // Si el usuario marcó 'Recordarme', también se guarda en localStorage para persistir entre visitas.
+      // Intentar restaurar desde sessionStorage primero, luego localStorage.
+      let current = sessionStorage.getItem('foro_current') || localStorage.getItem('foro_current') || null;
       const $ = id => document.getElementById(id);
 
       function save(){ localStorage.setItem(LS_USERS, JSON.stringify(users)); localStorage.setItem(LS_Q, JSON.stringify(questions)); }
+      function shouldRemember(){ const cb = $('recordarme'); return !!(cb && cb.checked); }
+      function saveCurrent(){
+        if (current){
+          // Mantener en sessionStorage para que la sesión sobreviva al navegar por la web en la misma pestaña
+          sessionStorage.setItem('foro_current', current);
+          if (shouldRemember()){
+            localStorage.setItem('foro_current', current);
+          } else {
+            localStorage.removeItem('foro_current');
+          }
+        } else {
+          // limpiar ambas cuando se cierra sesión
+          sessionStorage.removeItem('foro_current');
+          localStorage.removeItem('foro_current');
+        }
+      }
 
       function renderSession(){
         if (current){
           $('formWrap').style.display = 'none';
           $('sessionInfo').style.display = 'block';
           $('uNombre').textContent = current;
-          $('uRol').textContent = users[current].role || 'usuario';
-          $('panelModerador').style.display = users[current].role==='director' ? 'block' : 'none';
+          const roleVal = users[current] && users[current].role ? users[current].role : 'preguntador';
+          const roleLabel = (roleVal==='director') ? 'Permitidor' : (roleVal==='responder' || roleVal==='respondedor') ? 'Respondedor' : 'Preguntador';
+          $('uRol').textContent = roleLabel;
+          // saludo persistente con permisos legibles
+          try{ const pg = $('persistentGreeting'); if(pg){
+            const permText = (roleVal==='director') ? 'Concede roles, borra preguntas y permite subir agentes' : (roleVal==='responder' || roleVal==='respondedor') ? 'Puede responder preguntas' : 'Puede publicar preguntas';
+            pg.innerHTML = `¡Hola <strong>${current}</strong>! — ${permText}`; pg.style.display='block'; }
+          }catch(e){}
+          // mostrar usuario fijo en la cabecera
+          try{
+              const nu = $('navUser'); const nn = $('navUserName'); const nr = $('navUserRole'); const na = $('navUserAvatar');
+              if (nu && nn && nr){
+                nn.textContent = current; nr.textContent = roleLabel; nu.style.display = 'inline-flex';
+                if (na){
+                  // asignar avatar del usuario o fichero por defecto
+                  const a = (users[current] && users[current].avatar) ? users[current].avatar : 'imagenes/foto_de_perfil.png';
+                  na.src = a; na.onerror = ()=>{ na.src = DEFAULT_AVATAR_FALLBACK; };
+                }
+              }
+          }catch(e){}
+          $('panelModerador').style.display = roleVal==='director' ? 'block' : 'none';
           renderPendientes();
         } else {
           $('formWrap').style.display = 'block';
           $('sessionInfo').style.display = 'none';
+          // ocultar usuario fijo en cabecera cuando no hay sesión
+          try{ const nu = $('navUser'); if(nu) nu.style.display='none'; }catch(e){}
           $('panelModerador').style.display = 'none';
         }
       }
@@ -135,9 +198,23 @@
         const wrap = $('preguntas'); wrap.innerHTML = '';
         questions.slice().reverse().forEach((q,i)=>{
           const card = document.createElement('div'); card.className='question-card';
-          const who = document.createElement('div'); who.className='q-who'; who.textContent = q.user;
+
+          // header: avatar img + name + date
+          const header = document.createElement('div'); header.className = 'q-header';
+          const avatarImg = document.createElement('img'); avatarImg.className = 'avatar-img';
+          const imgSrc = (users[q.user] && users[q.user].avatar) ? users[q.user].avatar : DEFAULT_AVATAR_PATH;
+          avatarImg.src = imgSrc; avatarImg.alt = q.user + ' avatar'; avatarImg.onerror = ()=>{ avatarImg.src = DEFAULT_AVATAR_FALLBACK; };
+          const meta = document.createElement('div'); meta.className = 'q-meta';
+          const name = document.createElement('div'); name.className='name'; name.textContent = q.user;
+          const date = document.createElement('div'); date.className='date'; date.textContent = (q.at ? new Date(q.at).toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '');
+          meta.appendChild(name); meta.appendChild(date);
+          header.appendChild(avatarImg); header.appendChild(meta);
+
           const txt = document.createElement('div'); txt.className='q-text'; txt.textContent = q.text;
-          card.appendChild(who); card.appendChild(txt);
+
+          card.appendChild(header);
+          card.appendChild(txt);
+
           const actions = document.createElement('div'); actions.className='q-actions';
           const resp = document.createElement('button'); resp.className='btn'; resp.textContent='Responder';
           resp.disabled = !(current && users[current] && users[current].role==='responder');
@@ -148,7 +225,7 @@
           });
           actions.appendChild(resp);
           if (current && users[current] && users[current].role==='director'){
-            const del = document.createElement('button'); del.className='btn'; del.textContent='Eliminar';
+            const del = document.createElement('button'); del.className='btn btn-borrar'; del.textContent='Eliminar';
             del.addEventListener('click', ()=>{ if(confirm('Eliminar pregunta?')){ const idx = questions.indexOf(q); if(idx>-1){ questions.splice(idx,1); save(); renderQuestions(); } } });
             actions.appendChild(del);
           }
@@ -157,7 +234,21 @@
           // respuestas
           if (q.answers && q.answers.length){
             const box = document.createElement('div'); box.className='answers';
-            q.answers.forEach(a=>{ const aDiv = document.createElement('div'); aDiv.className='answer'; aDiv.innerHTML = '<strong>'+a.by+'</strong>: '+a.text; box.appendChild(aDiv); });
+            q.answers.forEach(a=>{
+              const aDiv = document.createElement('div'); aDiv.className='answer';
+              const aHeader = document.createElement('div'); aHeader.className='q-header';
+              const aImg = document.createElement('img'); aImg.className='avatar-img';
+              const aSrc = (users[a.by] && users[a.by].avatar) ? users[a.by].avatar : DEFAULT_AVATAR_PATH;
+              aImg.src = aSrc; aImg.alt = a.by + ' avatar'; aImg.onerror = ()=>{ aImg.src = DEFAULT_AVATAR_FALLBACK; };
+              const aMeta = document.createElement('div'); aMeta.className='q-meta';
+              const aName = document.createElement('div'); aName.className='name'; aName.textContent = a.by;
+              const aDate = document.createElement('div'); aDate.className='date'; aDate.textContent = (a.at ? new Date(a.at).toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '');
+              aMeta.appendChild(aName); aMeta.appendChild(aDate);
+              aHeader.appendChild(aImg); aHeader.appendChild(aMeta);
+              const aText = document.createElement('div'); aText.className='q-text'; aText.textContent = a.text;
+              aDiv.appendChild(aHeader); aDiv.appendChild(aText);
+              box.appendChild(aDiv);
+            });
             card.appendChild(box);
           }
 
@@ -170,17 +261,22 @@
         const u = $('usuario').value.trim(); const p = $('contrasena').value;
         if (!u||!p) return alert('Introduce usuario y contraseña');
         if (users[u]) return alert('Usuario ya existe');
-        users[u] = { password: p, role: 'usuario' }; save(); alert('Registrado. Inicia sesión.');
+        // crear usuario con avatar nulo (usará avatar por defecto)
+        // rol por defecto ahora es 'preguntador' (puede preguntar)
+        users[u] = { password: p, role: 'preguntador', avatar: null };
+        save();
+        // iniciar sesión automáticamente (si marca "Recordarme" se guardará)
+        current = u; saveCurrent(); renderSession(); renderQuestions(); showGreeting(current, users[current].role);
       });
 
       $('iniciar').addEventListener('click', ()=>{
         const u = $('usuario').value.trim(); const p = $('contrasena').value;
         if (!u||!p) return alert('Introduce usuario y contraseña');
         if (!users[u] || users[u].password!==p) return alert('Credenciales incorrectas');
-        current = u; renderSession(); renderQuestions();
+        current = u; saveCurrent(); renderSession(); renderQuestions(); showGreeting(current, users[current].role);
       });
 
-      $('cerrar').addEventListener('click', ()=>{ current=null; renderSession(); renderQuestions(); });
+      $('cerrar').addEventListener('click', ()=>{ current=null; saveCurrent(); renderSession(); renderQuestions(); });
 
       $('publicar').addEventListener('click', ()=>{
         if (!current) return alert('Debes registrarte o iniciar sesión para publicar una pregunta.');
@@ -192,6 +288,33 @@
         if (!current) return alert('Debes iniciar sesión para solicitar ser respondedor');
         users[current].request = true; save(); alert('Solicitud enviada al director'); renderSession();
       });
+
+      // helper: mostrar banner breve al iniciar sesión
+      function showGreeting(name, role){
+        const b = $('greetingBanner');
+        if(!b) return;
+        const roleText = role==='director' ? 'Permitidor' : (role==='responder' || role==='respondedor') ? 'Respondedor' : 'Preguntador';
+        b.textContent = `¡Hola ${name}! — Tienes permiso: ${roleText}`;
+        b.style.display = 'block';
+        b.classList.add('greeting-show');
+        setTimeout(()=>{ b.classList.remove('greeting-show'); b.style.display='none'; }, 3500);
+
+        // mostrar banner global centrado en pantalla
+        try{
+          const g = $('globalGreeting'); const t = $('globalGreetingText'); const close = $('globalGreetingClose');
+          const ga = $('globalGreetingAvatar');
+          if (g && t && close){
+            t.textContent = `¡Hola ${name}! — ${roleText}`;
+            // asignar avatar si existe
+            if (ga){ const src = (users[name] && users[name].avatar) ? users[name].avatar : 'imagenes/foto_de_perfil.png'; ga.src = src; ga.onerror = ()=>{ ga.src = DEFAULT_AVATAR_FALLBACK; } }
+            g.style.display = 'block'; g.classList.add('greeting-show');
+            // cerrar manualmente
+            close.onclick = ()=>{ g.style.display='none'; };
+            // auto ocultar tras 4s
+            setTimeout(()=>{ try{ g.style.display='none'; }catch(e){} }, 4000);
+          }
+        }catch(e){}
+      }
 
       // inicial
       renderSession(); renderQuestions();
