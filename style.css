@@ -398,6 +398,28 @@ h1 {
   border: 1px solid rgba(13,71,161,0.9);
   color: #fff;
 }
+
+/* Acordeón / Recuadros chulos */
+.accordion { display: block; }
+.accordion-item { background: linear-gradient(180deg,#ffffff,#fbfdff); border-radius: 10px; box-shadow: 0 6px 18px rgba(16,32,80,0.06); margin: 12px 0; overflow: hidden; border: 1px solid rgba(13,71,161,0.06); }
+.accordion-header { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 14px 16px; background: linear-gradient(90deg, rgba(33,150,243,0.06), rgba(156,39,176,0.03)); border: none; cursor: pointer; font-weight:700; color:#0d47a1; }
+.accordion-header h4 { margin: 0; font-size: 16px; color: #0d47a1; }
+.accordion-header .chev { font-size: 14px; color: #6b7280; transition: transform 0.18s ease; }
+.accordion-header[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.accordion-content { padding: 0 16px 16px 16px; display: none; }
+.accordion-content.show { display: block; }
+.accordion-metadata { padding: 10px 16px 16px 16px; color:#333; font-size:14px; }
+
+/* Ajustes responsivos para acordeón */
+@media (max-width: 600px) {
+  .accordion-header { padding: 12px 14px; }
+  .accordion-content { padding: 0 14px 14px 14px; }
+}
+
+/* Variante lila para secciones de conceptos */
+.accordion-item.purple .accordion-header { background: linear-gradient(90deg, rgba(156,39,176,0.08), rgba(106,27,154,0.03)); }
+.accordion-item.purple .accordion-header h4 { color: #6a1b9a; }
+.accordion-item.purple .accordion-metadata { color: #4a2a57; }
 .btn-colchon:hover { background-color: #0f4fa8; }
 
 .btn-fija {

@@ -455,6 +455,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   })();
 
+  // Acordeón: show only el contenido del item clicado (cierra los demás)
+  (function () {
+    const headers = Array.from(document.querySelectorAll('.accordion-header'));
+    if (!headers.length) return;
+    headers.forEach(h => {
+      h.addEventListener('click', function () {
+        const targetId = h.getAttribute('data-target');
+        if (!targetId) return;
+        const cont = document.getElementById(targetId);
+        if (!cont) return;
+        const isOpen = cont.classList.contains('show');
+        // Cerrar todos
+        document.querySelectorAll('.accordion-content.show').forEach(c => {
+          c.classList.remove('show');
+          const hdr = document.querySelector('.accordion-header[data-target="' + c.id + '"]');
+          if (hdr) hdr.setAttribute('aria-expanded', 'false');
+        });
+        // Abrir el seleccionado si estaba cerrado
+        if (!isOpen) {
+          cont.classList.add('show');
+          h.setAttribute('aria-expanded', 'true');
+          // desplazar ligeramente para que el header sea visible en móvil
+          try { h.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+        } else {
+          h.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  })();
+
   function configurarBloqueDetalle(idBtnAdd, idTabla, tipo, chart, tituloBase, selectorClaseImporte) {
     const btnAdd = document.getElementById(idBtnAdd);
     const tabla = document.getElementById(idTabla);
