@@ -485,6 +485,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   })();
 
+  // Si la URL contiene un hash que apunta a un id de acordeón o contenido,
+  // abrir el acordeón correspondiente automáticamente.
+  (function () {
+    try {
+      const hash = decodeURIComponent(location.hash || '');
+      if (!hash) return;
+      const id = hash.replace('#', '');
+      if (!id) return;
+      const target = document.getElementById(id);
+      if (!target) return;
+
+      // Cerrar todos primero
+      document.querySelectorAll('.accordion-content.show').forEach(c => {
+        c.classList.remove('show');
+        const hdr = document.querySelector('.accordion-header[data-target="' + c.id + '"]');
+        if (hdr) hdr.setAttribute('aria-expanded', 'false');
+      });
+
+      // Si el id apunta directamente al contenido del acordeón
+      if (target.classList && target.classList.contains('accordion-content')) {
+        target.classList.add('show');
+        const hdr = document.querySelector('.accordion-header[data-target="' + target.id + '"]');
+        if (hdr) hdr.setAttribute('aria-expanded', 'true');
+        try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+        return;
+      }
+
+      // Si el id apunta a un elemento interno, abrir el acordeón padre
+      const parent = target.closest && target.closest('.accordion-content');
+      if (parent) {
+        parent.classList.add('show');
+        const hdr = document.querySelector('.accordion-header[data-target="' + parent.id + '"]');
+        if (hdr) hdr.setAttribute('aria-expanded', 'true');
+        try { parent.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+      }
+    } catch (err) {
+      console && console.warn && console.warn('hash open accordion error', err);
+    }
+  })();
+
   function configurarBloqueDetalle(idBtnAdd, idTabla, tipo, chart, tituloBase, selectorClaseImporte) {
     const btnAdd = document.getElementById(idBtnAdd);
     const tabla = document.getElementById(idTabla);

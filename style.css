@@ -422,6 +422,59 @@ h1 {
 .accordion-item.purple .accordion-metadata { color: #4a2a57; }
 .btn-colchon:hover { background-color: #0f4fa8; }
 
+/* Asegurar texto normal (no negrita) en el contenido de los bloques 'Conceptos básicos' e 'Impuestos'.
+   Mantener en negrita sólo los elementos explícitos <strong> o <b>. */
+#conceptos-basicos p,
+#conceptos-basicos li,
+#conceptos-basicos .accordion-content,
+#conceptos-basicos .accordion-content *,
+#impuestos p,
+#impuestos li,
+#impuestos .accordion-content,
+#impuestos .accordion-content * {
+  font-weight: 400 !important;
+}
+
+/* Mantener h3/h4 como títulos (pueden seguir siendo más llamativos) */
+#conceptos-basicos h3, #conceptos-basicos h4, #impuestos h3, #impuestos h4 {
+  font-weight: 700;
+}
+
+/* Botones 'MOSTRAR EJEMPLO' dentro del bloque 'Conceptos básicos' en color lila */
+#conceptos-basicos .toggle-ejemplo {
+  background-color: #6a1b9a;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+#conceptos-basicos .toggle-ejemplo:hover {
+  background-color: #4e0f73;
+}
+
+/* Estilo base común para todos los botones de 'MOSTRAR EJEMPLO' */
+.toggle-ejemplo {
+  display: inline-block;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  border: none !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+/* Botones 'MOSTRAR EJEMPLO' dentro de Productos Financieros: azul */
+#productos-financieros .toggle-ejemplo {
+  background-color: #1976d2 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(25,118,210,0.12);
+}
+#productos-financieros .toggle-ejemplo:hover {
+  background-color: #0d47a1 !important;
+}
+
 .btn-fija {
   background-color: #2e7d32;
   border: 1px solid rgba(46,125,50,0.95);
