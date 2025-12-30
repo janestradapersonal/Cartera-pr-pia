@@ -426,6 +426,35 @@ document.addEventListener("DOMContentLoaded", () => {
     return tr;
   }
 
+  // Toggle para mostrar/ocultar ejemplos (soporta múltiples botones)
+  (function () {
+    const botones = Array.from(document.querySelectorAll('.toggle-ejemplo'));
+    if (!botones.length) return;
+    console && console.log && console.log('DEBUG: toggle-ejemplo buttons found', botones.length);
+    botones.forEach(btn => {
+      const targetId = btn.getAttribute('data-target');
+      if (!targetId) return;
+      const cont = document.getElementById(targetId);
+      if (!cont) return;
+      // establecer texto inicial según estado
+      const hidden = getComputedStyle(cont).display === 'none';
+      btn.textContent = hidden ? (btn.getAttribute('data-show-label') || 'MOSTRAR EJEMPLO') : (btn.getAttribute('data-hide-label') || 'NO MOSTRAR EJEMPLO');
+      btn.setAttribute('aria-expanded', String(!hidden));
+      btn.addEventListener('click', function () {
+        const isHidden = getComputedStyle(cont).display === 'none';
+        if (isHidden) {
+          cont.style.display = 'block';
+          btn.textContent = btn.getAttribute('data-hide-label') || 'NO MOSTRAR EJEMPLO';
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          cont.style.display = 'none';
+          btn.textContent = btn.getAttribute('data-show-label') || 'MOSTRAR EJEMPLO';
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  })();
+
   function configurarBloqueDetalle(idBtnAdd, idTabla, tipo, chart, tituloBase, selectorClaseImporte) {
     const btnAdd = document.getElementById(idBtnAdd);
     const tabla = document.getElementById(idTabla);
