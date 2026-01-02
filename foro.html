@@ -60,15 +60,6 @@
       <div class="column left">
         <h3>Cuenta</h3>
         <div id="formWrap">
-          <input id="usuario" placeholder="Nombre de usuario" />
-          <input id="contrasena" type="password" placeholder="Contraseña" />
-          <div class="row">
-            <button id="registrar" class="btn">Registrar</button>
-            <button id="iniciar" class="btn">Iniciar sesión</button>
-          </div>
-          <div style="margin-top:8px; font-size:14px;">
-            <label><input type="checkbox" id="recordarme" /> Recordarme en este equipo</label>
-          </div>
           <div id="sessionInfo" style="display:none; margin-top:10px;">
             <div id="greetingBanner" class="greeting-banner" style="display:none; margin-bottom:8px;"></div>
             <div id="persistentGreeting" class="persistent-greeting" style="display:none; margin-bottom:6px;"></div>
@@ -257,29 +248,30 @@
       }
 
       // eventos
-      $('registrar').addEventListener('click', ()=>{
+      const regBtn = $('registrar');
+      if (regBtn) regBtn.addEventListener('click', ()=>{
         const u = $('usuario').value.trim(); const p = $('contrasena').value;
         if (!u||!p) return alert('Introduce usuario y contraseña');
         if (users[u]) return alert('Usuario ya existe');
-        // crear usuario con avatar nulo (usará avatar por defecto)
-        // rol por defecto ahora es 'preguntador' (puede preguntar)
         users[u] = { password: p, role: 'preguntador', avatar: null };
         save();
-        // iniciar sesión automáticamente (si marca "Recordarme" se guardará)
         current = u; saveCurrent(); renderSession(); renderQuestions(); showGreeting(current, users[current].role);
+        try{ localStorage.setItem('sf_user', JSON.stringify({ name: current, avatar: users[current] && users[current].avatar ? users[current].avatar : 'imagenes/foto_de_perfil.png' })); sessionStorage.setItem('foro_current', current); window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: current } })); }catch(e){}
       });
 
-      $('iniciar').addEventListener('click', ()=>{
+      const initBtn = $('iniciar');
+      if (initBtn) initBtn.addEventListener('click', ()=>{
         const u = $('usuario').value.trim(); const p = $('contrasena').value;
         if (!u||!p) return alert('Introduce usuario y contraseña');
         if (!users[u] || users[u].password!==p) return alert('Credenciales incorrectas');
         current = u; saveCurrent(); renderSession(); renderQuestions(); showGreeting(current, users[current].role);
+        try{ localStorage.setItem('sf_user', JSON.stringify({ name: current, avatar: users[current] && users[current].avatar ? users[current].avatar : 'imagenes/foto_de_perfil.png' })); sessionStorage.setItem('foro_current', current); window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: current } })); }catch(e){}
       });
 
-      $('cerrar').addEventListener('click', ()=>{ current=null; saveCurrent(); renderSession(); renderQuestions(); });
+      $('cerrar').addEventListener('click', ()=>{ current=null; saveCurrent(); renderSession(); renderQuestions(); try{ localStorage.removeItem('sf_user'); sessionStorage.removeItem('foro_current'); window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(e){} });
 
       $('publicar').addEventListener('click', ()=>{
-        if (!current) return alert('Debes registrarte o iniciar sesión para publicar una pregunta.');
+        if (!current) return alert('antes debes iniciar sesion');
         const t = $('pregunta').value.trim(); if (!t) return alert('Escribe la pregunta');
         questions.push({ user: current, text: t, at: Date.now(), answers: [] }); save(); $('pregunta').value=''; renderQuestions();
       });
@@ -318,6 +310,20 @@
 
       // inicial
       renderSession(); renderQuestions();
+
+      // Si el usuario inicia sesión desde el header modal, actualizar estado aquí sin recargar
+      window.addEventListener('sf:auth-changed', (ev)=>{
+        try{
+          const newUser = ev.detail && ev.detail.user ? ev.detail.user : (localStorage.getItem('foro_current') || sessionStorage.getItem('foro_current') || null);
+          current = newUser;
+          saveCurrent();
+          renderSession(); renderQuestions();
+          if (current) showGreeting(current, users[current] && users[current].role);
+        }catch(e){}
+      });
+
+      // botón que abre el modal del header (si existe)
+      const openHeader = $('openHeaderLogin'); if (openHeader){ openHeader.addEventListener('click', ()=>{ try{ if (window.SF && window.SF.showAuthModal) window.SF.showAuthModal(); else alert('Función de login no disponible'); }catch(e){} }); }
     })();
   </script>
   <footer class="site-footer" aria-label="Contacto">

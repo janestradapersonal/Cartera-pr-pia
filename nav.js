@@ -13,6 +13,163 @@
     mainNav.insertBefore(brand, mainNav.firstChild);
   }
 
+  // --- Persistencia de usuario en cabecera (localStorage) ---
+  const USER_KEY = 'sf_user';
+  function getUser() {
+    try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch (e) { return null; }
+  }
+  function setUser(user) {
+    if (!user) return;
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    renderUser();
+  }
+  function clearUser() {
+    localStorage.removeItem(USER_KEY);
+    renderUser();
+  }
+
+  function renderUser() {
+    if (!mainNav) return;
+    let userArea = mainNav.querySelector('.nav-user-area');
+    if (!userArea) {
+      userArea = document.createElement('div');
+      userArea.className = 'nav-user-area';
+      // marcar que este contenedor lo creó el script para distinguirlo de elementos estáticos
+      userArea.dataset.sfGenerated = '1';
+      mainNav.appendChild(userArea);
+    }
+    userArea.innerHTML = '';
+    // ocultar cualquier elemento estático #navUser o controles duplicados que algunas páginas insertan
+    try{
+      const staticById = document.getElementById('navUser'); if (staticById) staticById.style.display = 'none';
+    }catch(e){}
+    try{
+      document.querySelectorAll('.nav-user').forEach(nu=>{
+        // si el elemento '.nav-user' no está dentro del contenedor que creó este script, ocultarlo
+        if (!nu.closest('.nav-user-area') || nu.closest('.nav-user-area').dataset.sfGenerated !== '1') {
+          nu.style.display = 'none';
+        }
+      });
+    }catch(e){}
+    const user = getUser();
+    if (user && user.name) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'nav-user sf-active-user';
+
+      const img = document.createElement('img');
+      img.className = 'nav-user-avatar';
+      img.src = user.avatar || 'imagenes/foto_de_perfil.png';
+      img.alt = user.name;
+      img.width = 34;
+      img.height = 34;
+
+      const name = document.createElement('small');
+      name.textContent = user.name;
+
+      const logout = document.createElement('button');
+      logout.className = 'btn btn-logout';
+      logout.textContent = 'Cerrar sesión';
+      logout.style.marginLeft = '8px';
+      logout.addEventListener('click', (e) => { e.preventDefault(); clearUser(); });
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(name);
+      wrapper.appendChild(logout);
+      userArea.appendChild(wrapper);
+    } else {
+      const loginBtn = document.createElement('button');
+      loginBtn.className = 'nav-login';
+      loginBtn.textContent = 'Iniciar sesión';
+      loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAuthModal();
+      });
+      userArea.appendChild(loginBtn);
+    }
+  }
+
+  /* --- Modal de autenticación (registro / inicio) --- */
+  function createAuthModal() {
+    if (document.getElementById('sfAuthOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'sfAuthOverlay';
+    overlay.className = 'sf-modal-overlay';
+    overlay.innerHTML = `
+      <div class="sf-modal" role="dialog" aria-modal="true" aria-label="Iniciar sesión o registrarse">
+        <button class="sf-close" aria-label="Cerrar">✕</button>
+        <h3>Iniciar sesión o registrarse</h3>
+        <div class="sf-row"><input id="sf-username" type="text" placeholder="Nombre de usuario" /></div>
+        <div class="sf-row"><input id="sf-password" type="password" placeholder="Contraseña" /></div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><label><input id="sf-remember" type="checkbox"/> Recordarme</label></div>
+        <div class="sf-actions">
+          <button id="sf-register" class="btn">Registrar</button>
+          <button id="sf-login" class="btn">Iniciar sesión</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    // handlers
+    overlay.querySelector('.sf-close').addEventListener('click', hideAuthModal);
+    overlay.addEventListener('click', (e)=>{ if (e.target === overlay) hideAuthModal(); });
+
+    document.getElementById('sf-register').addEventListener('click', ()=>{
+      const u = document.getElementById('sf-username').value.trim();
+      const p = document.getElementById('sf-password').value;
+      const a = '';
+      if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
+      const LS_USERS = 'foro_users_v1';
+      const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
+      if (users[u]) return alert('Usuario ya existe. Prueba a iniciar sesión.');
+      users[u] = { password: p, role: 'preguntador', avatar: null };
+      localStorage.setItem(LS_USERS, JSON.stringify(users));
+      // establecer sesión global (sf_user)
+      const userObj = { name: u, avatar: 'imagenes/foto_de_perfil.png' };
+      try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
+      // opción de 'recordarme' guarda foro_current
+      if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
+      renderUser(); hideAuthModal();
+      // notificar al resto de la página que ha cambiado la autenticación
+      try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
+      alert('Registro correcto. Ya has iniciado sesión.');
+    });
+
+    document.getElementById('sf-login').addEventListener('click', ()=>{
+      const u = document.getElementById('sf-username').value.trim();
+      const p = document.getElementById('sf-password').value;
+      if (!u || !p) return alert('Introduce usuario y contraseña');
+      const LS_USERS = 'foro_users_v1';
+      const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
+      if (!users[u] || users[u].password !== p) return alert('Credenciales incorrectas o usuario no registrado');
+      const avatar = users[u].avatar || 'imagenes/foto_de_perfil.png';
+      const userObj = { name: u, avatar: avatar };
+      try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
+      if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
+      renderUser(); hideAuthModal();
+      try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
+      alert('Has iniciado sesión correctamente');
+    });
+  }
+
+  function showAuthModal(){ createAuthModal(); const o = document.getElementById('sfAuthOverlay'); if (o) o.classList.add('show'); document.getElementById('sf-username').focus(); }
+  function hideAuthModal(){ const o = document.getElementById('sfAuthOverlay'); if (o) o.classList.remove('show'); }
+
+  // Exponer API mínima para que otras páginas puedan registrar/limpiar usuario
+  window.SF = window.SF || {};
+  window.SF.setUser = setUser;
+  window.SF.clearUser = clearUser;
+  window.SF.getUser = getUser;
+  window.SF.showAuthModal = showAuthModal;
+
+  // Render inicial del estado de sesión
+  renderUser();
+
+  // Si la sesión cambia en otra pestaña (localStorage), actualizar UI automáticamente
+  window.addEventListener('storage', (e) => {
+    if (e.key === USER_KEY) {
+      renderUser();
+    }
+  });
+
   // Obtén la página actual (sin extensión .html)
   const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
 
