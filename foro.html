@@ -252,7 +252,9 @@
       if (regBtn) regBtn.addEventListener('click', ()=>{
         const u = $('usuario').value.trim(); const p = $('contrasena').value;
         if (!u||!p) return alert('Introduce usuario y contraseña');
-        if (users[u]) return alert('Usuario ya existe');
+          if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
+          if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
+          if (users[u]) return alert('Usuario ya existe');
         users[u] = { password: p, role: 'preguntador', avatar: null };
         save();
         current = u; saveCurrent(); renderSession(); renderQuestions(); showGreeting(current, users[current].role);

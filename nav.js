@@ -66,15 +66,11 @@
       const name = document.createElement('small');
       name.textContent = user.name;
 
-      const logout = document.createElement('button');
-      logout.className = 'btn btn-logout';
-      logout.textContent = 'Cerrar sesión';
-      logout.style.marginLeft = '8px';
-      logout.addEventListener('click', (e) => { e.preventDefault(); clearUser(); });
-
       wrapper.appendChild(img);
       wrapper.appendChild(name);
-      wrapper.appendChild(logout);
+      // Nota: botón de logout eliminado intencionalmente — la función clearUser() permanece disponible.
+      
+      userArea.appendChild(wrapper);
       userArea.appendChild(wrapper);
     } else {
       const loginBtn = document.createElement('button');
@@ -117,6 +113,8 @@
       const p = document.getElementById('sf-password').value;
       const a = '';
       if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
+      if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
+      if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
       const LS_USERS = 'foro_users_v1';
       const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
       if (users[u]) return alert('Usuario ya existe. Prueba a iniciar sesión.');
