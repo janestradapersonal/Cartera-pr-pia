@@ -111,6 +111,189 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
   }
+  
+  // ---------------- Persistencia de patrimonio por usuario ----------------
+  function getLoggedUserName() {
+    try {
+      const su = localStorage.getItem('sf_user');
+      if (!su) return null;
+      const obj = JSON.parse(su);
+      return obj && obj.name ? obj.name : null;
+    } catch (e) { return null; }
+  }
+
+  function buildPatrimonioObject() {
+    const obj = { globals: {}, tablas: {} };
+    document.querySelectorAll('.importe-global').forEach(i => {
+      const cat = i.dataset.categoria || (i.name || i.id || 'unknown');
+      obj.globals[cat] = parseFloat(i.value) || 0;
+    });
+    // tablas detalle
+    ['tablaColchon','tablaFija','tablaVariable'].forEach(id => {
+      const tab = document.getElementById(id);
+      if (!tab) return;
+      const rows = [];
+      tab.querySelectorAll('tbody tr').forEach(tr => {
+        const nameInp = tr.querySelector('td:nth-child(1) input');
+        const valInp = tr.querySelector('td:nth-child(2) input');
+        const name = nameInp ? nameInp.value.trim() : '';
+        const val = valInp ? (parseFloat(valInp.value) || 0) : 0;
+        rows.push({ name: name, value: val });
+      });
+      obj.tablas[id] = rows;
+    });
+    return obj;
+  }
+
+  function applyPatrimonioObject(obj) {
+    if (!obj) return;
+    // globals
+    document.querySelectorAll('.importe-global').forEach(i => {
+      const cat = i.dataset.categoria || (i.name || i.id || 'unknown');
+      if (obj.globals && typeof obj.globals[cat] !== 'undefined') {
+        i.value = obj.globals[cat];
+      }
+    });
+    // tablas
+    ['tablaColchon','tablaFija','tablaVariable'].forEach(id => {
+      const tab = document.getElementById(id);
+      if (!tab) return;
+      const tbody = tab.querySelector('tbody');
+      // clear
+      tbody.innerHTML = '';
+      const rows = (obj.tablas && obj.tablas[id]) ? obj.tablas[id] : [];
+      rows.forEach(r => {
+        const tr = crearFilaNueva(id === 'tablaVariable' ? 'variable' : (id === 'tablaFija' ? 'fija' : 'colchon'));
+        const nameInp = tr.querySelector('td:nth-child(1) input');
+        const valInp = tr.querySelector('td:nth-child(2) input');
+        if (nameInp) nameInp.value = r.name || '';
+        if (valInp) valInp.value = r.value || 0;
+        tbody.appendChild(tr);
+      });
+    });
+    // actualizar visuales
+    actualizarGraficoGlobal();
+    actualizarGraficoDetalle('#tablaColchon', '.importe-colchon', chartColchon, 'Detalle colchón de emergencia');
+    actualizarGraficoDetalle('#tablaFija', '.importe-fija', chartFija, 'Detalle renta fija');
+    actualizarGraficoDetalle('#tablaVariable', '.importe-variable', chartVariable, 'Detalle renta variable');
+    actualizarTotalGlobal();
+  }
+
+  function savePatrimonioForCurrentUser() {
+    const user = getLoggedUserName();
+    if (!user) return; // solo guardar si hay usuario logueado
+    try {
+      const key = 'patrimonio_' + user;
+      const obj = buildPatrimonioObject();
+      localStorage.setItem(key, JSON.stringify(obj));
+    } catch (e) { console && console.warn && console.warn('savePatrimonio error', e); }
+  }
+
+  function loadPatrimonioForCurrentUser() {
+    const user = getLoggedUserName();
+    if (!user) return;
+    try {
+      const key = 'patrimonio_' + user;
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      applyPatrimonioObject(obj);
+    } catch (e) { console && console.warn && console.warn('loadPatrimonio error', e); }
+  }
+
+  // Recordatorio para usuarios no logueados: crear/show/hide
+  function createPatrimonioReminder() {
+    try {
+      const ref = document.getElementById('totalPatrimonio');
+      if (!ref) return;
+      if (document.getElementById('patrimonio-recordatorio')) return;
+      const el = document.createElement('div');
+      el.id = 'patrimonio-recordatorio';
+      el.style.background = '#fff3cd';
+      el.style.border = '1px solid #ffeeba';
+      el.style.color = '#856404';
+      el.style.padding = '8px';
+      el.style.marginTop = '8px';
+      el.style.borderRadius = '4px';
+      el.style.display = 'none';
+      el.style.fontSize = '0.95rem';
+      el.textContent = 'Recuerda: si no inicias sesión, tus cambios no se guardarán.';
+      ref.parentNode.insertBefore(el, ref.nextSibling);
+    } catch (e) { /* no bloquear si falla */ }
+  }
+
+  function showPatrimonioSaveReminder() {
+    try {
+      const el = document.getElementById('patrimonio-recordatorio');
+      if (!el) return;
+      const user = getLoggedUserName();
+      if (user) { el.style.display = 'none'; return; }
+      el.style.display = 'block';
+      if (window._patrimonioReminderTimeout) clearTimeout(window._patrimonioReminderTimeout);
+      window._patrimonioReminderTimeout = setTimeout(() => { try { el.style.display = 'none'; } catch(e){} }, 6000);
+    } catch (e) { /* ignore */ }
+  }
+
+  // Mostrar mensaje nativo del navegador (confirm) una sola vez por sesión
+  function showPatrimonioBlockingModal() {
+    try {
+      if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('patrimonio_blocking_shown')) return;
+      if (getLoggedUserName()) return; // no mostrar si hay usuario
+      const msg = 'Recuerda: si no inicias sesión, tus cambios no se guardarán.\n\n¿Quieres iniciar sesión ahora?';
+      const ok = window.confirm(msg);
+      try { sessionStorage.setItem('patrimonio_blocking_shown', '1'); } catch (e) {}
+      if (ok) {
+        try {
+          if (window.SF && typeof window.SF.showAuthModal === 'function') {
+            window.SF.showAuthModal();
+            return;
+          }
+        } catch (e) {}
+        // fallback a la página del foro
+        try { location.href = 'foro.html'; } catch (e) {}
+      }
+    } catch (e) { console && console.warn && console.warn('showPatrimonioBlockingModal error', e); }
+  }
+
+  // guardar automáticamente al cambiar inputs, y tras añadir/borrar filas
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el) return;
+    if (el.classList && (el.classList.contains('importe-global') || el.classList.contains('importe-variable') || el.classList.contains('importe-fija') || el.classList.contains('importe-colchon') || el.tagName.toLowerCase() === 'input')) {
+      // mostrar modal bloqueante si no está logueado
+      try { showPatrimonioBlockingModal(); } catch (e) {}
+      // small debounce para guardar si hay usuario
+      if (window._patrimonioSaveTimeout) clearTimeout(window._patrimonioSaveTimeout);
+      window._patrimonioSaveTimeout = setTimeout(() => { savePatrimonioForCurrentUser(); }, 350);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t) return;
+    const isAdd = (t.id && (t.id.indexOf('addFila') === 0));
+    const isDel = t.classList && t.classList.contains('btn-borrar');
+    if (isAdd || isDel) {
+      // mostrar modal bloqueante si no está logueado
+      try { showPatrimonioBlockingModal(); } catch (e) {}
+      // delay to allow DOM changes
+      setTimeout(() => { savePatrimonioForCurrentUser(); }, 300);
+    }
+  });
+
+  // cargar patrimonio del usuario al iniciar si existe
+  try { loadPatrimonioForCurrentUser(); } catch(e) {}
+
+  // crear elemento recordatorio en la UI
+  try { createPatrimonioReminder(); } catch(e) {}
+
+  // si se detecta login/logout desde el header, cargar/guardar según corresponda
+  window.addEventListener('sf:auth-changed', (ev) => {
+    try {
+      // al cambiar de usuario, intentar cargar su patrimonio
+      loadPatrimonioForCurrentUser();
+    } catch(e){}
+  });
 
   // Intentar inicializar ahora; si falla, reintentar varias veces
   let chartsOk = initChartsOnce();

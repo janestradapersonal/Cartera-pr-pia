@@ -68,8 +68,19 @@
 
       wrapper.appendChild(img);
       wrapper.appendChild(name);
-      // Nota: botón de logout eliminado intencionalmente — la función clearUser() permanece disponible.
-      
+      // Añadir botón de cerrar sesión (visible)
+      const logout = document.createElement('button');
+      logout.className = 'btn btn-logout';
+      logout.textContent = 'Cerrar sesión';
+      logout.style.marginLeft = '8px';
+      logout.addEventListener('click', (e) => {
+        e.preventDefault();
+        try{ sessionStorage.removeItem('foro_current'); localStorage.removeItem('foro_current'); }catch(err){}
+        try{ localStorage.removeItem(USER_KEY); }catch(err){}
+        try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(err){}
+        clearUser();
+      });
+      wrapper.appendChild(logout);
       userArea.appendChild(wrapper);
       userArea.appendChild(wrapper);
     } else {
