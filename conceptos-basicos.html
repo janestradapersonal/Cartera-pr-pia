@@ -229,9 +229,66 @@
 
             <p>En cuanto a los porcentajes que se deben asignar a cada tipo de activo, no hay una regla única. Dependen de la edad y de los objetivos personales de cada uno. Si no necesitas ese dinero a corto plazo, puedes asumir más riesgo y tener un mayor peso en renta variable, lo que se conoce como una estrategia más agresiva. En cambio, si eres padre o madre de familia y tienes gastos fijos importantes como el colegio, la vivienda o las facturas, lo más prudente es reducir la exposición a renta variable y optar por una cartera más conservadora.</p>
 
-            <p>En est web si quieres puedes:  <strong><a href="ejemplos-carteras.html" style="color: #6a1b9a; text-decoration: underline;"> 
-              </p></p>1. Ver ejemplos de carteras según tu edad e intereses </p> </a></strong>
-              <strong><a href="index.html" style="color: #6a1b9a; text-decoration: underline;">2.Crear tu propia cartera de inversión</a></strong></p>
+            <p>En esta web si quieres puedes:</p>
+            <p>
+              <button id="toggle-ejemplos" style="background:#6a1b9a;color:#fff;border:none;padding:8px 12px;border-radius:4px;cursor:pointer;">Mostrar ejemplos de cartera</button>
+              &nbsp;
+              <a href="index.html" style="color: #6a1b9a; text-decoration: underline;">Crear tu propia cartera de inversión</a>
+            </p>
+
+            <div id="ejemplos-carteras" style="display:none; margin:18px auto; max-width:900px; text-align:center;">
+              <div style="text-align:center;">
+                <h3>Ejemplos de carteras según edad y horizonte</h3>
+                <p style="max-width:900px; margin: 0 auto;"><strong>Hay varios factores que determinan cómo debería ser tu cartera ideal: tu tolerancia al riesgo, si eres más agresivo o conservador, y tus objetivos o planes de futuro. Aun así, a modo orientativo, aquí tienes tres ejemplos de carteras “típicas” según la etapa de la vida en la que te encuentres, ya que la edad suele influir en el nivel de riesgo que asumimos (cuando somos jóvenes solemos tener menos miedo a perder; a medida que envejecemos, tendemos a priorizar conservar el capital).</strong></p>
+
+                <div style="margin-top:14px; margin-bottom:18px;">
+                  <button class="btn-ejemplo" data-target="nino" style="margin-right:8px;padding:8px 12px;border-radius:4px;border:1px solid #bbb;cursor:pointer;">Niño (18)</button>
+                  <button class="btn-ejemplo" data-target="adulto" style="margin-right:8px;padding:8px 12px;border-radius:4px;border:1px solid #bbb;cursor:pointer;">Adulto (40)</button>
+                  <button class="btn-ejemplo" data-target="abuelo" style="padding:8px 12px;border-radius:4px;border:1px solid #bbb;cursor:pointer;">Abuelo (80)</button>
+                </div>
+
+                <div id="ejemplo-nino" class="ejemplo-persona" style="display:none; text-align:center; max-width:800px; margin:0 auto;">
+                  <h4 style="font-size:24px;">Cartera ejemplo: Niño/a de 18 años</h4>
+                  <p><strong>Horizonte:</strong> 40+ años | <strong>Perfil:</strong> Muy agresivo</p>
+                  <p><strong>Composición sugerida:</strong></p>
+                  <ul style="display:inline-block; text-align:left; margin:0 auto;">
+                    <li>80% Renta variable (ETF global, acciones de tech)</li>
+                    <li>15% Renta fija (bonos)</li>
+                    <li>5% Colchón de emergencia</li>
+                  </ul>
+                  <p>A esta edad, el tiempo es tu mayor ventaja. Puedes asumir volatilidad sin preocuparte por fluctuaciones a corto plazo.</p>
+                  <div style="text-align:center; margin-top:12px;"><img src="imagenes/nen.png" alt="Niño/a ejemplo" style="max-width:350px; width:50%; height:auto; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.10);"></div>
+                </div>
+
+                <div id="ejemplo-adulto" class="ejemplo-persona" style="display:none; text-align:center; max-width:800px; margin:0 auto;">
+                  <h4 style="font-size:24px;">Cartera ejemplo: Adulto de 40 años</h4>
+                  <p><strong>Horizonte:</strong> 25 años | <strong>Perfil:</strong> Moderado</p>
+                  <p><strong>Composición sugerida:</strong></p>
+                  <ul style="display:inline-block; text-align:left; margin:0 auto;">
+                    <li>60% Renta variable (ETF diversificados)</li>
+                    <li>30% Renta fija (bonos, fondos de renta fija)</li>
+                    <li>10% Colchón de emergencia</li>
+                  </ul>
+                  <p>A los 40, buscas un balance entre crecimiento y seguridad. Probablemente tengas responsabilidades (hipoteca, familia) que justifican reducir riesgo.</p>
+                  <div style="text-align:center; margin-top:12px;"><img src="imagenes/adult.png" alt="Adulto ejemplo" style="max-width:350px; width:50%; height:auto; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.10);"></div>
+                </div>
+
+                <div id="ejemplo-abuelo" class="ejemplo-persona" style="display:none; text-align:center; max-width:800px; margin:0 auto;">
+                  <h4 style="font-size:24px;">Cartera ejemplo: Jubilado de 80 años</h4>
+                  <p><strong>Horizonte:</strong> 10-15 años | <strong>Perfil:</strong> Conservador</p>
+                  <p><strong>Composición sugerida:</strong></p>
+                  <ul style="display:inline-block; text-align:left; margin:0 auto;">
+                    <li>30% Renta variable (ETF defensivos, grandes empresas)</li>
+                    <li>60% Renta fija (bonos, fondos de renta fija segura)</li>
+                    <li>10% Colchón de emergencia / Liquidez</li>
+                  </ul>
+                  <p>El objetivo ya no es crecer agresivamente, sino preservar capital y generar ingresos estables para la jubilación.</p>
+                  <div style="text-align:center; margin-top:12px;"><img src="imagenes/avi.png" alt="Abuelo ejemplo" style="max-width:350px; width:50%; height:auto; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.10);"></div>
+                </div>
+
+                <p style="margin-top: 16px;"><strong>Nota:</strong> Estos son solo ejemplos. Adapta tu cartera según tu situación personal, tolerancia al riesgo y objetivos específicos.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -246,9 +303,21 @@
           </button>
           <div id="content-indices" class="accordion-content">
             <p>Un índice es una "cesta virtual" que agrupa muchas acciones (o bonos) y sirve como referencia para medir cómo se comporta un mercado. Por ejemplo, el S&P 500 recoge unas 500 grandes empresas de Estados Unidos y el MSCI World refleja miles de empresas de países desarrollados. Cuando compras un fondo o ETF que replica un índice, estás comprando la rentabilidad de esa cesta completa en lugar de elegir empresas una por una.</p>
-            <button class="toggle-ejemplo" data-target="ejemplo-indices" style="margin:10px 0;padding:6px 10px;">MOSTRAR EJEMPLO</button>
-            <div id="ejemplo-indices" style="display:none;">
-              <p>Ejemplo: un ETF que replica el MSCI World invierte en miles de empresas de todo el mundo; si el índice sube 7 % en un año, el ETF ofrecerá una rentabilidad similar menos comisiones.</p>
+            <button id="toggle-indices" style="margin:10px 0;padding:8px 12px;background:#6a1b9a;color:#fff;border:none;border-radius:4px;cursor:pointer;">Mostrar los principales índices</button>
+            <div id="indices-list" style="display:none; margin-top:12px; text-align:left; max-width:760px; margin-left:auto; margin-right:auto;">
+              <ol style="line-height:1.8;">
+                <li><strong>IBEX 35</strong> — Índice de referencia de la bolsa española.</li>
+                <li><strong>S&P 500</strong> — 500 grandes empresas de EE. UU.; referencia para renta variable americana.</li>
+                <li><strong>MSCI World</strong> — Índice global de mercados desarrollados.</li>
+                <li><strong>NASDAQ Composite</strong> — Índice con fuerte peso en tecnología.</li>
+                <li><strong>FTSE 100</strong> — Principales empresas del Reino Unido.</li>
+                <li><strong>DAX</strong> — Índice de referencia de Alemania.</li>
+                <li><strong>Nikkei 225</strong> — Índice bursátil japonés.</li>
+                <li><strong>CAC 40</strong> — Índice de referencia de Francia.</li>
+                <li><strong>Hang Seng</strong> — Índice principal de Hong Kong.</li>
+                <li><strong>Russell 2000</strong> — Índice de pequeñas capitalizaciones de EE. UU.</li>
+              </ol>
+              <p style="margin-top:8px;">Estos índices se usan frecuentemente como referencia y existen ETFs que los replican para facilitar la inversión diversificada.</p>
             </div>
           </div>
         </div>
@@ -404,6 +473,56 @@
 
   <script src="nav.js"></script>
   <script src="scripts.js"></script>
+  <script>
+    (function(){
+      // Toggle para la lista de índices en la sección 'Índices bursátiles'
+      const btn = document.getElementById('toggle-indices');
+      const list = document.getElementById('indices-list');
+      if (!btn || !list) return;
+      btn.textContent = 'Mostrar los principales índices';
+      btn.addEventListener('click', () => {
+        const hidden = (list.style.display === 'none' || list.style.display === '');
+        list.style.display = hidden ? 'block' : 'none';
+        btn.textContent = hidden ? 'Ocultar los principales índices' : 'Mostrar los principales índices';
+        if (hidden) try { list.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
+      });
+
+      // Toggle y selección para los ejemplos de carteras (restaurados)
+      const btnEj = document.getElementById('toggle-ejemplos');
+      const contEj = document.getElementById('ejemplos-carteras');
+      if (btnEj && contEj) {
+        btnEj.textContent = 'Mostrar ejemplos de cartera';
+        btnEj.addEventListener('click', () => {
+          const hidden = (contEj.style.display === 'none' || contEj.style.display === '');
+          contEj.style.display = hidden ? 'block' : 'none';
+          btnEj.textContent = hidden ? 'Ocultar ejemplos de cartera' : 'Mostrar ejemplos de cartera';
+          if (hidden) try { contEj.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
+          if (hidden) showEjemplo('adulto');
+        });
+      }
+
+      function showEjemplo(key){
+        ['nino','adulto','abuelo'].forEach(k => {
+          const el = document.getElementById('ejemplo-' + (k === 'adulto' ? 'adulto' : (k === 'nino' ? 'nino' : 'abuelo')));
+          if (!el) return;
+          el.style.display = (k === key) ? 'block' : 'none';
+        });
+        document.querySelectorAll('.btn-ejemplo').forEach(b=>{
+          b.style.background = '';
+          b.style.color = '';
+        });
+        const activeBtn = document.querySelector('.btn-ejemplo[data-target="' + key + '"]');
+        if (activeBtn) { activeBtn.style.background = '#6a1b9a'; activeBtn.style.color = '#fff'; }
+      }
+
+      document.querySelectorAll('.btn-ejemplo').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const t = b.dataset.target;
+          showEjemplo(t);
+        });
+      });
+    })();
+  </script>
   <footer class="site-footer" aria-label="Contacto">
     <div class="container footer-inner">
       <div class="contact">
