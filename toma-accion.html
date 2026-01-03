@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toma acción - SenzillamentFinances</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>SenzillamentFinances</h1>
+  <nav class="main-nav">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-list" aria-label="Abrir menú">☰</button>
+    <ul id="nav-list" class="nav-list">
+      <li><a href="quien-soy.html" class="nav-item" data-page="quien-soy">1 - Quién soy</a></li>
+      <li><a href="porque-invertir.html" class="nav-item" data-page="porque-invertir">2 - Importancia de invertir</a></li>
+      <li class="has-sub">
+        <button class="sub-toggle" aria-expanded="false">3 - Aprende ▼</button>
+        <ul class="sub-list">
+          <li><a href="conceptos-basicos.html#productos-financieros" class="nav-item" data-page="conceptos-basicos">Productos financieros</a></li>
+          <li><a href="conceptos-basicos.html#conceptos-basicos" class="nav-item" data-page="conceptos-basicos">Conceptos básicos</a></li>
+          <li><a href="conceptos-basicos.html#impuestos" class="nav-item" data-page="conceptos-basicos">Impuestos</a></li>
+        </ul>
+      </li>
+      <li><a href="index.html" class="nav-item" data-page="index">4 - Cómo crearse la cartera</a></li>
+      <li><a href="toma-accion.html" class="nav-item" data-page="toma-accion">5 - Toma acción</a></li>
+      <li><a href="foro.html" class="nav-item" data-page="foro">6 - Foro</a></li>
+    </ul>
+  </nav>
+
+  <section class="bloque">
+    <h2>Toma acción</h2>
+
+    <div style="background:#fdeff2;border-left:4px solid #d81b60;padding:18px;margin:18px 0;border-radius:6px;">
+      <h3 style="margin-top:0;color:#9c1f57;">1. Elige broker bien</h3>
+      <p><strong>Antes de abrir cuenta, verifica:</strong></p>
+      <ul>
+        <li><strong>¿Tiene FGD?</strong> (Fondo de Garantía de Depósitos) - Protege tu dinero hasta 100.000€</li>
+        <li><strong>¿Está regulado?</strong> - En España: CNMV. En la UE existen supervisores similares. No inviertas en plataformas no reguladas.</li>
+        <li><strong>Comisiones:</strong> Compara varios brokers. Los bancos tradicionales suelen cobrar mucho más. Un 1% en comisiones frente a 0,1% puede suponer miles de euros en 20 años.</li>
+      </ul>
+
+      <p>Yo personalmente he probado <strong>Trade Republic</strong> y <strong>MyInvestor</strong>; ambas cumplen lo esencial y son intuitivas para empezar. Permiten invertir desde importes pequeños.</p>
+
+      <div style="display:flex;gap:18px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap;">
+        <div style="text-align:center; background:white; padding:12px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.06);">
+          <img src="imagenes/trade_republic.jpg" alt="Trade Republic" style="max-width:180px;height:auto;display:block;margin:0 auto;" />
+          <a href="https://refnocode.trade.re/znw9qk74" target="_blank" rel="noopener" style="display:block;margin-top:8px;color:#1b4b8f;">Empezar con Trade Republic</a>
+        </div>
+
+        <div style="text-align:center; background:white; padding:12px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.06);">
+          <img src="imagenes/my_investor.png" alt="MyInvestor" style="max-width:180px;height:auto;display:block;margin:0 auto;" />
+          <a href="https://newapp.myinvestor.es/do/signup?promotionalCode=IYZED" target="_blank" rel="noopener" style="display:block;margin-top:8px;color:#1b4b8f;">Empezar con MyInvestor</a>
+        </div>
+      </div>
+      <p style="margin-top:12px;">Las recomiendo mucho. Si te interesa y descargas la app desde esos enlaces, es una forma de apoyar la web.</p>
+
+      <!-- Comparativa interactiva -->
+      <div style="text-align:center; margin-top:18px;">
+        <button id="toggle-compare" style="background:#ff6f61;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;">Mostrar comparativa brokers</button>
+      </div>
+
+      <div id="compare-box" style="display:none; max-width:920px; margin:18px auto; background:#ffffff; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.06); overflow:hidden;">
+        <div style="display:flex; gap:0;">
+          <div style="flex:1; padding:18px; border-right:1px solid #f0f0f0; text-align:center;">
+            <h4 style="margin-top:0;">Trade Republic</h4>
+            <img src="imagenes/trade_republic.jpg" alt="Trade Republic" style="max-width:160px; height:auto; display:block; margin:8px auto;" />
+            <ul style="text-align:left; display:inline-block; margin-top:8px;">
+              <li>Comisiones bajas por operación</li>
+              <li>App móvil muy intuitiva</li>
+              <li>Permite invertir cantidades pequeñas</li>
+              <li>Buena para compras esporádicas y DCA</li>
+            </ul>
+          </div>
+          <div style="flex:1; padding:18px; text-align:center;">
+            <h4 style="margin-top:0;">MyInvestor</h4>
+            <img src="imagenes/my_investor.png" alt="MyInvestor" style="max-width:160px; height:auto; display:block; margin:8px auto;" />
+            <ul style="text-align:left; display:inline-block; margin-top:8px;">
+              <li>Fuerte oferta en fondos y ETFs</li>
+              <li>Planes de inversión y fondos sin comisión</li>
+              <li>Buena opción para carteras indexadas</li>
+              <li>Interfaz web y app</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="padding:12px 18px; background:#fafafa; border-top:1px solid #f0f0f0; text-align:center;">
+          <small>Nota: las condiciones pueden cambiar. Comprueba las tarifas y características directamente en las webs de los brokers.</small>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#eef7ff;border-left:4px solid #2196f3;padding:18px;margin:18px 0;border-radius:6px;">
+      <h3 style="margin-top:0;color:#0d47a1;">2. Ir poco a poco y aprender</h3>
+      <p>Empieza con pequeñas cantidades, lee sobre ETFs y diversificación, haz aportaciones periódicas y evita decisiones impulsivas por noticias de corto plazo.</p>
+    </div>
+
+    <div style="background:#f3f7e6;border-left:4px solid #7cb342;padding:18px;margin:18px 0;border-radius:6px;">
+      <h3 style="margin-top:0;color:#558b2f;">3. Pasos prácticos sugeridos</h3>
+      <ol>
+        <li>Abre una cuenta demo o con poco dinero para practicar.</li>
+        <li>Crea un colchón de emergencia (2-9 meses de gastos).</li>
+        <li>Elige una mezcla simple: ETF global + bonos según tu edad.</li>
+        <li>Aporta regularmente (DCA) y revisa anualmente.</li>
+      </ol>
+    </div>
+
+    <div style="background:#fff3e0; border-left:5px solid #ff9800; padding:20px; margin:18px 0; border-radius:6px;">
+      <h3 style="margin-top:0; color:#e65100;">Gestionar tu dinero o delegarlo</h3>
+      <p>
+Un <strong>gestor externo</strong> cobra comisiones por encargarse de la gestión del dinero, que suelen situarse aproximadamente entre el <strong>1 % y el 2 % anual</strong>. Cuando se dispone de un capital elevado, puede tener sentido acudir a un <strong>asesor profesional</strong> que oriente en la toma de decisiones. No obstante, es fundamental <strong>vigilar muy bien las comisiones</strong>, ya que a largo plazo pueden reducir de forma significativa el rendimiento obtenido.
+</p>
+
+<p>
+En algunos casos, pagar por asesoramiento es razonable, especialmente cuando los conceptos financieros resultan difíciles de asimilar o cuando cuesta dar el primer paso. Aun así, es importante que, como mínimo, <strong>sepas en qué estás invirtiendo y por qué</strong>, incluso aunque delegues la gestión.
+</p>
+
+<p>
+Como recomendación práctica, es aconsejable <strong>empezar con cantidades pequeñas</strong> y aprender gestionando una parte del dinero por uno mismo. Con el tiempo, y a medida que se adquiere más experiencia, se puede valorar si compensa delegar la gestión. En ese caso, conviene hacerlo con <strong>conocimiento y control</strong>, especialmente en lo referente a las comisiones.
+</p>
+
+<p>
+En mi experiencia personal, preferí comenzar invirtiendo <strong>poco dinero</strong>, asumiendo que probablemente no ganaría ni perdería mucho, pero con el objetivo principal de <strong>aprender</strong>. A medida que fui entendiendo mejor cómo funciona la inversión, fui aumentando progresivamente la cantidad invertida. Del mismo modo, si aun entendiéndolo prefieres que un profesional gestione tu dinero, es una opción totalmente válida y comprensible, siempre teniendo claro que <strong>las comisiones pueden ser elevadas y que, a largo plazo, su impacto es importante</strong>.
+</p>
+    </div>
+
+    <div style="background:#e0f2f1; border-left:5px solid #009688; padding:20px; margin:18px 0; border-radius:6px;">
+      <h3 style="margin-top:0; color:#004d40;">Cómo comencé yo (y cómo puedes tú)</h3>
+      <p>Mi camino fue simple:</p>
+      <ol style="line-height: 2; margin: 10px 0; padding-left: 20px;">
+        <li>Vi un <strong>vídeo sobre finanzas</strong> que me interesó</li>
+        <li>Comencé a <strong>hacerme preguntas:</strong> ¿Qué es esto? ¿Cómo funciona?</li>
+        <li>Fui <strong>buscando información</strong> en blogs, más vídeos, artículos</li>
+        <li>Ví <strong>más contenido</strong> de gente con experiencia</li>
+        <li>Hablé <strong>con otras personas</strong> interesadas, intercambié ideas</li>
+        <li>Poco a poco <strong>aprendí</strong> que los conceptos básicos no son difíciles</li>
+      </ol>
+      <p><strong>Tú puedes hacer lo mismo.</strong> No necesitas ser experto para empezar. Solo curiosidad y disposición a aprender.</p>
+    </div>
+
+  </section>
+
+  <script src="nav.js"></script>
+  <script src="scripts.js"></script>
+  <script>
+    (function(){
+      const btn = document.getElementById('toggle-compare');
+      const box = document.getElementById('compare-box');
+      if (!btn || !box) return;
+      btn.addEventListener('click', ()=>{
+        const hidden = (box.style.display === 'none' || box.style.display === '');
+        box.style.display = hidden ? 'block' : 'none';
+        btn.textContent = hidden ? 'Ocultar comparativa brokers' : 'Mostrar comparativa brokers';
+        if (hidden) try { box.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){}
+      });
+    })();
+  </script>
+  <footer class="site-footer" aria-label="Contacto">
+    <div class="container footer-inner">
+      <div class="contact">
+        <span class="contact-label">Contáctanos por:</span>
+        <a class="footer-link" href="https://wa.me/34698814693?text=hola%2C%20me%20gustar%C3%ADa..." target="_blank" rel="noopener">Whatsapp</a>
+        <a class="footer-link" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to=janestrada888@gmail.com" target="_blank" rel="noopener">Gmail</a>
+      </div>
+      <div class="small">© 2025 SenzillamentFinances</div>
+    </div>
+  </footer>
+</body>
+</html>
