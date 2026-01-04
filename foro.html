@@ -88,7 +88,30 @@
 
   </main>
 
+  <script src="scripts.js"></script>
   <script src="nav.js"></script>
+  <script>
+    // Limpiar solo formularios estáticos previos y permitir abrir el modal de cabecera
+    (function(){
+      function removeStaticLoginForm(){
+        try{
+          const el = document.getElementById('loginForm'); if(el) el.remove();
+        }catch(e){}
+      }
+      document.addEventListener('DOMContentLoaded', removeStaticLoginForm);
+      // asegurarnos de que el botón para abrir el modal exista y abra el modal de cabecera
+      function attachOpenHeader(){
+        try{
+          const btn = document.getElementById('openHeaderLogin');
+          if (!btn) return;
+          btn.addEventListener('click', ()=>{
+            try{ if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); } else { alert('Función de login no disponible'); } }catch(e){}
+          });
+        }catch(e){}
+      }
+      document.addEventListener('DOMContentLoaded', attachOpenHeader);
+    })();
+  </script>
   <script>
     // Foro sencillo (localStorage) en español
     (function(){
