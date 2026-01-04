@@ -14,12 +14,21 @@ DATABASE_URL = "postgresql://neondb_owner:npg_UdaTN1jlo5XB@ep-spring-pond-ag0wdp
 app = FastAPI()
 
 # Permisos para que tu web (HTML) pueda hablar con este script
+# Permitir todos los orígenes durante desarrollo; en producción restringir al dominio de tu web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permite que cualquiera se conecte (luego lo cerraremos si quieres)
+    allow_origins=["*"],  # o especifica ['https://cartera-pr-pia.onrender.com', 'http://127.0.0.1:5500']
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+
+# Añadir un handler OPTIONS genérico (por si el proxy interfiere con preflight)
+@app.options("/{path:path}")
+def catch_options(path: str):
+    return {"ok": True}
 
 # Base de datos
 engine = create_engine(DATABASE_URL)
