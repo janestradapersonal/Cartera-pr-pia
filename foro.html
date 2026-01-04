@@ -289,7 +289,7 @@
 
       $('publicar').addEventListener('click', ()=>{
         if (!current) {
-          const msg = 'Necesitas iniciar sesión. ¿Quieres iniciar sesión ahora?';
+          const msg = 'Para poder hacer preguntas necesitas iniciar sesión. ¿Quieres iniciar sesión ahora?';
           const ok = window.confirm(msg);
           if (!ok) return;
           try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return; } } catch(e) {}
