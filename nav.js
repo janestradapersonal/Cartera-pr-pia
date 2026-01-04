@@ -106,7 +106,12 @@
         <button class="sf-close" aria-label="Cerrar">✕</button>
         <h3>Iniciar sesión o registrarse</h3>
         <div class="sf-row"><input id="sf-username" type="text" placeholder="Nombre de usuario" /></div>
-        <div class="sf-row"><input id="sf-password" type="password" placeholder="Contraseña" /></div>
+        <div class="sf-row">
+          <div class="password-wrapper">
+            <input id="sf-password" type="password" placeholder="Contraseña" />
+            <button id="sf-toggle-password" type="button" class="sf-eye" aria-label="Mostrar contraseña">👁</button>
+          </div>
+        </div>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><label><input id="sf-remember" type="checkbox"/> Recordarme</label></div>
         <div class="sf-actions">
           <button id="sf-register" class="btn">Registrar</button>
@@ -118,6 +123,23 @@
     // handlers
     overlay.querySelector('.sf-close').addEventListener('click', hideAuthModal);
     overlay.addEventListener('click', (e)=>{ if (e.target === overlay) hideAuthModal(); });
+
+    // Toggle mostrar/ocultar contraseña (botón ojo)
+    try{
+      const pwdInput = overlay.querySelector('#sf-password');
+      const toggleBtn = overlay.querySelector('#sf-toggle-password');
+      if (pwdInput && toggleBtn) {
+        toggleBtn.addEventListener('click', (ev)=>{
+          ev.preventDefault();
+          const nowShow = pwdInput.type === 'password';
+          pwdInput.type = nowShow ? 'text' : 'password';
+          toggleBtn.setAttribute('aria-label', nowShow ? 'Ocultar contraseña' : 'Mostrar contraseña');
+          toggleBtn.textContent = nowShow ? '🙈' : '👁';
+          // Mantener foco en el campo
+          pwdInput.focus();
+        });
+      }
+    }catch(e){ /* no bloquear si algo falla */ }
 
     document.getElementById('sf-register').addEventListener('click', ()=>{
       (async ()=>{

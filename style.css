@@ -197,6 +197,22 @@ h1 {
   border: 1px solid #d8e3f7;
   box-sizing: border-box;
 }
+.sf-modal .password-wrapper { position: relative; }
+.sf-modal .password-wrapper input[type="password"],
+.sf-modal .password-wrapper input[type="text"] { padding-right: 44px; }
+.sf-modal .sf-eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+}
+.sf-modal .sf-eye:focus { outline: 2px solid rgba(13,71,161,0.18); border-radius:6px; }
 .sf-modal .sf-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
 .sf-modal .sf-actions .btn { padding:8px 12px; }
 .sf-modal .sf-close { position:absolute; right:18px; top:14px; background:transparent; border:none; font-size:18px; cursor:pointer; color:#6b7280; }
