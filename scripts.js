@@ -15,6 +15,91 @@ if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
   Chart.register(ChartDataLabels);
 }
 
+// --- NUEVAS FUNCIONES PARA CONECTAR CON LA NUBE ---
+const API_URL = "http://127.0.0.1:8000"; // Esto cambiará cuando subas a la nube
+
+// 1. REGISTRARSE
+async function registrarUsuario(username, password) {
+  try {
+    const response = await fetch(`${API_URL}/registro`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      alert("¡Usuario creado! Ahora inicia sesión.");
+      return true;
+    } else {
+      alert("Error: " + (data.detail || JSON.stringify(data)));
+      return false;
+    }
+  } catch (error) {
+    console.error("Error conectando:", error);
+    alert("No se pudo conectar con el servidor.");
+    return false;
+  }
+}
+
+// 2. INICIAR SESIÓN Y CARGAR DATOS
+async function iniciarSesion(username, password) {
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+        
+    if (response.ok) {
+      alert("¡Bienvenido, " + username + "!");
+      // Guardamos temporalmente quién eres en el navegador para no pedirte contraseña a cada rato
+      sessionStorage.setItem("usuario_actual", username);
+      sessionStorage.setItem("pass_actual", password);
+            
+      // Si hay datos en la nube, actualizamos tu web
+      if (data.datos) {
+        console.log("Datos descargados:", data.datos);
+        // --- AQUÍ ES DONDE ACTUALIZAS TU WEB ---
+        // Ejemplo: misDatos = data.datos;
+        // guardarEnLocalStorage(data.datos); // Opcional: guardar copia local
+        // actualizarPantalla();
+      }
+      return true;
+    } else {
+      alert("Usuario o contraseña incorrectos");
+      return false;
+    }
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+// 3. GUARDAR DATOS EN LA NUBE
+async function guardarEnNube(datosAGuardar) {
+  const usuario = sessionStorage.getItem("usuario_actual");
+  const pass = sessionStorage.getItem("pass_actual");
+    
+  if (!usuario) {
+    console.log("No estás logueado, solo guardo en local.");
+    return; 
+  }
+
+  try {
+    await fetch(`${API_URL}/guardar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        username: usuario, 
+        password: pass,
+        datos: datosAGuardar 
+      })
+    });
+    console.log("☁️ Datos sincronizados con la nube");
+  } catch (e) { console.error('guardarEnNube error', e); }
+}
+
 // Crear gráfico de tipo pie
 function crearPieChart(ctx, etiquetas, datos, titulo, backgroundColors) {
   return new Chart(ctx, {
