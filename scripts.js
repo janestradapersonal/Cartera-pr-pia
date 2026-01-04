@@ -16,7 +16,7 @@ if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
 }
 
 // --- NUEVAS FUNCIONES PARA CONECTAR CON LA NUBE ---
-const API_URL = "http://127.0.0.1:8000"; // Esto cambiará cuando subas a la nube
+const API_URL = "https://cartera-pr-pia.onrender.com"; // Esto cambiará cuando subas a la nube
 
 // 1. REGISTRARSE
 async function registrarUsuario(username, password) {
