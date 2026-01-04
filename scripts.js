@@ -207,6 +207,18 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) { return null; }
   }
 
+  // Pedir login al intentar editar valores (devuelve true si abrió modal / redirigió)
+  function promptLoginToEdit() {
+    try {
+      const msg = 'Necesitas iniciar sesión para editar los importes. ¿Quieres iniciar sesión ahora?';
+      const ok = window.confirm(msg);
+      if (!ok) return false;
+      try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return true; } } catch(e){}
+      try { location.href = 'index.html'; } catch(e){}
+      return true;
+    } catch (e) { return false; }
+  }
+
   function buildPatrimonioObject() {
     const obj = { globals: {}, tablas: {} };
     document.querySelectorAll('.importe-global').forEach(i => {
@@ -368,17 +380,42 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) { console && console.warn && console.warn('showPatrimonioBlockingModal error', e); }
   }
 
-  // guardar automáticamente al cambiar inputs, y tras añadir/borrar filas
-  document.addEventListener('input', (e) => {
-    const el = e.target;
-    if (!el) return;
-    if (el.classList && (el.classList.contains('importe-global') || el.classList.contains('importe-variable') || el.classList.contains('importe-fija') || el.classList.contains('importe-colchon') || el.tagName.toLowerCase() === 'input')) {
-      // mostrar modal bloqueante si no está logueado
-      try { showPatrimonioBlockingModal(); } catch (e) {}
-      // small debounce para guardar si hay usuario
-      if (window._patrimonioSaveTimeout) clearTimeout(window._patrimonioSaveTimeout);
-      window._patrimonioSaveTimeout = setTimeout(() => { savePatrimonioForCurrentUser(); }, 350);
-    }
+
+  // Evitar edición de importes sin iniciar sesión: interceptar focus en inputs relevantes
+  document.addEventListener('focusin', (e) => {
+    try {
+      const t = e.target;
+      if (!t) return;
+      if (t.classList && (t.classList.contains('importe-global') || t.classList.contains('importe-variable') || t.classList.contains('importe-fija') || t.classList.contains('importe-colchon'))) {
+        const user = getLoggedUserName();
+        if (!user) {
+          // preguntar y evitar editar (se vuelve a preguntar en próximos intentos)
+          promptLoginToEdit();
+          try { t.blur(); } catch (err) {}
+        }
+      }
+    } catch (err) { }
+  });
+
+  // Interceptar clicks en botones de añadir/borrar para requerir login
+  document.addEventListener('click', (e) => {
+    try {
+      const t = e.target;
+      if (!t) return;
+      const isAdd = (t.id && (t.id.indexOf('addFila') === 0));
+      const isDel = t.classList && t.classList.contains('btn-borrar');
+      if (isAdd || isDel) {
+        const user = getLoggedUserName();
+        if (!user) {
+          const ok = promptLoginToEdit();
+          if (!ok) { e.preventDefault(); e.stopPropagation(); return; }
+          // si acepta, abrir modal y no ejecutar la acción actual
+          e.preventDefault(); e.stopPropagation(); return;
+        }
+        // delay to allow DOM changes (only when logged)
+        setTimeout(() => { savePatrimonioForCurrentUser(); }, 300);
+      }
+    } catch (err) {}
   });
 
   document.addEventListener('click', (e) => {
@@ -831,6 +868,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnAdd) {
       btnAdd.classList.add(`btn-${tipo}`);
       btnAdd.addEventListener("click", () => {
+        const user = getLoggedUserName();
+        if (!user) {
+          const ok = promptLoginToEdit();
+          if (!ok) return;
+          return;
+        }
         if (!puedeAñadirFila(tbody)) {
           alert("Solo puede haber una fila vacía como máximo.");
           return;
@@ -844,6 +887,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tbody.addEventListener("click", (e) => {
       if (e.target && e.target.classList && e.target.classList.contains("btn-borrar")) {
+        const user = getLoggedUserName();
+        if (!user) {
+          const ok = promptLoginToEdit();
+          if (!ok) return;
+          return;
+        }
         const fila = e.target.closest("tr");
         if (fila) fila.remove();
         try { actualizarGraficoDetalle("#" + idTabla, selectorClaseImporte, chart, tituloBase); } catch (err) {}
