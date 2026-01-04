@@ -208,11 +208,13 @@ h1 {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
+  font-size: 0; /* ocultar texto si lo hubiera */
+  line-height: 0;
   padding: 4px;
 }
 .sf-modal .sf-eye:focus { outline: 2px solid rgba(13,71,161,0.18); border-radius:6px; }
+
+.sf-modal .sf-eye img { width: 26px; height: 26px; max-width: 28px; max-height: 28px; display: block; object-fit: contain; }
 .sf-modal .sf-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
 .sf-modal .sf-actions .btn { padding:8px 12px; }
 .sf-modal .sf-close { position:absolute; right:18px; top:14px; background:transparent; border:none; font-size:18px; cursor:pointer; color:#6b7280; }

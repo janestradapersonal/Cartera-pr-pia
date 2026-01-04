@@ -109,7 +109,9 @@
         <div class="sf-row">
           <div class="password-wrapper">
             <input id="sf-password" type="password" placeholder="Contraseña" />
-            <button id="sf-toggle-password" type="button" class="sf-eye" aria-label="Mostrar contraseña">👁</button>
+            <button id="sf-toggle-password" type="button" class="sf-eye" aria-label="Mostrar contraseña">
+              <img src="imagenes/ull_obert.png" alt="Mostrar" />
+            </button>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><label><input id="sf-remember" type="checkbox"/> Recordarme</label></div>
@@ -129,13 +131,17 @@
       const pwdInput = overlay.querySelector('#sf-password');
       const toggleBtn = overlay.querySelector('#sf-toggle-password');
       if (pwdInput && toggleBtn) {
+        const img = toggleBtn.querySelector('img');
         toggleBtn.addEventListener('click', (ev)=>{
           ev.preventDefault();
           const nowShow = pwdInput.type === 'password';
+          // si nowShow === true, cambiamos de password -> text (mostrar)
           pwdInput.type = nowShow ? 'text' : 'password';
+          // invertir la imagen respecto al comportamiento previo: cuando se muestra, usar ojo cerrado, y viceversa
           toggleBtn.setAttribute('aria-label', nowShow ? 'Ocultar contraseña' : 'Mostrar contraseña');
-          toggleBtn.textContent = nowShow ? '🙈' : '👁';
-          // Mantener foco en el campo
+          try{
+            if (img) img.src = nowShow ? 'imagenes/ull_tancat.png' : 'imagenes/ull_obert.png';
+          }catch(e){}
           pwdInput.focus();
         });
       }
