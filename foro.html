@@ -288,7 +288,14 @@
       $('cerrar').addEventListener('click', ()=>{ current=null; saveCurrent(); renderSession(); renderQuestions(); try{ localStorage.removeItem('sf_user'); sessionStorage.removeItem('foro_current'); window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(e){} });
 
       $('publicar').addEventListener('click', ()=>{
-        if (!current) return alert('antes debes iniciar sesion');
+        if (!current) {
+          const msg = 'Necesitas iniciar sesión. ¿Quieres iniciar sesión ahora?';
+          const ok = window.confirm(msg);
+          if (!ok) return;
+          try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return; } } catch(e) {}
+          try { location.href = 'index.html'; } catch(e) {}
+          return;
+        }
         const t = $('pregunta').value.trim(); if (!t) return alert('Escribe la pregunta');
         questions.push({ user: current, text: t, at: Date.now(), answers: [] }); save(); $('pregunta').value=''; renderQuestions();
       });
