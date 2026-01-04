@@ -120,42 +120,47 @@
     overlay.addEventListener('click', (e)=>{ if (e.target === overlay) hideAuthModal(); });
 
     document.getElementById('sf-register').addEventListener('click', ()=>{
-      const u = document.getElementById('sf-username').value.trim();
-      const p = document.getElementById('sf-password').value;
-      const a = '';
-      if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
-      if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
-      if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
-      const LS_USERS = 'foro_users_v1';
-      const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
-      if (users[u]) return alert('Usuario ya existe. Prueba a iniciar sesión.');
-      users[u] = { password: p, role: 'preguntador', avatar: null };
-      localStorage.setItem(LS_USERS, JSON.stringify(users));
-      // establecer sesión global (sf_user)
-      const userObj = { name: u, avatar: 'imagenes/foto_de_perfil.png' };
-      try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
-      // opción de 'recordarme' guarda foro_current
-      if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
-      renderUser(); hideAuthModal();
-      // notificar al resto de la página que ha cambiado la autenticación
-      try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
-      alert('Registro correcto. Ya has iniciado sesión.');
+      (async ()=>{
+        const u = document.getElementById('sf-username').value.trim();
+        const p = document.getElementById('sf-password').value;
+        if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
+        if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
+        if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
+        try {
+          const ok = await registrarUsuario(u, p);
+          if (!ok) return;
+          const logged = await iniciarSesion(u, p);
+          if (logged) {
+            const avatar = 'imagenes/foto_de_perfil.png';
+            const userObj = { name: u, avatar };
+            try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
+            try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+            if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
+            renderUser(); hideAuthModal();
+            try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
+          }
+        } catch (e) { console && console.warn && console.warn('registro error', e); }
+      })();
     });
 
     document.getElementById('sf-login').addEventListener('click', ()=>{
-      const u = document.getElementById('sf-username').value.trim();
-      const p = document.getElementById('sf-password').value;
-      if (!u || !p) return alert('Introduce usuario y contraseña');
-      const LS_USERS = 'foro_users_v1';
-      const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
-      if (!users[u] || users[u].password !== p) return alert('Credenciales incorrectas o usuario no registrado');
-      const avatar = users[u].avatar || 'imagenes/foto_de_perfil.png';
-      const userObj = { name: u, avatar: avatar };
-      try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
-      if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
-      renderUser(); hideAuthModal();
-      try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
-      alert('Has iniciado sesión correctamente');
+      (async ()=>{
+        const u = document.getElementById('sf-username').value.trim();
+        const p = document.getElementById('sf-password').value;
+        if (!u || !p) return alert('Introduce usuario y contraseña');
+        try {
+          const ok = await iniciarSesion(u, p);
+          if (!ok) { alert('Usuario o contraseña incorrectos'); return; }
+          const avatar = 'imagenes/foto_de_perfil.png';
+          const userObj = { name: u, avatar };
+          try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
+          try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+          if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
+          renderUser(); hideAuthModal();
+          try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
+          alert('Has iniciado sesión correctamente');
+        } catch (e) { console && console.warn && console.warn('login error', e); }
+      })();
     });
   }
 

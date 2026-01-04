@@ -266,18 +266,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function savePatrimonioForCurrentUser() {
     const user = getLoggedUserName();
-    if (!user) return; // solo guardar si hay usuario logueado
+    const obj = buildPatrimonioObject();
     try {
-      const key = 'patrimonio_' + user;
-      const obj = buildPatrimonioObject();
-      localStorage.setItem(key, JSON.stringify(obj));
+      if (user) {
+        const key = 'patrimonio_' + user;
+        localStorage.setItem(key, JSON.stringify(obj));
+        // intentar guardar en la nube (no bloquear si falla)
+        try { guardarEnNube(obj); } catch(e) { console && console.warn && console.warn('guardarEnNube error', e); }
+      } else {
+        // si no hay usuario, guardar local temporalmente
+        try { localStorage.setItem('patrimonio_guest', JSON.stringify(obj)); } catch(e){}
+      }
     } catch (e) { console && console.warn && console.warn('savePatrimonio error', e); }
   }
 
-  function loadPatrimonioForCurrentUser() {
+  async function loadPatrimonioForCurrentUser() {
     const user = getLoggedUserName();
     if (!user) return;
     try {
+      // Si hay credenciales en sessionStorage, intentar cargar desde servidor
+      const su = sessionStorage.getItem('usuario_actual');
+      const sp = sessionStorage.getItem('pass_actual');
+      if (su && sp) {
+        try {
+          const resp = await fetch(`${API_URL}/login`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: su, password: sp })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.datos) {
+              applyPatrimonioObject(data.datos);
+              // almacenar copia local también
+              try { localStorage.setItem('patrimonio_' + user, JSON.stringify(data.datos)); } catch(e){}
+              return;
+            }
+          }
+        } catch (e) { /* ignore server load errors and fallback to local */ }
+      }
+
+      // Fallback: cargar desde localStorage
       const key = 'patrimonio_' + user;
       const raw = localStorage.getItem(key);
       if (!raw) return;
