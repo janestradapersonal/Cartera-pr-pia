@@ -15,6 +15,13 @@ if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
   Chart.register(ChartDataLabels);
 }
 
+// Exponer funciones para que otros scripts (nav.js) puedan llamarlas incluso si el orden de carga varía
+try {
+  window.registrarUsuario = registrarUsuario;
+  window.iniciarSesion = iniciarSesion;
+  window.guardarEnNube = guardarEnNube;
+} catch (e) { /* noop if window not writable */ }
+
 // --- NUEVAS FUNCIONES PARA CONECTAR CON LA NUBE ---
 const API_URL = "https://cartera-pr-pia.onrender.com"; // Esto cambiará cuando subas a la nube
 

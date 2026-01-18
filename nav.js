@@ -400,9 +400,65 @@
         if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
         if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
         try {
-          const ok = await registrarUsuario(u, p);
+          // soportar distintas formas de exponer la función (global o en window.SF)
+          let ok = false;
+          if (typeof window.registrarUsuario === 'function') {
+            ok = await window.registrarUsuario(u, p);
+          } else if (window.SF && typeof window.SF.registrarUsuario === 'function') {
+            ok = await window.SF.registrarUsuario(u, p);
+          } else if (typeof registrarUsuario === 'function') {
+            ok = await registrarUsuario(u, p);
+          } else {
+            // fallback: llamar al backend directamente
+            try {
+              const resp = await fetch(API_URL + '/registro', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ username: u, password: p })
+              });
+              const j = await resp.json().catch(()=>null);
+              if (resp.ok) {
+                ok = true;
+              } else {
+                alert('Error registro: ' + (j && (j.detail||j.mensaje) ? (j.detail||j.mensaje) : resp.statusText));
+                return;
+              }
+            } catch (e) {
+              alert('No se pudo conectar al servidor para registrar.');
+              return;
+            }
+          }
           if (!ok) return;
-          const logged = await iniciarSesion(u, p);
+          // iniciar sesión usando la función disponible
+          let logged = false;
+          if (typeof window.iniciarSesion === 'function') {
+            logged = await window.iniciarSesion(u, p);
+          } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
+            logged = await window.SF.iniciarSesion(u, p);
+          } else if (typeof iniciarSesion === 'function') {
+            logged = await iniciarSesion(u, p);
+          } else {
+            // fallback: llamar a /login directamente y aplicar efectos localmente
+            try {
+              const resp = await fetch(API_URL + '/login', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ username: u, password: p })
+              });
+              const data = await resp.json().catch(()=>null);
+              if (resp.ok) {
+                logged = true;
+                // guardar en session/local
+                try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+                try { localStorage.setItem('sf_user', JSON.stringify({ name: u, avatar: 'imagenes/foto_de_perfil.png', premium: !!(data && data.premium) })); } catch(e){}
+                try { window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); } catch(e){}
+              } else {
+                alert('Usuario o contraseña incorrectos');
+                return;
+              }
+            } catch(e) {
+              alert('Error conectando al servidor para login.');
+              return;
+            }
+          }
           if (logged) {
             const avatar = 'imagenes/foto_de_perfil.png';
             const userObj = { name: u, avatar };
@@ -422,7 +478,32 @@
         const p = document.getElementById('sf-password').value;
         if (!u || !p) return alert('Introduce usuario y contraseña');
         try {
-          const ok = await iniciarSesion(u, p);
+          let ok = false;
+          if (typeof window.iniciarSesion === 'function') {
+            ok = await window.iniciarSesion(u, p);
+          } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
+            ok = await window.SF.iniciarSesion(u, p);
+          } else if (typeof iniciarSesion === 'function') {
+            ok = await iniciarSesion(u, p);
+          } else {
+            // fallback: llamar a /login directamente
+            try {
+              const resp = await fetch(API_URL + '/login', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ username: u, password: p })
+              });
+              const data = await resp.json().catch(()=>null);
+              if (resp.ok) {
+                ok = true;
+                try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+                try { localStorage.setItem('sf_user', JSON.stringify({ name: u, avatar: 'imagenes/foto_de_perfil.png', premium: !!(data && data.premium) })); } catch(e){}
+                try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); } catch(e){}
+              } else {
+                alert('Usuario o contraseña incorrectos');
+                return;
+              }
+            } catch (e) { alert('Error conectando al servidor para login.'); return; }
+          }
           if (!ok) { alert('Usuario o contraseña incorrectos'); return; }
           const avatar = 'imagenes/foto_de_perfil.png';
           const userObj = { name: u, avatar };
