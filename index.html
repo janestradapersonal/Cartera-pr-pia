@@ -10,16 +10,17 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 <body>
-  <h1>SenzillamentFinances</h1>
+  <!-- Video de fondo: archivo esperado en la raíz del proyecto -->
+  <video id="bg-video" class="bg-video" autoplay muted loop playsinline aria-hidden="true">
+    <source src="204306-923909642_medium.mp4" type="video/mp4" />
+    Tu navegador no soporta el elemento de video.
+  </video>
 
-  <!-- Menú desplegable con navegación -->
   <nav class="main-nav">
     <button class="nav-toggle" aria-expanded="false" aria-controls="nav-list" aria-label="Abrir menú">☰</button>
     <ul id="nav-list" class="nav-list">
       <li><a href="quien-soy.html" class="nav-item" data-page="quien-soy">1 - Quién soy</a></li>
-
       <li><a href="porque-invertir.html" class="nav-item" data-page="porque-invertir">2 - Importancia de invertir</a></li>
-
       <li class="has-sub">
         <button class="sub-toggle" aria-expanded="false">3 - Aprende ▼</button>
         <ul class="sub-list">
@@ -28,227 +29,22 @@
           <li><a href="conceptos-basicos.html#impuestos" class="nav-item" data-page="conceptos-basicos">Impuestos</a></li>
         </ul>
       </li>
-
-      <li><a href="index.html" class="nav-item" data-page="index">4 - Cómo crearse la cartera</a></li>
+      <li><a href="gestor.html" class="nav-item" data-page="gestor">4 - Cómo crearse la cartera</a></li>
       <li><a href="toma-accion.html" class="nav-item" data-page="toma-accion">5 - Toma acción</a></li>
       <li><a href="foro.html" class="nav-item" data-page="foro">6 - Foro</a></li>
     </ul>
   </nav>
 
-  <!-- BLOQUE PRINCIPAL ARRIBA -->
-  <section class="bloque bloque-principal">
-    <h2>Patrimonio global</h2>
-    <p>Introduce cuánto quieres poner en cada bloque. Antes te aconsejo visitar la sección <strong><a href="conceptos-basicos.html#content-cartera" style="color: #6a1b9a; text-decoration: underline;">Cómo crearse una cartera de inversión</a></strong> para aprender a distribuir tu dinero de forma inteligente. </p>
-    <p>  <strong><a href="#" id="link-iniciar-sesion" style="color: #6a1b9a; text-decoration: underline;" onclick="if(window.SF && window.SF.showAuthModal){window.SF.showAuthModal();}else{location.href='foro.html';} return false;">Inicia Sesión</a></strong> para poder modificar los números y que se queden guardados para la próxima vez. </p>
-    <table id="tablaGlobal" class="tabla">
-      <thead>
-        <tr>
-          <th>Categoría</th>
-          <th>Importe (€)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="fila-colchon">
-          <td>Colchón de emergencia</td>
-          <td><input type="number" class="importe-global" data-categoria="colchon" value="300" min="0" /></td>
-        </tr>
-        <tr class="fila-fija">
-          <td>Renta fija</td>
-          <td><input type="number" class="importe-global" data-categoria="fija" value="200" min="0" /></td>
-        </tr>
-        <tr class="fila-variable">
-          <td>Renta variable</td>
-          <td><input type="number" class="importe-global" data-categoria="variable" value="500" min="0" /></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div id="totalPatrimonio" class="total-global">Total patrimonio: <strong>0 €</strong></div>
-
-    <div class="grafico-contenedor">
-      <canvas id="graficoGlobal"></canvas>
-    </div>
-  </section>
-
-  <!-- FILA INFERIOR CON 3 BLOQUES: COLCHÓN, FIJA, VARIABLE -->
-  <div class="fila-detalle">
-
-    <!-- 1: COLCHÓN (IZQUIERDA) -->
-    <section class="bloque bloque-detalle bloque-colchon">
-      <h2 class="titulo-colchon">Detalle colchón de emergencia</h2>
-      <button type="button" class="btn" id="addFilaColchon">Añadir fila</button>
-      <table id="tablaColchon" class="tabla">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Importe (€)</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><input type="text" value="Cuenta ahorro" /></td>
-            <td><input type="number" class="importe-colchon" value="300" min="0" /></td>
-            <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="grafico-contenedor">
-        <canvas id="graficoColchon"></canvas>
-      </div>
+  <main class="hero">
+    <section class="hero-inner">
+      <h1 class="hero-title">Senzillament Finances</h1>
+      <p class="hero-subtitle">Pren el control del teu futur financer amb educació simple i honesta.</p>
+      <p>
+        <a class="hero-cta" href="gestor.html">Comença ara →</a>
+      </p>
     </section>
+  </main>
 
-    <!-- 2: RENTA FIJA (CENTRO) -->
-    <section class="bloque bloque-detalle bloque-fija">
-      <h2 class="titulo-fija">Detalle renta fija</h2>
-      <button type="button" class="btn" id="addFilaFija">Añadir fila</button>
-      <table id="tablaFija" class="tabla">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Importe (€)</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><input type="text" value="Bono gobierno" /></td>
-            <td><input type="number" class="importe-fija" value="200" min="0" /></td>
-            <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="grafico-contenedor">
-        <canvas id="graficoFija"></canvas>
-      </div>
-    </section>
-
-    <!-- 3: RENTA VARIABLE (DERECHA) -->
-    <section class="bloque bloque-detalle bloque-variable">
-      <h2 class="titulo-variable">Detalle renta variable</h2>
-      <button type="button" class="btn" id="addFilaVariable">Añadir fila</button>
-      <table id="tablaVariable" class="tabla">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Importe (€)</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><input type="text" value="Fondo oro" /></td>
-            <td><input type="number" class="importe-variable" value="200" min="0" /></td>
-            <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-          </tr>
-          <tr>
-            <td><input type="text" value="MSCI World" /></td>
-            <td><input type="number" class="importe-variable" value="200" min="0" /></td>
-            <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-          </tr>
-          <tr>
-            <td><input type="text" value="S&P 500" /></td>
-            <td><input type="number" class="importe-variable" value="100" min="0" /></td>
-            <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="grafico-contenedor">
-        <canvas id="graficoVariable"></canvas>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- CARRUSEL MÓVIL: visible solo en pantallas pequeñas -->
-  <div class="carrusel-graficos" aria-hidden="true">
-    <div class="slides" id="slidesGraficos">
-      <!-- SLIDE 1: COLCHÓN -->
-      <div class="slide slide-colchon">
-        <h3 class="titulo-colchon">Colchón de emergencia</h3>
-        <button type="button" class="btn" id="addFilaColchonCarousel">Añadir fila</button>
-        <table id="tablaColchonCarousel" class="tabla tabla-carousel">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Importe (€)</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><input type="text" value="Cuenta ahorro" /></td>
-              <td><input type="number" class="importe-colchon" value="300" min="0" /></td>
-              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-            </tr>
-          </tbody>
-        </table>
-        <canvas id="carouselColchon"></canvas>
-        <div class="slide-caption">Gráfico colchón</div>
-      </div>
-
-      <!-- SLIDE 2: RENTA FIJA -->
-      <div class="slide slide-fija">
-        <h3 class="titulo-fija">Renta fija</h3>
-        <button type="button" class="btn" id="addFilaFijaCarousel">Añadir fila</button>
-        <table id="tablaFijaCarousel" class="tabla tabla-carousel">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Importe (€)</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><input type="text" value="Bono gobierno" /></td>
-              <td><input type="number" class="importe-fija" value="200" min="0" /></td>
-              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-            </tr>
-          </tbody>
-        </table>
-        <canvas id="carouselFija"></canvas>
-        <div class="slide-caption">Gráfico renta fija</div>
-      </div>
-
-      <!-- SLIDE 3: RENTA VARIABLE -->
-      <div class="slide slide-variable">
-        <h3 class="titulo-variable">Renta variable</h3>
-        <button type="button" class="btn" id="addFilaVariableCarousel">Añadir fila</button>
-        <table id="tablaVariableCarousel" class="tabla tabla-carousel">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Importe (€)</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><input type="text" value="Fondo oro" /></td>
-              <td><input type="number" class="importe-variable" value="200" min="0" /></td>
-              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-            </tr>
-            <tr>
-              <td><input type="text" value="MSCI World" /></td>
-              <td><input type="number" class="importe-variable" value="200" min="0" /></td>
-              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-            </tr>
-            <tr>
-              <td><input type="text" value="S&P 500" /></td>
-              <td><input type="number" class="importe-variable" value="100" min="0" /></td>
-              <td><button type="button" class="btn btn-borrar">Borrar</button></td>
-            </tr>
-          </tbody>
-        </table>
-        <canvas id="carouselVariable"></canvas>
-        <div class="slide-caption">Gráfico renta variable</div>
-      </div>
-    </div>
-    <div class="carousel-dots" id="carouselDots" role="tablist" aria-label="Gráficos detalle"></div>
-  </div>
-
-  <script src="scripts.js"></script>
   <script src="nav.js"></script>
   <footer class="site-footer" aria-label="Contacto">
     <div class="container footer-inner">

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Suscribirse - Pago</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:32px;color:#222}
+    .card{max-width:680px;margin:0 auto;padding:20px;border:1px solid #e6e6e6;border-radius:8px}
+    label{display:block;margin-top:12px;font-weight:600}
+    input[type=text]{width:100%;padding:10px;margin-top:6px;border:1px solid #ccc;border-radius:6px}
+    .row{display:flex;gap:8px;margin-top:12px}
+    button{padding:10px 14px;border-radius:6px;border:0;background:#ff7a18;color:#fff;cursor:pointer}
+    button.secondary{background:#6c757d}
+    p.small{font-size:0.9rem;color:#555}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Suscribirse</h1>
+    <p class="small">Aquí puedes probar el flujo de pago pegando tu enlace de Checkout/Payment Link de Stripe. El enlace debe empezar por <strong>https://buy.stripe.com/</strong>.</p>
+
+    <label for="admin-stripe-url">Pegar aquí tu Stripe Payment Link (admin)</label>
+    <input id="admin-stripe-url" type="text" placeholder="https://buy.stripe.com/..." />
+    <div class="row">
+      <button id="admin-save">Guardar enlace</button>
+      <button id="open-pay" class="secondary">Ir a pago seguro</button>
+    </div>
+
+    <p class="small">Alternativa rápida: en la consola del navegador ejecuta <code>localStorage.setItem('sf_subscribe_url','https://buy.stripe.com/...')</code></p>
+    <p class="small">Importante: NUNCA pegues tu clave secreta de Stripe (STRIPE_SECRET_KEY) en archivos del cliente.</p>
+  </div>
+
+  <script>
+    const adminInput = document.getElementById('admin-stripe-url');
+    const saveBtn = document.getElementById('admin-save');
+    const openBtn = document.getElementById('open-pay');
+
+    // Cargar valor guardado. Si no existe, pre-guardar el Payment Link de prueba proporcionado.
+    const saved = localStorage.getItem('sf_subscribe_url');
+    const defaultTestUrl = 'https://buy.stripe.com/test_5kQ14ncUqdkZde1cGR1VK00';
+    if(saved){
+      adminInput.value = saved;
+    } else if (defaultTestUrl) {
+      // Guardamos automáticamente el enlace de prueba para que puedas probar ahora mismo
+      localStorage.setItem('sf_subscribe_url', defaultTestUrl);
+      adminInput.value = defaultTestUrl;
+    }
+
+    saveBtn.addEventListener('click', ()=>{
+      const v = adminInput.value.trim();
+      if(!v){ alert('Pega la URL de Stripe primero.'); return; }
+      localStorage.setItem('sf_subscribe_url', v);
+      alert('Enlace guardado. Ahora pulsa "Ir a pago seguro" para probar.');
+    });
+
+    openBtn.addEventListener('click', ()=>{
+      const url = localStorage.getItem('sf_subscribe_url');
+      if(!url){ alert('No hay enlace guardado. Pega primero el Payment Link.'); return; }
+      window.open(url, '_blank');
+    });
+  </script>
+</body>
+</html>

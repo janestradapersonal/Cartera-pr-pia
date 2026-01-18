@@ -4,6 +4,10 @@
   const navList = document.getElementById('nav-list');
   const mainNav = document.querySelector('.main-nav');
 
+  // URL de suscripción: apuntar a la página local de administración `subscribe.html`
+  // para que el Payment Link se gestione desde allí y no haya que tocar este archivo.
+  const SUBSCRIBE_URL = 'subscribe.html';
+
   // Insertar marca/site-brand si no existe
   if (mainNav && !mainNav.querySelector('.site-brand')) {
     const brand = document.createElement('a');
@@ -11,6 +15,247 @@
     brand.className = 'site-brand';
     brand.textContent = 'SenzillamentFinances';
     mainNav.insertBefore(brand, mainNav.firstChild);
+  }
+
+  // Añadir controles a la derecha: selector de idioma + suscribirse
+  if (mainNav && !mainNav.querySelector('.nav-controls')) {
+    const controls = document.createElement('div');
+    controls.className = 'nav-controls';
+    controls.style.display = 'inline-flex';
+    controls.style.alignItems = 'center';
+    controls.style.gap = '10px';
+    controls.style.marginLeft = '12px';
+
+    // Suscribirse
+    const subBtn = document.createElement('a');
+    subBtn.id = 'subscribe-btn';
+    subBtn.className = 'nav-subscribe btn';
+    subBtn.href = SUBSCRIBE_URL;
+    subBtn.target = '_blank';
+    subBtn.rel = 'noopener';
+    subBtn.textContent = 'Suscribirse';
+    // Si existe un Payment Link guardado en localStorage, abrirlo directamente.
+    // Si no, navegará a `subscribe.html` (SUBSCRIBE_URL) para que puedas pegar el enlace.
+    subBtn.addEventListener('click', function(e){
+      try {
+        // Requerir sesión: si no hay usuario logueado, abrir modal de login
+        const sfUserRaw = localStorage.getItem('sf_user');
+        const userObj = sfUserRaw ? JSON.parse(sfUserRaw) : null;
+        if (!userObj) {
+          e.preventDefault();
+          try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return; } } catch(e){}
+          // fallback: ir a la página de subscribe para que el usuario pueda loguear/pegar enlace
+          location.href = 'subscribe.html';
+          return;
+        }
+
+        const url = localStorage.getItem('sf_subscribe_url');
+        if (url) {
+          // marcar que hay una suscripción pendiente (usado por subscribe-success.html)
+          try { localStorage.setItem('sf_pending_subscribe', JSON.stringify({user: userObj.name, ts: Date.now()})); } catch(e){}
+          e.preventDefault();
+          window.open(url, '_blank');
+        }
+      } catch (err) {
+        // En caso de error dejamos el comportamiento por defecto (ir a subscribe.html)
+      }
+    });
+    controls.appendChild(subBtn);
+
+    // Selector de idioma (simple <select>)
+    const sel = document.createElement('select');
+    sel.id = 'lang-select';
+    sel.setAttribute('aria-label', 'Seleccionar idioma');
+    ['ca','es','en'].forEach(code => {
+      const opt = document.createElement('option'); opt.value = code;
+      opt.textContent = code === 'ca' ? 'CAT' : (code === 'es' ? 'ES' : 'EN');
+      sel.appendChild(opt);
+    });
+    controls.appendChild(sel);
+
+    mainNav.appendChild(controls);
+  }
+
+  // Traducciones mínimas para elementos principales
+  const TRANSLATIONS = {
+    en: {
+      'nav.quien-soy': '1 - Who I am',
+      'nav.porque': '2 - Why invest',
+      'nav.aprende': '3 - Learn',
+      'nav.cartera': '4 - Build portfolio',
+      'nav.toma-accion': '5 - Take action',
+      'nav.foro': '6 - Forum',
+      'hero.title': 'Senzillament Finances',
+      'hero.subtitle': 'Take control of your financial future with simple, honest education.',
+      'hero.cta': 'Start now →',
+      'subscribe': 'Subscribe',
+      'contact.label': 'Contact us via:'
+    },
+    es: {
+      'nav.quien-soy': '1 - Quién soy',
+      'nav.porque': '2 - Importancia de invertir',
+      'nav.aprende': '3 - Aprende',
+      'nav.cartera': '4 - Cómo crearse la cartera',
+      'nav.toma-accion': '5 - Toma acción',
+      'nav.foro': '6 - Foro',
+      'hero.title': 'SenzillamentFinances',
+      'hero.subtitle': 'Pren el control del tu futuro financiero con educación simple y honesta.',
+      'hero.cta': 'Comienza ahora →',
+      'subscribe': 'Suscribirse',
+      'contact.label': 'Contáctanos por:'
+    },
+    ca: {
+      'nav.quien-soy': '1 - Qui sóc',
+      'nav.porque': '2 - Importància d’invertir',
+      'nav.aprende': '3 - Aprèn',
+      'nav.cartera': '4 - Com crear la cartera',
+      'nav.toma-accion': '5 - Pren acció',
+      'nav.foro': '6 - Fòrum',
+      'hero.title': 'Senzillament Finances',
+      'hero.subtitle': 'Pren el control del teu futur financer amb educació simple i honesta.',
+      'hero.cta': 'Comença ara →',
+      'subscribe': 'Subscriu-te',
+      'contact.label': 'Contacta per:'
+    }
+  };
+
+  function applyTranslations(lang) {
+    const dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];
+    // nav items
+    document.querySelectorAll('.nav-item').forEach(link => {
+      const page = link.getAttribute('data-page');
+      if (!page) return;
+      let key = null;
+      if (page === 'quien-soy') key = 'nav.quien-soy';
+      if (page === 'porque-invertir') key = 'nav.porque';
+      if (page === 'conceptos-basicos') key = 'nav.aprende';
+      if (page === 'index' || page === 'gestor') key = 'nav.cartera';
+      if (page === 'toma-accion') key = 'nav.toma-accion';
+      if (page === 'foro') key = 'nav.foro';
+      if (key && dict[key]) link.textContent = dict[key];
+    });
+
+    // hero
+    try {
+      const h1 = document.querySelector('.hero-title'); if (h1 && dict['hero.title']) h1.textContent = dict['hero.title'];
+      const sub = document.querySelector('.hero-subtitle'); if (sub && dict['hero.subtitle']) sub.textContent = dict['hero.subtitle'];
+      const cta = document.querySelector('.hero-cta'); if (cta && dict['hero.cta']) cta.textContent = dict['hero.cta'];
+    } catch (e) { /* ignore */ }
+
+    // footer/contact label
+    try { const cl = document.querySelector('.site-footer .contact .contact-label'); if (cl && dict['contact.label']) cl.textContent = dict['contact.label']; } catch(e){}
+
+    // subscribe button label
+    try { const sb = document.getElementById('subscribe-btn'); if (sb && dict['subscribe']) sb.textContent = dict['subscribe']; } catch(e){}
+  }
+
+  // API base (coincide con scripts.js)
+  const API_URL = 'https://cartera-pr-pia.onrender.com';
+
+  // Actualizar el estado del botón Suscribirse según si el usuario es premium
+  async function updateSubscribeButtonState() {
+    try {
+      const btn = document.getElementById('subscribe-btn');
+      if (!btn) return;
+      btn.classList.remove('subscribed');
+      // usuario en localStorage (la UI usa localStorage sf_user)
+      const su = localStorage.getItem('sf_user');
+      if (!su) {
+        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        btn.href = SUBSCRIBE_URL;
+        btn.dataset.premium = 'false';
+        return;
+      }
+      const userObj = JSON.parse(su);
+      // Intentar usar credenciales de sessionStorage para verificar con el servidor
+      const username = sessionStorage.getItem('usuario_actual') || userObj.name;
+      const password = sessionStorage.getItem('pass_actual');
+      if (!username || !password) {
+        // No tenemos contraseña: intentar fallback querying debug endpoint por username
+        try {
+          const debugResp = await fetch(API_URL + '/debug/user/' + encodeURIComponent(username || userObj.name));
+          if (debugResp && debugResp.ok) {
+            const debugJson = await debugResp.json();
+            if (debugJson && debugJson.premium === true) {
+              btn.textContent = 'Suscrito';
+              btn.classList.add('subscribed');
+              btn.href = '#';
+              btn.dataset.premium = 'true';
+              return;
+            }
+          }
+        } catch (e) { /* ignore */ }
+        // fallback por defecto
+        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        btn.href = SUBSCRIBE_URL;
+        btn.dataset.premium = 'false';
+        return;
+      }
+      // Llamar a /login para obtener datos del usuario
+      try {
+        const resp = await fetch(API_URL + '/login', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ username, password })
+        });
+        if (!resp.ok) throw new Error('login failed');
+        const data = await resp.json();
+        const datos = data.datos || {};
+        const apiPremium = (data.premium === true) || (datos && datos.premium === true);
+
+        // Si Stripe redirigió y marcó sf_subscription_completed, y aún no tenemos premium,
+        // intentar actualizar la BD automáticamente desde esta pestaña (si disponemos de credenciales).
+        const completedRaw = localStorage.getItem('sf_subscription_completed');
+        const completed = completedRaw ? (() => { try { return JSON.parse(completedRaw); } catch(e){return null;} })() : null;
+        if (completed && !apiPremium) {
+          try {
+            const newDatos = Object.assign({}, datos, { premium: true });
+            await fetch(API_URL + '/guardar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password, datos: newDatos }) });
+            try { localStorage.removeItem('sf_subscription_completed'); } catch(e){}
+            // mark locally
+            apiPremium = true; // eslint-disable-line no-param-reassign
+          } catch (err) { /* ignore server update errors */ }
+        }
+
+        if (apiPremium) {
+          btn.textContent = 'Suscrito';
+          btn.classList.add('subscribed');
+          btn.href = '#';
+          btn.dataset.premium = 'true';
+        } else {
+          btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+          btn.href = SUBSCRIBE_URL;
+          btn.dataset.premium = 'false';
+        }
+      } catch (e) {
+        // en caso de fallo, dejar por defecto
+        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        btn.href = SUBSCRIBE_URL;
+        btn.dataset.premium = 'false';
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // Escuchar cambios de sesión o eventos relacionados con suscripción
+  window.addEventListener('sf:auth-changed', () => { setTimeout(updateSubscribeButtonState, 200); });
+  window.addEventListener('storage', (e) => {
+    if (!e.key) return;
+    if (e.key === 'sf_subscription_completed' || e.key === 'sf_pending_subscribe' || e.key === 'sf_user') {
+      setTimeout(updateSubscribeButtonState, 200);
+    }
+  });
+
+  // Persistencia y manejo del selector
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) {
+    const saved = localStorage.getItem('sf_lang') || (navigator.language && navigator.language.startsWith('en') ? 'en' : (navigator.language && navigator.language.startsWith('ca') ? 'ca' : 'es'));
+    langSelect.value = saved;
+    applyTranslations(saved);
+    langSelect.addEventListener('change', () => {
+      const v = langSelect.value || 'es';
+      localStorage.setItem('sf_lang', v);
+      applyTranslations(v);
+      try { window.dispatchEvent(new CustomEvent('sf:lang-changed', { detail: { lang: v } })); } catch(e){}
+    });
   }
 
   // --- Persistencia de usuario en cabecera (localStorage) ---
@@ -298,4 +543,7 @@
   }
   checkScroll();
   window.addEventListener('scroll', checkScroll);
+
+  // Comprobar estado de suscripción al cargar la página
+  setTimeout(updateSubscribeButtonState, 300);
 })();

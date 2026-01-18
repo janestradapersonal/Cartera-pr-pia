@@ -22,7 +22,7 @@
           <li><a href="conceptos-basicos.html#impuestos" class="nav-item" data-page="conceptos-basicos">Impuestos</a></li>
         </ul>
       </li>
-      <li><a href="index.html" class="nav-item" data-page="index">4 - Cómo crearse la cartera</a></li>
+      <li><a href="gestor.html" class="nav-item" data-page="gestor">4 - Cómo crearse la cartera</a></li>
       <li><a href="toma-accion.html" class="nav-item" data-page="toma-accion">5 - Toma acción</a></li>
       <li><a href="foro.html" class="nav-item" data-page="foro">6 - Foro</a></li>
     </ul>
@@ -288,12 +288,12 @@
       $('cerrar').addEventListener('click', ()=>{ current=null; saveCurrent(); renderSession(); renderQuestions(); try{ localStorage.removeItem('sf_user'); sessionStorage.removeItem('foro_current'); window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(e){} });
 
       $('publicar').addEventListener('click', ()=>{
-        if (!current) {
+          if (!current) {
           const msg = 'Para poder hacer preguntas necesitas iniciar sesión. ¿Quieres iniciar sesión ahora?';
           const ok = window.confirm(msg);
           if (!ok) return;
           try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return; } } catch(e) {}
-          try { location.href = 'index.html'; } catch(e) {}
+          try { location.href = 'gestor.html'; } catch(e) {}
           return;
         }
         const t = $('pregunta').value.trim(); if (!t) return alert('Escribe la pregunta');

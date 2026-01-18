@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Suscripción completada</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:28px;color:#222}
+    .card{max-width:760px;margin:0 auto;padding:20px;border:1px solid #e6e6e6;border-radius:8px}
+    .ok{background:#e6ffef;border:1px solid #bff0d0;padding:12px;border-radius:6px;margin-top:12px}
+    .err{background:#ffecec;border:1px solid #f5c2c2;padding:12px;border-radius:6px;margin-top:12px}
+    pre{background:#f7f7f7;padding:8px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Comprobando suscripción</h1>
+    <p>Si llegas aquí después de pagar, vamos a marcar tu cuenta como <strong>premium</strong> automáticamente (si estás identificado en esta sesión).</p>
+    <div id="status">Iniciando comprobación...</div>
+  </div>
+
+  <script>
+    (async function(){
+      const STATUS = document.getElementById('status');
+      const API = 'https://cartera-pr-pia.onrender.com';
+
+      function show(msg, type){ STATUS.innerHTML = `<div class="${type||'ok'}">${msg}</div>`; }
+
+      // Leer si hay una suscripción pendiente (establecida antes de abrir Stripe)
+      const pendingRaw = localStorage.getItem('sf_pending_subscribe');
+      let pending = null;
+      try { pending = pendingRaw ? JSON.parse(pendingRaw) : null; } catch(e){ pending = null; }
+
+      // Señalizar a otras pestañas que la suscripción ha completado (aunque esta pestaña no tenga sessionStorage)
+      try {
+        const completedPayload = { user: (pending && pending.user) || null, ts: Date.now() };
+        localStorage.setItem('sf_subscription_completed', JSON.stringify(completedPayload));
+      } catch(e) {}
+
+      // Intentar actualizar en servidor si tenemos credenciales en esta pestaña
+      const user = sessionStorage.getItem('usuario_actual');
+      const pass = sessionStorage.getItem('pass_actual');
+      if (!user || !pass) {
+        show('Pago recibido. Si no ves el estado actualizado, vuelve a la pestaña donde iniciaste sesión; la web actualizará el botón automáticamente.', 'ok');
+        // limpiamos el pending
+        try { localStorage.removeItem('sf_pending_subscribe'); } catch(e){}
+        return;
+      }
+
+      show('Verificando en el servidor tus datos de usuario...');
+      try {
+        const loginResp = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass }) });
+        if (!loginResp.ok) {
+          const err = await loginResp.json().catch(()=>null);
+          show('Error al verificar credenciales: ' + (err && err.detail ? err.detail : loginResp.statusText),'err');
+          return;
+        }
+        const loginData = await loginResp.json();
+        const currentDatos = loginData.datos || {};
+        // Marcar premium
+        currentDatos.premium = true;
+        show('Marcando tu cuenta como premium...');
+        const guardarResp = await fetch(API + '/guardar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass, datos: currentDatos }) });
+        if (!guardarResp.ok) {
+          const err = await guardarResp.json().catch(()=>null);
+          show('No se pudo actualizar la cuenta: ' + (err && err.detail ? err.detail : guardarResp.statusText),'err');
+          return;
+        }
+        show('¡Listo! Tu cuenta está marcada como <strong>premium</strong>. Gracias por suscribirte.');
+        // limpiar flag pendiente
+        try { localStorage.removeItem('sf_pending_subscribe'); } catch(e){}
+      } catch (e) {
+        show('Error de conexión al servidor: ' + e.message, 'err');
+      }
+    })();
+  </script>
+</body>
+</html>

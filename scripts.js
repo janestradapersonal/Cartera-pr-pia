@@ -56,6 +56,11 @@ async function iniciarSesion(username, password) {
       // Guardamos temporalmente quién eres en el navegador para no pedirte contraseña a cada rato
       sessionStorage.setItem("usuario_actual", username);
       sessionStorage.setItem("pass_actual", password);
+      // Guardar objeto de usuario en localStorage incluyendo flag premium
+      try {
+        const userObj = { name: username, avatar: 'imagenes/foto_de_perfil.png', premium: !!data.premium };
+        localStorage.setItem('sf_user', JSON.stringify(userObj));
+      } catch (e) { }
             
       // Si hay datos en la nube, actualizamos tu web
       if (data.datos) {
@@ -214,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const ok = window.confirm(msg);
       if (!ok) return false;
       try { if (window.SF && typeof window.SF.showAuthModal === 'function') { window.SF.showAuthModal(); return true; } } catch(e){}
-      try { location.href = 'index.html'; } catch(e){}
+      try { location.href = 'gestor.html'; } catch(e){}
       return true;
     } catch (e) { return false; }
   }

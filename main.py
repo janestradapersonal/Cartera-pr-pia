@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
@@ -41,6 +41,7 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
+    premium = Column(Boolean, default=False, nullable=False)
 
 class DatoUsuario(Base):
     __tablename__ = "datos_usuarios"
@@ -82,7 +83,7 @@ def registrarse(user: RegistroSchema, db: Session = Depends(get_db)):
     
     # 2. Crear usuario
     hash_password = pwd_context.hash(user.password)
-    nuevo = Usuario(username=user.username, password_hash=hash_password)
+    nuevo = Usuario(username=user.username, password_hash=hash_password, premium=False)
     db.add(nuevo)
     db.commit()
     return {"mensaje": "Usuario creado"}
@@ -95,9 +96,11 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
     
     # Buscar sus datos
     datos = db.query(DatoUsuario).filter(DatoUsuario.usuario_id == usuario.id).first()
-    if datos:
-        return {"mensaje": "Login OK", "datos": datos.contenido}
-    return {"mensaje": "Login OK", "datos": None}
+    return {
+        "mensaje": "Login OK",
+        "datos": datos.contenido if datos else None,
+        "premium": bool(usuario.premium)
+    }
 
 @app.post("/guardar")
 def guardar(entrada: GuardarDatosSchema, db: Session = Depends(get_db)):
@@ -117,3 +120,12 @@ def guardar(entrada: GuardarDatosSchema, db: Session = Depends(get_db)):
     
     db.commit()
     return {"mensaje": "Guardado exitoso"}
+
+
+@app.get('/debug/user/{username}')
+def debug_user(username: str, db: Session = Depends(get_db)):
+    # Endpoint de depuración: devuelve si el usuario existe y su flag premium
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    return { 'username': usuario.username, 'premium': bool(usuario.premium) }
