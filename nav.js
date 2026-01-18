@@ -50,6 +50,35 @@
         }
 
         const url = localStorage.getItem('sf_subscribe_url');
+        // Si ya es premium, ofrecer cancelar suscripción
+        if (this.dataset && this.dataset.premium === 'true') {
+          e.preventDefault();
+          const lang = (localStorage.getItem('sf_lang')||'es');
+          const confirmMsg = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['subscribe.cancel']) ? TRANSLATIONS[lang]['subscribe.cancel'] + '? ' : '¿Cancelar suscripción?';
+          if (!confirm(confirmMsg)) return;
+          // intentar cancelar vía backend /guardar usando credenciales en sessionStorage
+          const username = sessionStorage.getItem('usuario_actual');
+          const password = sessionStorage.getItem('pass_actual');
+          if (!username || !password) {
+            alert('Necesitas iniciar sesión para cancelar la suscripción.');
+            try { showAuthModal(); } catch(e){}
+            return;
+          }
+          (async ()=>{
+            try {
+              const resp = await fetch(API_URL + '/guardar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password, datos: { premium: false } }) });
+              if (!resp.ok) throw new Error('cancel failed');
+              // actualizar localmente
+              try { const su = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su) { su.premium = false; localStorage.setItem('sf_user', JSON.stringify(su)); } } catch(e){}
+              alert('Suscripción cancelada');
+              setTimeout(updateSubscribeButtonState, 200);
+            } catch (err) {
+              alert('No se pudo cancelar la suscripción en el servidor.');
+            }
+          })();
+          return;
+        }
+
         if (url) {
           // marcar que hay una suscripción pendiente (usado por subscribe-success.html)
           try { localStorage.setItem('sf_pending_subscribe', JSON.stringify({user: userObj.name, ts: Date.now()})); } catch(e){}
@@ -89,6 +118,8 @@
       'hero.subtitle': 'Take control of your financial future with simple, honest education.',
       'hero.cta': 'Start now →',
       'subscribe': 'Subscribe',
+      'subscribe.newsletter': 'Subscribe to Newsletter €2.99/month',
+      'subscribe.cancel': 'Cancel Newsletter subscription',
       'contact.label': 'Contact us via:'
     },
     es: {
@@ -102,6 +133,8 @@
       'hero.subtitle': 'Pren el control del tu futuro financiero con educación simple y honesta.',
       'hero.cta': 'Comienza ahora →',
       'subscribe': 'Suscribirse',
+      'subscribe.newsletter': 'Suscribirme a la Newsletter 2,99€ / mes',
+      'subscribe.cancel': 'Cancelar subscripción Newsletter',
       'contact.label': 'Contáctanos por:'
     },
     ca: {
@@ -115,6 +148,8 @@
       'hero.subtitle': 'Pren el control del teu futur financer amb educació simple i honesta.',
       'hero.cta': 'Comença ara →',
       'subscribe': 'Subscriu-te',
+      'subscribe.newsletter': 'Subscriure\u2019m a la Newsletter 2,99€ / mes',
+      'subscribe.cancel': 'Cancel·lar subscripci\u00f3 Newsletter',
       'contact.label': 'Contacta per:'
     }
   };
@@ -145,8 +180,8 @@
     // footer/contact label
     try { const cl = document.querySelector('.site-footer .contact .contact-label'); if (cl && dict['contact.label']) cl.textContent = dict['contact.label']; } catch(e){}
 
-    // subscribe button label
-    try { const sb = document.getElementById('subscribe-btn'); if (sb && dict['subscribe']) sb.textContent = dict['subscribe']; } catch(e){}
+    // subscribe button label (default: newsletter CTA)
+    try { const sb = document.getElementById('subscribe-btn'); if (sb) sb.textContent = dict['subscribe.newsletter'] || dict['subscribe'] || 'Suscribirse'; } catch(e){}
   }
 
   // API base (coincide con scripts.js)
@@ -161,7 +196,8 @@
       // usuario en localStorage (la UI usa localStorage sf_user)
       const su = localStorage.getItem('sf_user');
       if (!su) {
-        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        const lang = (localStorage.getItem('sf_lang')||'es');
+        btn.textContent = TRANSLATIONS[lang]['subscribe.newsletter'] || TRANSLATIONS[lang]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
         btn.href = SUBSCRIBE_URL;
         btn.dataset.premium = 'false';
         return;
@@ -176,17 +212,19 @@
           const debugResp = await fetch(API_URL + '/debug/user/' + encodeURIComponent(username || userObj.name));
           if (debugResp && debugResp.ok) {
             const debugJson = await debugResp.json();
-            if (debugJson && debugJson.premium === true) {
-              btn.textContent = 'Suscrito';
-              btn.classList.add('subscribed');
-              btn.href = '#';
-              btn.dataset.premium = 'true';
-              return;
-            }
+              if (debugJson && debugJson.premium === true) {
+                const lang = (localStorage.getItem('sf_lang')||'es');
+                btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+                btn.classList.add('subscribed');
+                btn.href = '#';
+                btn.dataset.premium = 'true';
+                return;
+              }
           }
         } catch (e) { /* ignore */ }
         // fallback por defecto
-        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        const l = (localStorage.getItem('sf_lang')||'es');
+        btn.textContent = TRANSLATIONS[l]['subscribe.newsletter'] || TRANSLATIONS[l]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
         btn.href = SUBSCRIBE_URL;
         btn.dataset.premium = 'false';
         return;
@@ -217,18 +255,21 @@
         }
 
         if (apiPremium) {
-          btn.textContent = 'Suscrito';
+          const lang = (localStorage.getItem('sf_lang')||'es');
+          btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
           btn.classList.add('subscribed');
           btn.href = '#';
           btn.dataset.premium = 'true';
         } else {
-          btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+          const lang = (localStorage.getItem('sf_lang')||'es');
+          btn.textContent = TRANSLATIONS[lang]['subscribe.newsletter'] || TRANSLATIONS[lang]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
           btn.href = SUBSCRIBE_URL;
           btn.dataset.premium = 'false';
         }
       } catch (e) {
         // en caso de fallo, dejar por defecto
-        btn.textContent = TRANSLATIONS[(localStorage.getItem('sf_lang')||'es')]['subscribe'] || 'Suscribirse';
+        const _l = (localStorage.getItem('sf_lang')||'es');
+        btn.textContent = TRANSLATIONS[_l]['subscribe.newsletter'] || TRANSLATIONS[_l]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
         btn.href = SUBSCRIBE_URL;
         btn.dataset.premium = 'false';
       }

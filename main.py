@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
+import stripe
+import json
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -51,6 +53,12 @@ class DatoUsuario(Base):
 
 # Seguridad (Encriptar contraseñas)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Stripe configuration: set these environment variables in your deployment
+STRIPE_API_KEY = os.getenv('STRIPE_API_KEY') or os.getenv('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+if STRIPE_API_KEY:
+    stripe.api_key = STRIPE_API_KEY
 
 # --- FUNCIONES ---
 
@@ -129,3 +137,70 @@ def debug_user(username: str, db: Session = Depends(get_db)):
     if not usuario:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
     return { 'username': usuario.username, 'premium': bool(usuario.premium) }
+
+
+@app.post('/stripe/webhook')
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Webhook para procesar eventos de Stripe y marcar `premium=True`.
+
+    Recomendado: en el Panel de Stripe (Developers → Webhooks) crea un endpoint
+    apuntando a `https://<tu-dominio>/stripe/webhook` y configura la secret
+    correspondiente en la variable de entorno `STRIPE_WEBHOOK_SECRET`.
+    El webhook busca `client_reference_id` o `metadata.username` en la sesión
+    de checkout para identificar al usuario en la base de datos.
+    """
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature')
+    event = None
+    # Intentar verificar firma si tenemos la secret
+    if STRIPE_WEBHOOK_SECRET:
+        try:
+            event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        except Exception as e:
+            # Firma inválida o payload corrupto
+            raise HTTPException(status_code=400, detail=f'Webhook signature verification failed: {str(e)}')
+    else:
+        # Si no hay webhook secret, parseamos sin verificar (solo para desarrollo)
+        try:
+            event = json.loads(payload.decode('utf-8'))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail='Invalid payload')
+
+    # Procesar eventos que nos interesan
+    etype = event.get('type') if isinstance(event, dict) else getattr(event, 'type', None)
+    # Manejar checkout.session.completed (Payment Link / Checkout)
+    if etype == 'checkout.session.completed' or (isinstance(event, dict) and event.get('type') == 'checkout.session.completed'):
+        # obtener el objeto session
+        sess = event['data']['object'] if isinstance(event, dict) else event['data']['object']
+        # buscar username en distintos lugares
+        username = None
+        try:
+            username = sess.get('client_reference_id') or (sess.get('metadata') and sess.get('metadata').get('username'))
+        except Exception:
+            username = None
+
+        # como fallback, si el usuario usó su email como identifier, intentar emparejar
+        if not username:
+            try:
+                email = sess.get('customer_details', {}).get('email') or sess.get('customer_email')
+                if email:
+                    # intentar buscar usuario cuyo username sea el email
+                    posible = db.query(Usuario).filter(Usuario.username == email).first()
+                    if posible:
+                        username = posible.username
+            except Exception:
+                pass
+
+        if username:
+            usuario = db.query(Usuario).filter(Usuario.username == username).first()
+            if usuario:
+                usuario.premium = True
+                db.add(usuario)
+                db.commit()
+                return { 'ok': True, 'message': f'Usuario {username} marcado como premium' }
+            else:
+                # usuario no encontrado; respondemos 200 para que Stripe no reintente
+                return { 'ok': False, 'message': 'Usuario no encontrado' }
+
+    # Para otros eventos no hacemos nada pero devolvemos 200 OK
+    return { 'received': True }
