@@ -44,6 +44,7 @@ class Usuario(Base):
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
     premium = Column(Boolean, default=False, nullable=False)
+    stripe_subscription_id = Column(String, nullable=True)
 
 class DatoUsuario(Base):
     __tablename__ = "datos_usuarios"
@@ -194,10 +195,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if username:
             usuario = db.query(Usuario).filter(Usuario.username == username).first()
             if usuario:
-                usuario.premium = True
-                db.add(usuario)
-                db.commit()
-                return { 'ok': True, 'message': f'Usuario {username} marcado como premium' }
+                    usuario.premium = True
+
+                    # guardar id de suscripción de Stripe si viene en la sesión
+                    try:
+                        sub_id = sess.get('subscription')
+                    except Exception:
+                        sub_id = None
+                    if sub_id:
+                        usuario.stripe_subscription_id = sub_id
+
+                    db.add(usuario)
+                    db.commit()
+                    return { 'ok': True, 'message': f'Usuario {username} marcado como premium' }
             else:
                 # usuario no encontrado; respondemos 200 para que Stripe no reintente
                 return { 'ok': False, 'message': 'Usuario no encontrado' }
