@@ -186,7 +186,7 @@
       const ms = Number(ts) * 1000;
       const lang = (localStorage.getItem('sf_lang')||'es');
       const locale = lang === 'ca' ? 'ca-ES' : (lang === 'en' ? 'en-US' : 'es-ES');
-      return new Date(ms).toLocaleDateString(locale);
+      return new Date(ms).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
     } catch (e) { return null; }
   }
   function applyTranslations(lang) {
