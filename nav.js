@@ -121,6 +121,9 @@
     mainNav.appendChild(controls);
   }
 
+  // Quitar el botón de tres barras que está a la izquierda (si existe)
+  try { if (navToggle && navToggle.parentNode) { navToggle.parentNode.removeChild(navToggle); } } catch(e) {}
+
   // Traducciones mínimas para elementos principales
   const TRANSLATIONS = {
     en: {
@@ -423,6 +426,18 @@
 
       wrapper.appendChild(img);
       wrapper.appendChild(name);
+      // En móvil: al clicar la imagen alternamos visibilidad del nombre y logout
+      try {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          try {
+            if (window.innerWidth <= 700) {
+              wrapper.classList.toggle('mobile-open');
+            }
+          } catch(e) {}
+        });
+      } catch(e) {}
       // Añadir botón de cerrar sesión (visible)
       const logout = document.createElement('button');
       logout.className = 'btn btn-logout';
@@ -430,6 +445,7 @@
       logout.style.marginLeft = '8px';
       logout.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         try{ sessionStorage.removeItem('foro_current'); localStorage.removeItem('foro_current'); }catch(err){}
         try{ localStorage.removeItem(USER_KEY); }catch(err){}
         try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(err){}
@@ -670,7 +686,7 @@
 
   // (Se eliminó el botón de cierre visual para un aspecto más limpio)
 
-  // Crear mini-tab para modo compacto (scroll)
+  // Crear mini-tab (botón de tres barras) que siempre abre el panel móvil
   let miniTab = mainNav ? mainNav.querySelector('.mini-tab') : null;
   if (!miniTab && mainNav) {
     miniTab = document.createElement('button');
@@ -680,24 +696,73 @@
     mainNav.appendChild(miniTab);
   }
 
-  // Toggle menú principal en móvil: ahora muestra/oculta clase 'open-panel'
-  if (navToggle && mainNav) {
-    navToggle.addEventListener('click', () => {
-      const expanded = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!expanded));
-      mainNav.classList.toggle('open-panel');
-    });
+  // Mobile menu panel (hidden). We'll populate it when in mobile mode.
+  let mobileMenu = mainNav ? mainNav.querySelector('.mobile-menu') : null;
+  if (!mobileMenu && mainNav) {
+    mobileMenu = document.createElement('div');
+    mobileMenu.className = 'mobile-menu';
+    mobileMenu.style.display = 'none';
+    mobileMenu.style.position = 'absolute';
+    mobileMenu.style.top = '56px';
+    mobileMenu.style.right = '12px';
+    mobileMenu.style.background = 'white';
+    mobileMenu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+    mobileMenu.style.borderRadius = '8px';
+    mobileMenu.style.padding = '10px';
+    mobileMenu.style.zIndex = '9999';
+    mobileMenu.style.minWidth = '200px';
+    mainNav.appendChild(mobileMenu);
   }
+
+  // Se elimina el manejador del nav-toggle izquierdo porque el diseño usa el mini-tab derecho.
 
   // El cierre del panel se gestiona con el toggle y clic fuera (sin cruz)
 
-  // Mini-tab: abrir menú cuando estamos en modo compacto
+  // Manejador del mini-tab: siempre abrir/cerrar el panel móvil y repoblar su contenido
   if (miniTab && mainNav) {
     miniTab.addEventListener('click', (e) => {
       e.stopPropagation();
-      // alternar clase que muestra nav-list temporalmente
+      // Alternar clase visual
       const open = mainNav.classList.toggle('mini-open');
       miniTab.setAttribute('aria-expanded', String(open));
+      try {
+        if (open) {
+          // repoblar y mostrar el panel
+          try { mobileMenu.innerHTML = ''; } catch(e){}
+          try { enterMobileMode(); } catch(e){}
+          // posicionamiento adaptativo: en pantallas pequeñas ocupar lateral completo
+          if (window.innerWidth <= 700) {
+            mobileMenu.style.position = 'fixed';
+            mobileMenu.style.top = '0';
+            mobileMenu.style.left = '0';
+            mobileMenu.style.right = 'auto';
+            mobileMenu.style.height = '100vh';
+            mobileMenu.style.width = '80vw';
+            mobileMenu.style.padding = '14px';
+            mobileMenu.style.borderRadius = '0';
+            mobileMenu.style.overflowY = 'auto';
+            mobileMenu.style.boxShadow = '2px 0 18px rgba(0,0,0,0.18)';
+            mobileMenu.style.zIndex = '20000';
+          } else {
+            mobileMenu.style.position = 'absolute';
+            mobileMenu.style.top = '56px';
+            mobileMenu.style.right = '12px';
+            mobileMenu.style.left = 'auto';
+            mobileMenu.style.height = 'auto';
+            mobileMenu.style.width = 'auto';
+            mobileMenu.style.padding = '10px';
+            mobileMenu.style.borderRadius = '8px';
+            mobileMenu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+          }
+          mobileMenu.style.display = 'block';
+          // añadir clase 'show' para animación (dejar tiempo al display)
+          try { setTimeout(()=>{ mobileMenu.classList.add('show'); }, 20); } catch(e){}
+        } else {
+          try { mobileMenu.classList.remove('show'); } catch(e){}
+          // esperar la animación antes de ocultar
+          try { setTimeout(()=>{ mobileMenu.style.display = 'none'; }, 280); } catch(e){ mobileMenu.style.display = 'none'; }
+        }
+      } catch (err) {}
     });
   }
 
@@ -718,6 +783,7 @@
       if (mainNav) mainNav.classList.remove('open-panel');
       if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
       if (mainNav) mainNav.classList.remove('mini-open');
+      try { if (mobileMenu) mobileMenu.style.display = 'none'; } catch(e){}
     }
   });
 
@@ -734,6 +800,99 @@
   }
   checkScroll();
   window.addEventListener('scroll', checkScroll);
+
+  // Mobile mode detection: abbreviate brand and prepare mobile menu
+  function enterMobileMode() {
+    try { const brand = mainNav.querySelector('.site-brand'); if (brand) brand.textContent = 'SF'; } catch(e){}
+    try { const c = mainNav.querySelector('.nav-controls'); if (c) { c.style.display = 'inline-flex'; c.style.gap = '6px'; c.style.alignItems = 'center'; } } catch(e){}
+    try { if (miniTab) { miniTab.style.display = 'inline-flex'; miniTab.style.zIndex = '20001'; miniTab.style.position = 'relative'; } } catch(e){}
+    // populate mobileMenu with ordered items if empty
+    try {
+      if (mobileMenu && (!mobileMenu.childNodes || mobileMenu.childNodes.length === 0)) {
+        // header con marca y cierre
+        try {
+          const header = document.createElement('div'); header.className = 'mobile-header';
+          const b = document.createElement('div'); b.className = 'brand'; b.textContent = 'SF'; header.appendChild(b);
+          const closeBtn = document.createElement('button'); closeBtn.className = 'mobile-close'; closeBtn.setAttribute('aria-label','Cerrar menú'); closeBtn.innerHTML = '✕';
+          closeBtn.addEventListener('click', (e)=>{ e.preventDefault(); try{ mobileMenu.classList.remove('show'); mainNav.classList.remove('mini-open'); if (miniTab) miniTab.setAttribute('aria-expanded','false'); setTimeout(()=>{ try{ mobileMenu.style.display='none'; }catch(e){} }, 280); }catch(err){} });
+          header.appendChild(closeBtn);
+          mobileMenu.appendChild(header);
+        } catch(e){}
+        // nav titles (clonado, sin la clase que lo oculta)
+        const navList = document.querySelector('#nav-list');
+        if (navList) {
+          try {
+            const cloned = navList.cloneNode(true);
+            cloned.classList.remove('nav-list');
+            cloned.classList.add('mobile-nav-list');
+            if (cloned.id) cloned.id = '';
+            mobileMenu.appendChild(cloned);
+          } catch(e) { mobileMenu.appendChild(navList.cloneNode(true)); }
+        }
+        // user area compact: mostrar solo avatar; al clicar muestra nombre y cerrar sesión
+        try {
+          const muWrap = document.createElement('div'); muWrap.className = 'mobile-user'; muWrap.style.margin = '6px 0'; muWrap.style.display = 'flex'; muWrap.style.alignItems = 'center';
+          const current = getUser();
+          const avatarBtn = document.createElement('button');
+          avatarBtn.className = 'mobile-avatar-btn';
+          avatarBtn.style.border = 'none'; avatarBtn.style.background = 'transparent'; avatarBtn.style.padding = '0'; avatarBtn.style.marginRight = '8px';
+          const ava = document.createElement('img'); ava.className = 'mobile-avatar-img'; ava.src = (current && current.avatar) ? current.avatar : 'imagenes/foto_de_perfil.png'; ava.alt = (current && current.name) ? current.name : 'Usuario'; ava.style.width = '36px'; ava.style.height = '36px'; ava.style.borderRadius = '50%'; ava.style.objectFit = 'cover'; ava.style.boxShadow = '0 4px 10px rgba(0,0,0,0.08)';
+          avatarBtn.appendChild(ava);
+          muWrap.appendChild(avatarBtn);
+          // hidden panel with name + logout
+          const drop = document.createElement('div'); drop.className = 'mobile-avatar-drop'; drop.style.display = 'none'; drop.style.marginLeft = '6px';
+          if (current && current.name) {
+            const nameEl = document.createElement('div'); nameEl.textContent = current.name; nameEl.style.fontWeight = '700'; nameEl.style.marginBottom = '6px'; drop.appendChild(nameEl);
+            const lo = document.createElement('button'); lo.className = 'btn btn-logout-mobile'; lo.textContent = 'Cerrar sesión';
+            lo.addEventListener('click', ()=>{ try{ localStorage.removeItem(USER_KEY); sessionStorage.removeItem('usuario_actual'); sessionStorage.removeItem('pass_actual'); renderUser(); try{ window.dispatchEvent(new CustomEvent('sf:auth-changed',{detail:{user:null}})); }catch(e){} }catch(e){} });
+            drop.appendChild(lo);
+          } else {
+            const li = document.createElement('button'); li.className = 'btn mobile-login'; li.textContent = 'Iniciar sesión';
+            li.addEventListener('click', (e)=>{ e.preventDefault(); try{ showAuthModal(); }catch(err){} });
+            drop.appendChild(li);
+          }
+          muWrap.appendChild(drop);
+          avatarBtn.addEventListener('click', (e)=>{ e.preventDefault(); try { drop.style.display = drop.style.display === 'none' ? 'block' : 'none'; } catch(err){} });
+          mobileMenu.appendChild(muWrap);
+        } catch(e){}
+        // Ensure main controls are compact and visible in header (language + subscribe)
+        try {
+          const controls = mainNav.querySelector('.nav-controls');
+          if (controls) {
+            const lang = controls.querySelector('#lang-select');
+            const sub = controls.querySelector('#subscribe-btn');
+            if (lang) {
+              lang.style.width = '48px'; lang.style.padding = '4px'; lang.style.fontSize = '13px';
+            }
+            if (sub) {
+              sub.classList.add('mobile-subscribe-small');
+              sub.style.padding = '6px 8px'; sub.style.fontSize = '13px';
+            }
+          }
+        } catch(e){}
+      }
+    } catch(e){}
+  }
+
+  function exitMobileMode() {
+    try { const brand = mainNav.querySelector('.site-brand'); if (brand) brand.textContent = 'SenzillamentFinances'; } catch(e){}
+    try { const c = mainNav.querySelector('.nav-controls'); if (c) c.style.display = 'inline-flex'; } catch(e){}
+    try { if (mobileMenu) { mobileMenu.style.display = 'none'; mobileMenu.innerHTML = ''; } } catch(e){}
+    try { if (miniTab) { miniTab.style.display = 'none'; } } catch(e){}
+  }
+
+  function checkMobile() {
+    try {
+      const isMobile = window.innerWidth <= 700;
+      if (isMobile) enterMobileMode(); else exitMobileMode();
+    } catch(e){}
+  }
+  window.addEventListener('resize', checkMobile);
+  checkMobile();
+
+  // Refresh mobile menu when auth/lang changes
+  window.addEventListener('sf:auth-changed', () => { try { if (mobileMenu) { mobileMenu.innerHTML = ''; if (mainNav.classList.contains('mini-open')) mobileMenu.style.display = 'block'; } } catch(e){} });
+  window.addEventListener('storage', (e) => { try { if (!e.key) return; if (['sf_user','sf_lang','sf_subscription_completed','sf_pending_subscribe'].includes(e.key)) { if (mobileMenu) mobileMenu.innerHTML = ''; } } catch(e){} });
 
   // Comprobar estado de suscripción al cargar la página
   setTimeout(updateSubscribeButtonState, 300);

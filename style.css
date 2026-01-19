@@ -441,9 +441,11 @@ h1 {
     display: inline-block; 
   }
 
-  /* Ocultar completamente la mini-tab en móvil */
+  /* Mostrar la mini-tab en móvil (botón de tres barras) */
   .main-nav .mini-tab {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Panel lateral deslizable */
@@ -1279,4 +1281,66 @@ h1 {
   box-shadow: 0 6px 18px rgba(2,6,23,0.04);
   resize: vertical;
   font-size: 15px;
+}
+
+/* Mobile menu styling */
+.mobile-menu { display: none; }
+.mobile-menu .nav-list { display: block; padding: 6px 0; }
+.mobile-menu .nav-list a, .mobile-menu .nav-list button { display: block; padding: 8px 12px; }
+.mobile-menu .mobile-nav-list { display: block; padding: 6px 0; }
+.mobile-menu .mobile-nav-list a, .mobile-menu .mobile-nav-list button { display: block; padding: 8px 12px; }
+
+/* Estética del panel móvil */
+.mobile-menu {
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+  border-left: 1px solid rgba(5,20,40,0.04);
+  padding: 16px;
+  box-shadow: 8px 0 34px rgba(6,24,60,0.12);
+  transition: transform 280ms ease, opacity 280ms ease;
+  transform: translateX(-8%);
+  opacity: 0;
+  backdrop-filter: blur(6px);
+}
+.mobile-menu.show { transform: translateX(0); opacity: 1; }
+
+.mobile-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.mobile-header .brand { font-weight:800; color:#0d47a1; font-size:18px; }
+.mobile-close { background: white; border: 1px solid rgba(10,30,60,0.06); width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 18px rgba(6,24,60,0.06); }
+.mobile-close:active { transform: scale(.98); }
+
+.mobile-menu .mobile-nav-list li { border-bottom: 1px solid #f3f6fb; }
+.mobile-menu .mobile-nav-list a { padding: 12px 8px; display:block; color:#08304a; font-weight:700; }
+.mobile-menu .mobile-nav-list a:hover { background: rgba(2,88,200,0.04); }
+
+.mobile-user { margin-top: 10px; padding-top: 8px; border-top: 1px solid #f3f6fb; }
+.mobile-avatar-img { width:44px; height:44px; border-radius:50%; box-shadow:0 6px 18px rgba(6,24,60,0.06); }
+
+@media (max-width:420px) {
+  .mobile-menu { width: 86vw !important; }
+}
+
+.mobile-avatar-btn { background: transparent; border: none; padding: 0; }
+.mobile-avatar-img { width:36px; height:36px; border-radius:50%; }
+.mobile-avatar-drop { margin-top:6px; }
+.mobile-user { display:flex; align-items:center; gap:8px; }
+.mobile-menu .btn { display:block; width:100%; }
+.mobile-lang-select, #mobile-lang-select { display:block; width:100%; padding:6px 8px; border-radius:6px; margin-top:8px; }
+.mobile-subscribe-small { padding:8px 10px; font-size:14px; border-radius:6px; }
+
+@media (max-width:700px) {
+  .main-nav .nav-list { display: none; }
+  .main-nav .nav-controls { display: none; }
+  .main-nav .site-brand { margin-right: 8px; }
+}
+
+/* En móvil, ocultar el nombre y el botón de logout en la cabecera; solo mostrar avatar.
+   Al hacer click en el avatar se añadirá la clase .mobile-open al contenedor para mostrarlos. */
+@media (max-width:700px) {
+  .main-nav .sf-active-user { display: inline-flex !important; align-items:center; }
+  .main-nav .sf-active-user small { display: none !important; }
+  .main-nav .sf-active-user .btn { display: none !important; }
+  .main-nav .sf-active-user.mobile-open small { display: inline-block !important; margin-left:8px; color:#fff; }
+  .main-nav .sf-active-user.mobile-open .btn { display: inline-block !important; margin-left:8px; }
 }
