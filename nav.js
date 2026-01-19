@@ -265,14 +265,8 @@
                 }
                 if (debugJson && debugJson.premium === true) {
                   const lang = (localStorage.getItem('sf_lang')||'es');
-                  const pe = debugJson.subscription_period_end || null;
-                  const dateStr = formatPeriodEnd(pe);
-                  if (dateStr) {
-                    const tpl = TRANSLATIONS[lang]['subscribe.until'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Suscrito hasta {date}';
-                    btn.textContent = tpl.replace('{date}', dateStr);
-                  } else {
-                    btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
-                  }
+                  // Mostrar etiqueta de cancelar mientras no haya cancel_pending
+                  btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
                   btn.classList.add('subscribed');
                   btn.href = '#';
                   btn.dataset.premium = 'true';
@@ -330,13 +324,8 @@
           btn.dataset.cancel_pending = 'true';
         } else if (apiPremium) {
           const lang = (localStorage.getItem('sf_lang')||'es');
-          const dateStr = formatPeriodEnd(periodEnd);
-          if (dateStr) {
-            const tpl = TRANSLATIONS[lang]['subscribe.until'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Suscrito hasta {date}';
-            btn.textContent = tpl.replace('{date}', dateStr);
-          } else {
-            btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
-          }
+          // Si el usuario es premium y no hay cancel_pending, mostrar la acción de cancelar (sin fecha)
+          btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
           btn.classList.add('subscribed');
           btn.href = '#';
           btn.dataset.premium = 'true';
