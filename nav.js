@@ -4,9 +4,11 @@
   const navList = document.getElementById('nav-list');
   const mainNav = document.querySelector('.main-nav');
 
-  // URL de suscripción: apuntar a la página local de administración `subscribe.html`
-  // para que el Payment Link se gestione desde allí y no haya que tocar este archivo.
-  const SUBSCRIBE_URL = 'subscribe.html';
+  // URL de suscripción: Payment Link de Stripe por defecto
+  // Si prefieres gestionar el enlace desde `localStorage.sf_subscribe_url`, déjalo ahí.
+  const SUBSCRIBE_URL = 'https://buy.stripe.com/test_dRm28r8Ea6WBde10Y91VK01';
+  // Guardar el Payment Link en localStorage para que el botón lo use (y podamos añadir client_reference_id)
+  try { localStorage.setItem('sf_subscribe_url', SUBSCRIBE_URL); } catch(e) {}
 
   // Insertar marca/site-brand si no existe
   if (mainNav && !mainNav.querySelector('.site-brand')) {
