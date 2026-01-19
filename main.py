@@ -45,6 +45,7 @@ class Usuario(Base):
     password_hash = Column(String)
     premium = Column(Boolean, default=False, nullable=False)
     stripe_subscription_id = Column(String, nullable=True)
+    subscription_period_end = Column(Integer, nullable=True)
     cancel_pending = Column(Boolean, default=False, nullable=False)
 
 class DatoUsuario(Base):
@@ -115,7 +116,8 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
         "mensaje": "Login OK",
         "datos": datos.contenido if datos else None,
         "premium": bool(usuario.premium),
-        "cancel_pending": bool(usuario.cancel_pending)
+        "cancel_pending": bool(usuario.cancel_pending),
+        "subscription_period_end": int(usuario.subscription_period_end) if usuario.subscription_period_end else None
     }
 
 @app.post("/guardar")
@@ -144,7 +146,7 @@ def debug_user(username: str, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
-    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'cancel_pending': bool(usuario.cancel_pending) }
+    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'cancel_pending': bool(usuario.cancel_pending), 'subscription_period_end': int(usuario.subscription_period_end) if usuario.subscription_period_end else None }
 
 
 @app.post('/stripe/webhook')
@@ -211,6 +213,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     sub_id = None
                 if sub_id:
                     usuario.stripe_subscription_id = sub_id
+                    # intentar obtener current_period_end desde la API de Stripe
+                    try:
+                        sub = stripe.Subscription.retrieve(sub_id)
+                        if sub and sub.get('current_period_end'):
+                            usuario.subscription_period_end = int(sub.get('current_period_end'))
+                    except Exception:
+                        pass
 
                 # si llegamos por checkout que crea suscripción, limpiar cancel_pending
                 usuario.cancel_pending = False
@@ -227,19 +236,37 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         subs = event['data']['object']
         sub_id = subs.get('id')
         cancel_at_period_end = bool(subs.get('cancel_at_period_end'))
-        status = subs.get('status')
         if sub_id:
             usuario = db.query(Usuario).filter(Usuario.stripe_subscription_id == sub_id).first()
             if usuario:
-                # marcar cancel_pending si corresponde
+                # marcar cancel_pending si corresponde (no revocar premium aquí)
                 usuario.cancel_pending = cancel_at_period_end
-                # Si la suscripción ya está cancelada, quitar premium
-                if status == 'canceled':
-                    usuario.premium = False
-                    usuario.cancel_pending = False
+                # actualizar fecha de fin de periodo si viene
+                try:
+                    cpe = subs.get('current_period_end')
+                    if cpe:
+                        usuario.subscription_period_end = int(cpe)
+                except Exception:
+                    pass
                 db.add(usuario)
                 db.commit()
                 return { 'ok': True, 'message': 'Usuario actualizado por evento de suscripción' }
+
+    # Manejar eliminación efectiva de la suscripción: revocar acceso aquí
+    if etype == 'customer.subscription.deleted' or (isinstance(event, dict) and event.get('type') == 'customer.subscription.deleted'):
+        subs = event['data']['object']
+        sub_id = subs.get('id')
+        if sub_id:
+            usuario = db.query(Usuario).filter(Usuario.stripe_subscription_id == sub_id).first()
+            if usuario:
+                usuario.premium = False
+                usuario.cancel_pending = False
+                usuario.subscription_period_end = None
+                # opcional: limpiar el id de suscripción
+                usuario.stripe_subscription_id = None
+                db.add(usuario)
+                db.commit()
+                return {'ok': True, 'message': 'Usuario marcado como no premium (subscription deleted)'}
 
     # Para otros eventos no hacemos nada pero devolvemos 200 OK
     return { 'received': True }
@@ -264,6 +291,13 @@ def cancelar_suscripcion(data: CancelSchema, db: Session = Depends(get_db)):
 
     # marcar en la base de datos que hay una cancelación pendiente
     try:
+        # intentar recuperar la suscripción actualizada para conocer el periodo de fin
+        try:
+            sub = stripe.Subscription.retrieve(usuario.stripe_subscription_id)
+            if sub and sub.get('current_period_end'):
+                usuario.subscription_period_end = int(sub.get('current_period_end'))
+        except Exception:
+            pass
         usuario.cancel_pending = True
         db.add(usuario)
         db.commit()

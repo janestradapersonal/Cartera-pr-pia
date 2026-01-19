@@ -136,6 +136,8 @@
       'subscribe': 'Subscribe',
       'subscribe.newsletter': 'Subscribe to Newsletter €2.99/month',
       'subscribe.cancel': 'Cancel Newsletter subscription',
+      'subscribe.until': 'Subscribed until {date}',
+      'subscribe.scheduled_until': 'Cancellation scheduled until {date}',
       'subscribe.scheduled': 'Cancellation scheduled',
       'contact.label': 'Contact us via:'
     },
@@ -153,6 +155,8 @@
       'subscribe.newsletter': 'Suscribirme a la Newsletter 2,99€ / mes',
       'subscribe.cancel': 'Cancelar subscripción Newsletter',
       'subscribe.scheduled': 'Cancelación programada',
+      'subscribe.until': 'Suscrito hasta {date}',
+      'subscribe.scheduled_until': 'Cancelación programada hasta {date}',
       'contact.label': 'Contáctanos por:'
     },
     ca: {
@@ -169,10 +173,22 @@
       'subscribe.newsletter': 'Subscriure\u2019m a la Newsletter 2,99€ / mes',
       'subscribe.cancel': 'Cancel·lar subscripci\u00f3 Newsletter',
       'subscribe.scheduled': 'Cancel·laci\u00f3 programada',
+      'subscribe.until': 'Subscriut fins el {date}',
+      'subscribe.scheduled_until': 'Cancel·laci\u00f3 programada fins el {date}',
       'contact.label': 'Contacta per:'
     }
   };
 
+  // Formatear timestamp UNIX (segundos) según idioma
+  function formatPeriodEnd(ts) {
+    if (!ts) return null;
+    try {
+      const ms = Number(ts) * 1000;
+      const lang = (localStorage.getItem('sf_lang')||'es');
+      const locale = lang === 'ca' ? 'ca-ES' : (lang === 'en' ? 'en-US' : 'es-ES');
+      return new Date(ms).toLocaleDateString(locale);
+    } catch (e) { return null; }
+  }
   function applyTranslations(lang) {
     const dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];
     // nav items
@@ -233,7 +249,14 @@
               const debugJson = await debugResp.json();
                 if (debugJson && debugJson.cancel_pending === true) {
                   const lang = (localStorage.getItem('sf_lang')||'es');
-                  btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+                  const pe = debugJson.subscription_period_end || null;
+                  const dateStr = formatPeriodEnd(pe);
+                  if (dateStr) {
+                    const tpl = TRANSLATIONS[lang]['subscribe.scheduled_until'] || TRANSLATIONS[lang]['subscribe.scheduled'] || 'Cancelación programada';
+                    btn.textContent = tpl.replace('{date}', dateStr);
+                  } else {
+                    btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+                  }
                   btn.classList.add('scheduled');
                   btn.href = '#';
                   btn.dataset.premium = 'true';
@@ -242,7 +265,14 @@
                 }
                 if (debugJson && debugJson.premium === true) {
                   const lang = (localStorage.getItem('sf_lang')||'es');
-                  btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+                  const pe = debugJson.subscription_period_end || null;
+                  const dateStr = formatPeriodEnd(pe);
+                  if (dateStr) {
+                    const tpl = TRANSLATIONS[lang]['subscribe.until'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Suscrito hasta {date}';
+                    btn.textContent = tpl.replace('{date}', dateStr);
+                  } else {
+                    btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+                  }
                   btn.classList.add('subscribed');
                   btn.href = '#';
                   btn.dataset.premium = 'true';
@@ -283,16 +313,30 @@
           } catch (err) { /* ignore server update errors */ }
         }
 
+        // prefer server-provided period end if está disponible
+        let periodEnd = data.subscription_period_end || (datos && datos.subscription_period_end) || null;
         if (apiCancel) {
           const lang = (localStorage.getItem('sf_lang')||'es');
-          btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+          const dateStr = formatPeriodEnd(periodEnd);
+          if (dateStr) {
+            const tpl = TRANSLATIONS[lang]['subscribe.scheduled_until'] || TRANSLATIONS[lang]['subscribe.scheduled'] || 'Cancelación programada';
+            btn.textContent = tpl.replace('{date}', dateStr);
+          } else {
+            btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+          }
           btn.classList.add('scheduled');
           btn.href = '#';
           btn.dataset.premium = 'true';
           btn.dataset.cancel_pending = 'true';
         } else if (apiPremium) {
           const lang = (localStorage.getItem('sf_lang')||'es');
-          btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+          const dateStr = formatPeriodEnd(periodEnd);
+          if (dateStr) {
+            const tpl = TRANSLATIONS[lang]['subscribe.until'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Suscrito hasta {date}';
+            btn.textContent = tpl.replace('{date}', dateStr);
+          } else {
+            btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+          }
           btn.classList.add('subscribed');
           btn.href = '#';
           btn.dataset.premium = 'true';
