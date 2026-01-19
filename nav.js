@@ -74,7 +74,8 @@
                 alert(msg);
                 return;
               }
-              // informar al usuario y esperar un poco antes de refrescar el estado
+              // marcar localmente cancel_pending para reflejar la cancelación de inmediato en UI
+              try { const su = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su) { su.cancel_pending = true; localStorage.setItem('sf_user', JSON.stringify(su)); } } catch(e){}
               alert('Cancelación programada. Seguirás siendo premium hasta el final del periodo.');
               setTimeout(updateSubscribeButtonState, 500);
             } catch (err) {
@@ -135,6 +136,7 @@
       'subscribe': 'Subscribe',
       'subscribe.newsletter': 'Subscribe to Newsletter €2.99/month',
       'subscribe.cancel': 'Cancel Newsletter subscription',
+      'subscribe.scheduled': 'Cancellation scheduled',
       'contact.label': 'Contact us via:'
     },
     es: {
@@ -150,6 +152,7 @@
       'subscribe': 'Suscribirse',
       'subscribe.newsletter': 'Suscribirme a la Newsletter 2,99€ / mes',
       'subscribe.cancel': 'Cancelar subscripción Newsletter',
+      'subscribe.scheduled': 'Cancelación programada',
       'contact.label': 'Contáctanos por:'
     },
     ca: {
@@ -165,6 +168,7 @@
       'subscribe': 'Subscriu-te',
       'subscribe.newsletter': 'Subscriure\u2019m a la Newsletter 2,99€ / mes',
       'subscribe.cancel': 'Cancel·lar subscripci\u00f3 Newsletter',
+      'subscribe.scheduled': 'Cancel·laci\u00f3 programada',
       'contact.label': 'Contacta per:'
     }
   };
@@ -226,15 +230,24 @@
         try {
           const debugResp = await fetch(API_URL + '/debug/user/' + encodeURIComponent(username || userObj.name));
           if (debugResp && debugResp.ok) {
-            const debugJson = await debugResp.json();
-              if (debugJson && debugJson.premium === true) {
-                const lang = (localStorage.getItem('sf_lang')||'es');
-                btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
-                btn.classList.add('subscribed');
-                btn.href = '#';
-                btn.dataset.premium = 'true';
-                return;
-              }
+              const debugJson = await debugResp.json();
+                if (debugJson && debugJson.cancel_pending === true) {
+                  const lang = (localStorage.getItem('sf_lang')||'es');
+                  btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+                  btn.classList.add('scheduled');
+                  btn.href = '#';
+                  btn.dataset.premium = 'true';
+                  btn.dataset.cancel_pending = 'true';
+                  return;
+                }
+                if (debugJson && debugJson.premium === true) {
+                  const lang = (localStorage.getItem('sf_lang')||'es');
+                  btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+                  btn.classList.add('subscribed');
+                  btn.href = '#';
+                  btn.dataset.premium = 'true';
+                  return;
+                }
           }
         } catch (e) { /* ignore */ }
         // fallback por defecto
@@ -254,6 +267,7 @@
         const data = await resp.json();
         const datos = data.datos || {};
         const apiPremium = (data.premium === true) || (datos && datos.premium === true);
+        const apiCancel = (data.cancel_pending === true) || (datos && datos.cancel_pending === true);
 
         // Si Stripe redirigió y marcó sf_subscription_completed, y aún no tenemos premium,
         // intentar actualizar la BD automáticamente desde esta pestaña (si disponemos de credenciales).
@@ -269,7 +283,14 @@
           } catch (err) { /* ignore server update errors */ }
         }
 
-        if (apiPremium) {
+        if (apiCancel) {
+          const lang = (localStorage.getItem('sf_lang')||'es');
+          btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+          btn.classList.add('scheduled');
+          btn.href = '#';
+          btn.dataset.premium = 'true';
+          btn.dataset.cancel_pending = 'true';
+        } else if (apiPremium) {
           const lang = (localStorage.getItem('sf_lang')||'es');
           btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
           btn.classList.add('subscribed');

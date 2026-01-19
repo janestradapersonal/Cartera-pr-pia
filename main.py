@@ -45,6 +45,7 @@ class Usuario(Base):
     password_hash = Column(String)
     premium = Column(Boolean, default=False, nullable=False)
     stripe_subscription_id = Column(String, nullable=True)
+    cancel_pending = Column(Boolean, default=False, nullable=False)
 
 class DatoUsuario(Base):
     __tablename__ = "datos_usuarios"
@@ -113,7 +114,8 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
     return {
         "mensaje": "Login OK",
         "datos": datos.contenido if datos else None,
-        "premium": bool(usuario.premium)
+        "premium": bool(usuario.premium),
+        "cancel_pending": bool(usuario.cancel_pending)
     }
 
 @app.post("/guardar")
@@ -142,7 +144,7 @@ def debug_user(username: str, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
-    return { 'username': usuario.username, 'premium': bool(usuario.premium) }
+    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'cancel_pending': bool(usuario.cancel_pending) }
 
 
 @app.post('/stripe/webhook')
@@ -200,22 +202,44 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if username:
             usuario = db.query(Usuario).filter(Usuario.username == username).first()
             if usuario:
-                    usuario.premium = True
+                usuario.premium = True
 
-                    # guardar id de suscripción de Stripe si viene en la sesión
-                    try:
-                        sub_id = sess.get('subscription')
-                    except Exception:
-                        sub_id = None
-                    if sub_id:
-                        usuario.stripe_subscription_id = sub_id
+                # guardar id de suscripción de Stripe si viene en la sesión
+                try:
+                    sub_id = sess.get('subscription')
+                except Exception:
+                    sub_id = None
+                if sub_id:
+                    usuario.stripe_subscription_id = sub_id
 
-                    db.add(usuario)
-                    db.commit()
-                    return { 'ok': True, 'message': f'Usuario {username} marcado como premium' }
+                # si llegamos por checkout que crea suscripción, limpiar cancel_pending
+                usuario.cancel_pending = False
+
+                db.add(usuario)
+                db.commit()
+                return { 'ok': True, 'message': f'Usuario {username} marcado como premium' }
             else:
                 # usuario no encontrado; respondemos 200 para que Stripe no reintente
                 return { 'ok': False, 'message': 'Usuario no encontrado' }
+
+    # Manejar actualización de suscripción (cancel_at_period_end)
+    if etype == 'customer.subscription.updated' or (isinstance(event, dict) and event.get('type') == 'customer.subscription.updated'):
+        subs = event['data']['object']
+        sub_id = subs.get('id')
+        cancel_at_period_end = bool(subs.get('cancel_at_period_end'))
+        status = subs.get('status')
+        if sub_id:
+            usuario = db.query(Usuario).filter(Usuario.stripe_subscription_id == sub_id).first()
+            if usuario:
+                # marcar cancel_pending si corresponde
+                usuario.cancel_pending = cancel_at_period_end
+                # Si la suscripción ya está cancelada, quitar premium
+                if status == 'canceled':
+                    usuario.premium = False
+                    usuario.cancel_pending = False
+                db.add(usuario)
+                db.commit()
+                return { 'ok': True, 'message': 'Usuario actualizado por evento de suscripción' }
 
     # Para otros eventos no hacemos nada pero devolvemos 200 OK
     return { 'received': True }
@@ -237,5 +261,14 @@ def cancelar_suscripcion(data: CancelSchema, db: Session = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+
+    # marcar en la base de datos que hay una cancelación pendiente
+    try:
+        usuario.cancel_pending = True
+        db.add(usuario)
+        db.commit()
+    except Exception:
+        # no bloquear la cancelación si el commit falla, pero informar
+        pass
 
     return {"ok": True, "mensaje": "Cancelación programada (fin de periodo)"}
