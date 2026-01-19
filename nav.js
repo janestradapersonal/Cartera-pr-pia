@@ -83,7 +83,17 @@
           // marcar que hay una suscripción pendiente (usado por subscribe-success.html)
           try { localStorage.setItem('sf_pending_subscribe', JSON.stringify({user: userObj.name, ts: Date.now()})); } catch(e){}
           e.preventDefault();
-          window.open(url, '_blank');
+          // Añadir client_reference_id para que el webhook reciba el username
+          try {
+            const base = localStorage.getItem('sf_subscribe_url') || SUBSCRIBE_URL;
+            const u = new URL(base, location.href);
+            const uname = (userObj && userObj.name) ? userObj.name : (sessionStorage.getItem('usuario_actual') || '');
+            if (uname) u.searchParams.set('client_reference_id', uname);
+            window.open(u.toString(), '_blank');
+          } catch (err) {
+            // fallback simple si URL() falla
+            window.open(url, '_blank');
+          }
         }
       } catch (err) {
         // En caso de error dejamos el comportamiento por defecto (ir a subscribe.html)

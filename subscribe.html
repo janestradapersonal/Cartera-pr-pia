@@ -57,7 +57,17 @@
     openBtn.addEventListener('click', ()=>{
       const url = localStorage.getItem('sf_subscribe_url');
       if(!url){ alert('No hay enlace guardado. Pega primero el Payment Link.'); return; }
-      window.open(url, '_blank');
+      // Si el usuario está en localStorage, añadimos client_reference_id para pruebas
+      try {
+        const userObj = JSON.parse(localStorage.getItem('sf_user') || 'null');
+        const base = url;
+        const u = new URL(base, location.href);
+        const uname = (userObj && userObj.name) ? userObj.name : (sessionStorage.getItem('usuario_actual') || '');
+        if (uname) u.searchParams.set('client_reference_id', uname);
+        window.open(u.toString(), '_blank');
+      } catch (e) {
+        window.open(url, '_blank');
+      }
     });
   </script>
 </body>
