@@ -56,24 +56,29 @@
           const lang = (localStorage.getItem('sf_lang')||'es');
           const confirmMsg = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['subscribe.cancel']) ? TRANSLATIONS[lang]['subscribe.cancel'] + '? ' : '¿Cancelar suscripción?';
           if (!confirm(confirmMsg)) return;
-          // intentar cancelar vía backend /guardar usando credenciales en sessionStorage
-          const username = sessionStorage.getItem('usuario_actual');
-          const password = sessionStorage.getItem('pass_actual');
-          if (!username || !password) {
-            alert('Necesitas iniciar sesión para cancelar la suscripción.');
-            try { showAuthModal(); } catch(e){}
-            return;
+          // intentar cancelar vía backend /cancelar_suscripcion
+          const userObjLocal = (()=>{ try{ return JSON.parse(localStorage.getItem('sf_user')||'null'); }catch(e){return null;} })();
+          const username = (userObjLocal && userObjLocal.name) ? userObjLocal.name : sessionStorage.getItem('usuario_actual');
+          if (!username) { alert('Necesitas iniciar sesión para cancelar la suscripción.'); try { showAuthModal(); } catch(e){}; return; }
+          let password = sessionStorage.getItem('pass_actual');
+          if (!password) {
+            password = prompt('Confirma tu contraseña para cancelar la suscripción');
+            if (!password) return;
           }
           (async ()=>{
             try {
-              const resp = await fetch(API_URL + '/guardar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password, datos: { premium: false } }) });
-              if (!resp.ok) throw new Error('cancel failed');
-              // actualizar localmente
-              try { const su = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su) { su.premium = false; localStorage.setItem('sf_user', JSON.stringify(su)); } } catch(e){}
-              alert('Suscripción cancelada');
-              setTimeout(updateSubscribeButtonState, 200);
+              const resp = await fetch(API_URL + '/cancelar_suscripcion', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
+              const j = await resp.json().catch(()=>null);
+              if (!resp.ok) {
+                const msg = (j && (j.detail || j.mensaje)) ? (j.detail || j.mensaje) : 'Error cancelando suscripción';
+                alert(msg);
+                return;
+              }
+              // informar al usuario y esperar un poco antes de refrescar el estado
+              alert('Cancelación programada. Seguirás siendo premium hasta el final del periodo.');
+              setTimeout(updateSubscribeButtonState, 500);
             } catch (err) {
-              alert('No se pudo cancelar la suscripción en el servidor.');
+              alert('No se pudo conectar al servidor para cancelar la suscripción.');
             }
           })();
           return;
