@@ -216,8 +216,20 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                     # intentar obtener current_period_end desde la API de Stripe
                     try:
                         sub = stripe.Subscription.retrieve(sub_id)
-                        if sub and sub.get('current_period_end'):
-                            usuario.subscription_period_end = int(sub.get('current_period_end'))
+                        # Preferir top-level current_period_end, pero Stripe puede moverlo a items.data[0]
+                        period_end = None
+                        if sub:
+                            if sub.get('current_period_end'):
+                                period_end = sub.get('current_period_end')
+                            else:
+                                try:
+                                    items = sub.get('items', {}).get('data', [])
+                                    if items and isinstance(items, list) and len(items) > 0:
+                                        period_end = items[0].get('current_period_end')
+                                except Exception:
+                                    period_end = None
+                        if period_end:
+                            usuario.subscription_period_end = int(period_end)
                     except Exception:
                         pass
 
@@ -241,11 +253,15 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             if usuario:
                 # marcar cancel_pending si corresponde (no revocar premium aquí)
                 usuario.cancel_pending = cancel_at_period_end
-                # actualizar fecha de fin de periodo si viene
+                # actualizar fecha de fin de periodo si viene (puede estar en items.data[0])
                 try:
-                    cpe = subs.get('current_period_end')
-                    if cpe:
-                        usuario.subscription_period_end = int(cpe)
+                    period_end = subs.get('current_period_end')
+                    if not period_end:
+                        items = subs.get('items', {}).get('data', [])
+                        if items and isinstance(items, list) and len(items) > 0:
+                            period_end = items[0].get('current_period_end')
+                    if period_end:
+                        usuario.subscription_period_end = int(period_end)
                 except Exception:
                     pass
                 db.add(usuario)
@@ -294,8 +310,19 @@ def cancelar_suscripcion(data: CancelSchema, db: Session = Depends(get_db)):
         # intentar recuperar la suscripción actualizada para conocer el periodo de fin
         try:
             sub = stripe.Subscription.retrieve(usuario.stripe_subscription_id)
-            if sub and sub.get('current_period_end'):
-                usuario.subscription_period_end = int(sub.get('current_period_end'))
+            period_end = None
+            if sub:
+                if sub.get('current_period_end'):
+                    period_end = sub.get('current_period_end')
+                else:
+                    try:
+                        items = sub.get('items', {}).get('data', [])
+                        if items and isinstance(items, list) and len(items) > 0:
+                            period_end = items[0].get('current_period_end')
+                    except Exception:
+                        period_end = None
+            if period_end:
+                usuario.subscription_period_end = int(period_end)
         except Exception:
             pass
         usuario.cancel_pending = True
