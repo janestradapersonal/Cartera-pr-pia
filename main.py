@@ -79,6 +79,11 @@ class GuardarDatosSchema(BaseModel):
     password: str # Necesitamos la contraseña para verificar que eres tú
     datos: dict   # Aquí va tu JSON
 
+
+class CancelSchema(BaseModel):
+    username: str
+    password: str
+
 @app.get("/")
 def read_root():
     return {"mensaje": "¡Tu servidor está vivo!"}
@@ -214,3 +219,23 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     # Para otros eventos no hacemos nada pero devolvemos 200 OK
     return { 'received': True }
+
+
+@app.post('/cancelar_suscripcion')
+def cancelar_suscripcion(data: CancelSchema, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.username == data.username).first()
+    if not usuario or not pwd_context.verify(data.password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    if not usuario.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No hay suscripción activa")
+
+    try:
+        stripe.Subscription.modify(
+            usuario.stripe_subscription_id,
+            cancel_at_period_end=True
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+
+    return {"ok": True, "mensaje": "Cancelación programada (fin de periodo)"}
