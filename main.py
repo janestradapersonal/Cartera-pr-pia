@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
@@ -19,11 +19,17 @@ app = FastAPI()
 # Permitir todos los orígenes durante desarrollo; en producción restringir al dominio de tu web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # o especifica ['https://cartera-pr-pia.onrender.com', 'http://127.0.0.1:5500']
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=[
+        "http://127.0.0.1:5501",
+        "http://localhost:5501",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        # añade aquí tu dominio real del frontend en Render si lo tienes
+        # "https://TU-FRONTEND.onrender.com",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 
@@ -47,6 +53,8 @@ class Usuario(Base):
     stripe_subscription_id = Column(String, nullable=True)
     subscription_period_end = Column(Integer, nullable=True)
     cancel_pending = Column(Boolean, default=False, nullable=False)
+    # Rol del usuario: 'PREGUNTADOR_1', 'PREGUNTADOR_2', 'JEFE'
+    role = Column(String, default='PREGUNTADOR_1', nullable=False)
 
 class DatoUsuario(Base):
     __tablename__ = "datos_usuarios"
@@ -116,6 +124,7 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
         "mensaje": "Login OK",
         "datos": datos.contenido if datos else None,
         "premium": bool(usuario.premium),
+        "role": (usuario.role if hasattr(usuario, 'role') else 'PREGUNTADOR_1'),
         "cancel_pending": bool(usuario.cancel_pending),
         "subscription_period_end": int(usuario.subscription_period_end) if usuario.subscription_period_end else None
     }
@@ -333,3 +342,99 @@ def cancelar_suscripcion(data: CancelSchema, db: Session = Depends(get_db)):
         pass
 
     return {"ok": True, "mensaje": "Cancelación programada (fin de periodo)"}
+
+
+# --- Newsletter: modelo y endpoints ---
+class NewsletterPost(Base):
+    __tablename__ = 'newsletter_posts'
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    file_url = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by_username = Column(String, ForeignKey('usuarios.username'), nullable=False)
+
+
+@app.get('/me')
+def get_me(request: Request, db: Session = Depends(get_db)):
+    username = request.headers.get('x-username') or request.query_params.get('username')
+    password = request.headers.get('x-password') or request.query_params.get('password')
+    if not username or not password:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'role': (usuario.role if hasattr(usuario, 'role') else 'PREGUNTADOR_1') }
+
+
+class NewsletterCreate(BaseModel):
+    title: str
+    description: str = None
+    file_url: str
+    username: str
+    password: str
+
+
+@app.get('/newsletter')
+def list_newsletter(request: Request, db: Session = Depends(get_db)):
+    username = request.headers.get('x-username') or request.query_params.get('username')
+    password = request.headers.get('x-password') or request.query_params.get('password')
+    if not username or not password:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    if not usuario.premium:
+        raise HTTPException(status_code=403, detail='Acceso restringido a suscriptores')
+    posts = db.query(NewsletterPost).order_by(NewsletterPost.created_at.desc()).all()
+    out = []
+    for p in posts:
+        out.append({ 'id': p.id, 'title': p.title, 'description': p.description, 'file_url': p.file_url, 'created_at': p.created_at.isoformat() if p.created_at else None, 'created_by': p.created_by_username })
+    return out
+
+
+@app.post('/newsletter')
+def create_newsletter(payload: NewsletterCreate, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.username == payload.username).first()
+    if not usuario or not pwd_context.verify(payload.password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    if (not hasattr(usuario, 'role')) or usuario.role != 'JEFE':
+        raise HTTPException(status_code=403, detail='Necesitas rol JEFE para publicar')
+    post = NewsletterPost(title=payload.title, description=payload.description, file_url=payload.file_url, created_by_username=usuario.username)
+    db.add(post)
+    db.commit()
+    return {'ok': True, 'id': post.id}
+
+
+@app.delete('/newsletter/{post_id}')
+def delete_newsletter(post_id: int, request: Request, db: Session = Depends(get_db)):
+    username = request.headers.get('x-username')
+    password = request.headers.get('x-password')
+    if not username or not password:
+        body = {}
+        try:
+            body = request.json()
+        except Exception:
+            body = {}
+        username = username or body.get('username')
+        password = password or body.get('password')
+    if not username or not password:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    if (not hasattr(usuario, 'role')) or usuario.role != 'JEFE':
+        raise HTTPException(status_code=403, detail='Necesitas rol JEFE para eliminar')
+    post = db.query(NewsletterPost).filter(NewsletterPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail='Post no encontrado')
+    db.delete(post)
+    db.commit()
+    return {'ok': True}
+
+
+# Crear tablas si no existen (útil en desarrollo)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass

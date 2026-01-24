@@ -351,13 +351,59 @@
   }
 
   // Escuchar cambios de sesión o eventos relacionados con suscripción
-  window.addEventListener('sf:auth-changed', () => { setTimeout(updateSubscribeButtonState, 200); });
+  window.addEventListener('sf:auth-changed', () => { setTimeout(() => { updateSubscribeButtonState(); ensureNewsletterLink(); }, 200); });
   window.addEventListener('storage', (e) => {
     if (!e.key) return;
     if (e.key === 'sf_subscription_completed' || e.key === 'sf_pending_subscribe' || e.key === 'sf_user') {
       setTimeout(updateSubscribeButtonState, 200);
     }
   });
+
+  // --- Newsletter link: mostrar solo si el usuario es premium ---
+  function removeNewsletterLink() {
+    try {
+      const existing = document.querySelector('.nav-item[data-page="newsletter"]');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    } catch (e) {}
+  }
+
+  async function ensureNewsletterLink() {
+    try {
+      const navListEl = document.getElementById('nav-list');
+      if (!navListEl) return;
+      // obtener credenciales desde sessionStorage (si existen)
+      const username = sessionStorage.getItem('usuario_actual') || null;
+      const password = sessionStorage.getItem('pass_actual') || null;
+      if (!username || !password) {
+        removeNewsletterLink();
+        return;
+      }
+      // llamar al endpoint /me para comprobar premium
+      try {
+        const resp = await fetch(API_URL + '/me', {
+          headers: { 'x-username': username, 'x-password': password }
+        });
+        if (!resp.ok) { removeNewsletterLink(); return; }
+        const j = await resp.json();
+        if (j && j.premium === true) {
+          // añadir link si no existe
+          if (!document.querySelector('.nav-item[data-page="newsletter"]')) {
+            const a = document.createElement('a');
+            a.className = 'nav-item';
+            a.setAttribute('data-page', 'newsletter');
+            a.href = 'newsletter.html';
+            a.textContent = 'NEWSLETTER';
+            // añadir al final de la lista
+            try { navListEl.appendChild(a); } catch(e){ navListEl.appendChild(a); }
+          }
+        } else {
+          removeNewsletterLink();
+        }
+      } catch (err) {
+        removeNewsletterLink();
+      }
+    } catch (e) {}
+  }
 
   // Persistencia y manejo del selector
   const langSelect = document.getElementById('lang-select');
@@ -896,6 +942,6 @@
   window.addEventListener('sf:auth-changed', () => { try { if (mobileMenu) { mobileMenu.innerHTML = ''; if (mainNav.classList.contains('mini-open')) mobileMenu.style.display = 'block'; } } catch(e){} });
   window.addEventListener('storage', (e) => { try { if (!e.key) return; if (['sf_user','sf_lang','sf_subscription_completed','sf_pending_subscribe'].includes(e.key)) { if (mobileMenu) mobileMenu.innerHTML = ''; } } catch(e){} });
 
-  // Comprobar estado de suscripción al cargar la página
-  setTimeout(updateSubscribeButtonState, 300);
+  // Comprobar estado de suscripción al cargar la página y ajustar link de newsletter
+  setTimeout(() => { updateSubscribeButtonState(); ensureNewsletterLink(); }, 300);
 })();
