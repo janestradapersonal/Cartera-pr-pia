@@ -70,9 +70,23 @@
       if (!arr || !arr.length) { postsEl.textContent = 'No hay revistas publicadas.'; return; }
       arr.forEach(p => {
         const el = document.createElement('div'); el.className = 'newsletter-post';
-        el.innerHTML = `<h3>${p.title}</h3><p>${p.description || ''}</p><a href="${p.file_url}" target="_blank">Abrir revista</a>`;
+        // title and description
+        const h = document.createElement('h3'); h.textContent = p.title || '';
+        const desc = document.createElement('p'); desc.textContent = p.description || '';
+        el.appendChild(h);
+        el.appendChild(desc);
+
+        // centered action area
+        const actions = document.createElement('div'); actions.className = 'newsletter-actions';
+        const link = document.createElement('a');
+        link.href = p.file_url || '#';
+        link.target = '_blank';
+        link.className = 'read-btn';
+        link.textContent = 'LEER';
+        actions.appendChild(link);
+
         if (me.role === 'JEFE') {
-          const del = document.createElement('button'); del.textContent = 'Eliminar'; del.style.marginLeft = '12px';
+          const del = document.createElement('button'); del.textContent = 'Eliminar'; del.className = 'delete-btn';
           del.addEventListener('click', async ()=>{
             if (!confirm('Eliminar entrada?')) return;
             try {
@@ -81,8 +95,10 @@
               loadPosts();
             } catch(e) { alert('Error conectando al servidor'); }
           });
-          el.appendChild(del);
+          actions.appendChild(del);
         }
+
+        el.appendChild(actions);
         postsEl.appendChild(el);
       });
     } catch (err) { show('Error cargando revistas'); }

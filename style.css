@@ -398,6 +398,82 @@ h1 {
   top: 100%;
 }
 
+/* Estilos específicos para la página de Newsletter: mejorar contraste sobre fondo oscuro */
+main.container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.02); /* sutil para dejar ver el fondo pero separar contenido */
+  border-radius: 8px;
+}
+
+/* Formulario de publicación */
+main.container form input[type="text"], main.container form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.96);
+  color: #0b2546;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+main.container form button {
+  background: #0d47a1;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Entradas de newsletter con fondo claro para legibilidad */
+.newsletter-post {
+  background: rgba(255,255,255,0.94);
+  color: #0b2546;
+  padding: 14px;
+  margin: 12px 0;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.06);
+}
+.newsletter-post h3 { margin: 0 0 8px; color: #0b2546; }
+.newsletter-post p { margin: 0 0 8px; color: #25445a; }
+.newsletter-post a { color: #0d47a1; font-weight:700; }
+
+/* Botón eliminar pequeño */
+.newsletter-post button { background:#fff; border:1px solid rgba(0,0,0,0.08); padding:6px 8px; border-radius:6px; cursor:pointer; }
+
+/* Avisos y mensajes */
+#notice { color: #fff; margin-bottom: 12px; }
+
+/* Centro y estilo del botón LEER NEWSLETTER */
+.newsletter-actions { text-align: center; margin-top: 12px; }
+.newsletter-actions .read-btn {
+  display: inline-block;
+  background: linear-gradient(90deg,#007bff,#00b0ff);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  box-shadow: 0 10px 30px rgba(3, 79, 162, 0.18);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.newsletter-actions .read-btn:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(3,79,162,0.22); }
+
+.newsletter-actions .delete-btn {
+  display: inline-block;
+  margin-left: 10px;
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.08);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .sub-list li { 
   padding: 0; 
 }
@@ -749,6 +825,39 @@ h1 {
 .bloque-colchon .grafico-contenedor { background: rgba(78,121,167,0.06); }
 .bloque-fija .grafico-contenedor    { background: rgba(89,161,79,0.06); }
 .bloque-variable .grafico-contenedor{ background: rgba(225,87,89,0.04); }
+
+/* Mejora de contraste: hacer los bloques de detalle más legibles sobre fondo oscuro */
+.fila-detalle .bloque-detalle {
+  background: rgba(255,255,255,0.06);
+  padding: 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  color: #081827;
+}
+
+/* Incrementar opacidad interna de los contenedores de gráfico y tablas para lectura sobre fondo */
+.bloque-colchon .grafico-contenedor,
+.bloque-fija .grafico-contenedor,
+.bloque-variable .grafico-contenedor {
+  background: rgba(255,255,255,0.92);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.bloque-colchon .tabla,
+.bloque-fija .tabla,
+.bloque-variable .tabla {
+  background: rgba(255,255,255,0.92);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+/* Forzar color oscuro en títulos y celdas dentro de estos bloques para legibilidad */
+.fila-detalle .bloque-detalle h3,
+.fila-detalle .bloque-detalle .tabla th,
+.fila-detalle .bloque-detalle .tabla td {
+  color: #081827 !important;
+}
 
 /* Swatch de color en la primera celda de cada tabla (escritorio + carrusel) */
 #tablaColchon td:first-child, #tablaColchonCarousel td:first-child,
@@ -1343,4 +1452,10 @@ h1 {
   .main-nav .sf-active-user .btn { display: none !important; }
   .main-nav .sf-active-user.mobile-open small { display: inline-block !important; margin-left:8px; color:#fff; }
   .main-nav .sf-active-user.mobile-open .btn { display: inline-block !important; margin-left:8px; }
+}
+
+/* Títulos de detalle: forzar color blanco y sombra para legibilidad sobre fondo */
+.titulo-colchon, .titulo-fija, .titulo-variable {
+  color: #ffffff !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
 }
