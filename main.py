@@ -82,8 +82,7 @@ class DatoUsuario(Base):
 
 class PendingUser(Base):
     __tablename__ = 'pending_users'
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, primary_key=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     verification_code_hash = Column(String, nullable=False)
