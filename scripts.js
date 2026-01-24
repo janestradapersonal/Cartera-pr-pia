@@ -25,17 +25,17 @@ try {
 // --- NUEVAS FUNCIONES PARA CONECTAR CON LA NUBE ---
 const API_URL = "https://cartera-pr-pia.onrender.com"; // Esto cambiará cuando subas a la nube
 
-// 1. REGISTRARSE
-async function registrarUsuario(username, password) {
+// 1. REGISTRARSE (now two-step: calls /registro/start)
+async function registrarUsuario(email, username, password) {
   try {
-    const response = await fetch(`${API_URL}/registro`, {
+    const response = await fetch(`${API_URL}/registro/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email, username, password })
     });
     const data = await response.json();
     if (response.ok) {
-      alert("¡Usuario creado! Ahora inicia sesión.");
+      alert("Código enviado al email. Comprueba tu bandeja y verifica para completar el registro.");
       return true;
     } else {
       alert("Error: " + (data.detail || JSON.stringify(data)));
@@ -49,12 +49,12 @@ async function registrarUsuario(username, password) {
 }
 
 // 2. INICIAR SESIÓN Y CARGAR DATOS
-async function iniciarSesion(username, password) {
+async function iniciarSesion(email, username, password) {
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email, username, password })
     });
     const data = await response.json();
         
@@ -313,9 +313,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const sp = sessionStorage.getItem('pass_actual');
       if (su && sp) {
         try {
+          // intentar incluir email si está disponible
+          let email = null;
+          try { const suObj = JSON.parse(localStorage.getItem('sf_user')||'null'); if (suObj && suObj.email) email = suObj.email; } catch(e){}
+          if (!email) try { email = sessionStorage.getItem('usuario_email') || null; } catch(e){}
           const resp = await fetch(`${API_URL}/login`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: su, password: sp })
+            body: JSON.stringify({ email: email || undefined, username: su, password: sp })
           });
           if (resp.ok) {
             const data = await resp.json();

@@ -49,7 +49,11 @@
 
       show('Verificando en el servidor tus datos de usuario...');
       try {
-        const loginResp = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass }) });
+        // Try to include email if available in localStorage.sf_user or sessionStorage
+        let email = null;
+        try { const su = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su && su.email) email = su.email; } catch(e){}
+        if (!email) try { email = sessionStorage.getItem('usuario_email') || null; } catch(e){}
+        const loginResp = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: email || undefined, username: user, password: pass }) });
         if (!loginResp.ok) {
           const err = await loginResp.json().catch(()=>null);
           show('Error al verificar credenciales: ' + (err && err.detail ? err.detail : loginResp.statusText),'err');

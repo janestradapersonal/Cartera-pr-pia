@@ -118,7 +118,7 @@ async def sqlalchemy_operational_error_handler(request: Request, exc: Operationa
         return JSONResponse(status_code=503, content={"detail": "DB reconnecting"})
 
 class RegistroSchema(BaseModel):
-    email: str = None
+    email: str
     username: str
     password: str
 
@@ -274,10 +274,11 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == user.username).first()
     if not usuario or not pwd_context.verify(user.password, usuario.password_hash):
         raise HTTPException(status_code=400, detail="Credenciales incorrectas")
-    # Si el cliente envió email, comprobar que coincida con el del usuario
-    if getattr(user, 'email', None):
-        if not usuario.email or usuario.email.lower() != user.email.lower():
-            raise HTTPException(status_code=401, detail='Email no coincide')
+    # El cliente debe enviar email; comprobar que coincida con el del usuario
+    if not getattr(user, 'email', None):
+        raise HTTPException(status_code=400, detail='Email requerido')
+    if not usuario.email or usuario.email.lower() != user.email.lower():
+        raise HTTPException(status_code=401, detail='Email no coincide')
     # Verificar que el email esté validado
     if usuario.email and not usuario.email_verified:
         raise HTTPException(status_code=403, detail="Email no verificado")

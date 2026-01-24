@@ -288,9 +288,13 @@
       }
       // Llamar a /login para obtener datos del usuario
       try {
+        // intentar obtener email si está almacenado
+        let email = null;
+        try { const su2 = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su2 && su2.email) email = su2.email; } catch(e){}
+        if (!email) try { email = sessionStorage.getItem('usuario_email') || null; } catch(e){}
         const resp = await fetch(API_URL + '/login', {
           method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ email: email || undefined, username, password })
         });
         if (!resp.ok) throw new Error('login failed');
         const data = await resp.json();
@@ -571,7 +575,7 @@
       <div class="sf-modal" role="dialog" aria-modal="true" aria-label="Iniciar sesión o registrarse">
         <button class="sf-close" aria-label="Cerrar">✕</button>
         <h3>Iniciar sesión o registrarse</h3>
-        <div class="sf-row"><input id="sf-email" type="email" placeholder="Email" /></div>
+        <div class="sf-row"><input id="sf-email" type="email" placeholder="Email" required /></div>
         <div class="sf-row"><input id="sf-username" type="text" placeholder="Nombre de usuario" /></div>
         <div class="sf-row">
           <div class="password-wrapper">
@@ -626,15 +630,15 @@
           // soportar distintas formas de exponer la función (global o en window.SF)
           let ok = false;
           if (typeof window.registrarUsuario === 'function') {
-            ok = await window.registrarUsuario(u, p);
+            ok = await window.registrarUsuario(e, u, p);
           } else if (window.SF && typeof window.SF.registrarUsuario === 'function') {
-            ok = await window.SF.registrarUsuario(u, p);
+            ok = await window.SF.registrarUsuario(e, u, p);
           } else if (typeof registrarUsuario === 'function') {
-            ok = await registrarUsuario(u, p);
+            ok = await registrarUsuario(e, u, p);
           } else {
             // fallback: llamar al backend directamente
             try {
-              const resp = await fetch(API_URL + '/registro', {
+              const resp = await fetch(API_URL + '/registro/start', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ email: e, username: u, password: p })
               });
@@ -653,12 +657,12 @@
           if (!ok) return;
           // iniciar sesión usando la función disponible
           let logged = false;
-          if (typeof window.iniciarSesion === 'function') {
-            logged = await window.iniciarSesion(u, p);
+              if (typeof window.iniciarSesion === 'function') {
+            logged = await window.iniciarSesion(e || undefined, u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            logged = await window.SF.iniciarSesion(u, p);
+            logged = await window.SF.iniciarSesion(e || undefined, u, p);
           } else if (typeof iniciarSesion === 'function') {
-            logged = await iniciarSesion(u, p);
+            logged = await iniciarSesion(e || undefined, u, p);
           } else {
             // fallback: llamar a /login directamente y aplicar efectos localmente
             try {
@@ -703,12 +707,12 @@
         if (!u || !p) return alert('Introduce usuario y contraseña');
         try {
           let ok = false;
-          if (typeof window.iniciarSesion === 'function') {
-            ok = await window.iniciarSesion(u, p);
+            if (typeof window.iniciarSesion === 'function') {
+            ok = await window.iniciarSesion(e || undefined, u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            ok = await window.SF.iniciarSesion(u, p);
+            ok = await window.SF.iniciarSesion(e || undefined, u, p);
           } else if (typeof iniciarSesion === 'function') {
-            ok = await iniciarSesion(u, p);
+            ok = await iniciarSesion(e || undefined, u, p);
           } else {
             // fallback: llamar a /login directamente
             try {
