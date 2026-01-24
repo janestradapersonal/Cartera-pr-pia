@@ -257,7 +257,7 @@ h1 {
 }
 .sf-modal h3 { margin: 0 0 10px 0; color: #0d47a1; }
 .sf-modal .sf-row { margin-bottom: 10px; }
-.sf-modal input[type="text"], .sf-modal input[type="password"] {
+.sf-modal input[type="text"], .sf-modal input[type="password"], .sf-modal input[type="email"] {
   width: 100%;
   padding: 8px 10px;
   border-radius: 8px;

@@ -571,6 +571,7 @@
       <div class="sf-modal" role="dialog" aria-modal="true" aria-label="Iniciar sesión o registrarse">
         <button class="sf-close" aria-label="Cerrar">✕</button>
         <h3>Iniciar sesión o registrarse</h3>
+        <div class="sf-row"><input id="sf-email" type="email" placeholder="Email" /></div>
         <div class="sf-row"><input id="sf-username" type="text" placeholder="Nombre de usuario" /></div>
         <div class="sf-row">
           <div class="password-wrapper">
@@ -615,26 +616,27 @@
 
     document.getElementById('sf-register').addEventListener('click', ()=>{
       (async ()=>{
+        const e = document.getElementById('sf-email').value.trim();
         const u = document.getElementById('sf-username').value.trim();
         const p = document.getElementById('sf-password').value;
-        if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
+        if (!e || !u || !p) return alert('Introduce email, usuario y contraseña para registrarte');
         if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
         if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
         try {
           // soportar distintas formas de exponer la función (global o en window.SF)
           let ok = false;
           if (typeof window.registrarUsuario === 'function') {
-            ok = await window.registrarUsuario(u, p);
+            ok = await window.registrarUsuario(e, u, p);
           } else if (window.SF && typeof window.SF.registrarUsuario === 'function') {
-            ok = await window.SF.registrarUsuario(u, p);
+            ok = await window.SF.registrarUsuario(e, u, p);
           } else if (typeof registrarUsuario === 'function') {
-            ok = await registrarUsuario(u, p);
+            ok = await registrarUsuario(e, u, p);
           } else {
             // fallback: llamar al backend directamente
             try {
               const resp = await fetch(API_URL + '/registro', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ username: u, password: p })
+                body: JSON.stringify({ email: e, username: u, password: p })
               });
               const j = await resp.json().catch(()=>null);
               if (resp.ok) {
@@ -652,17 +654,17 @@
           // iniciar sesión usando la función disponible
           let logged = false;
           if (typeof window.iniciarSesion === 'function') {
-            logged = await window.iniciarSesion(u, p);
+            logged = await window.iniciarSesion(e, u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            logged = await window.SF.iniciarSesion(u, p);
+            logged = await window.SF.iniciarSesion(e, u, p);
           } else if (typeof iniciarSesion === 'function') {
-            logged = await iniciarSesion(u, p);
+            logged = await iniciarSesion(e, u, p);
           } else {
             // fallback: llamar a /login directamente y aplicar efectos localmente
             try {
               const resp = await fetch(API_URL + '/login', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ username: u, password: p })
+                body: JSON.stringify({ email: e || undefined, username: u, password: p })
               });
               const data = await resp.json().catch(()=>null);
               if (resp.ok) {
@@ -695,23 +697,24 @@
 
     document.getElementById('sf-login').addEventListener('click', ()=>{
       (async ()=>{
+        const e = document.getElementById('sf-email').value.trim();
         const u = document.getElementById('sf-username').value.trim();
         const p = document.getElementById('sf-password').value;
-        if (!u || !p) return alert('Introduce usuario y contraseña');
+        if (!e || !u || !p) return alert('Introduce email, usuario y contraseña');
         try {
           let ok = false;
           if (typeof window.iniciarSesion === 'function') {
-            ok = await window.iniciarSesion(u, p);
+            ok = await window.iniciarSesion(e, u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            ok = await window.SF.iniciarSesion(u, p);
+            ok = await window.SF.iniciarSesion(e, u, p);
           } else if (typeof iniciarSesion === 'function') {
-            ok = await iniciarSesion(u, p);
+            ok = await iniciarSesion(e, u, p);
           } else {
             // fallback: llamar a /login directamente
             try {
               const resp = await fetch(API_URL + '/login', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ username: u, password: p })
+                body: JSON.stringify({ email: e || undefined, username: u, password: p })
               });
               const data = await resp.json().catch(()=>null);
               if (resp.ok) {

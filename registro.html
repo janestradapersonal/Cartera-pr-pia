@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Registro</h1>
+    <form id="registroForm">
+      <label>Email<br><input type="email" id="email" required></label><br>
+      <label>Usuario<br><input type="text" id="username" required></label><br>
+      <label>Contraseña<br><input type="password" id="password" required></label><br>
+      <button type="submit">Registrarse</button>
+    </form>
+    <div id="msg" role="status"></div>
+  </main>
+  <script>
+    const form = document.getElementById('registroForm');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        const res = await fetch('/registro/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          msg.textContent = data.detail || data.message || 'Error';
+          return;
+        }
+        // Redirigir a verify.html pasando el email
+        window.location.href = `verify.html?email=${encodeURIComponent(email)}`;
+      } catch (err) {
+        msg.textContent = 'Error de red: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -32,7 +32,12 @@ def send_email(recipient: str, subject: str, body: str):
             subject=subject,
             plain_text_content=body,
         )
-        sg.send(message)
+        response = sg.send(message)
+        try:
+            # SendGrid response tiene status_code en la mayoría de versiones
+            logger.info('SendGrid send response status_code=%s', getattr(response, 'status_code', response))
+        except Exception:
+            logger.info('SendGrid send returned: %s', response)
     except Exception:
         logger.exception('Failed to send email via SendGrid to %s', recipient)
         raise

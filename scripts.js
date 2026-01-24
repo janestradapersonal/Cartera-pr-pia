@@ -26,16 +26,16 @@ try {
 const API_URL = "https://cartera-pr-pia.onrender.com"; // Esto cambiará cuando subas a la nube
 
 // 1. REGISTRARSE
-async function registrarUsuario(username, password) {
+async function registrarUsuario(email, username, password) {
   try {
-    const response = await fetch(`${API_URL}/registro`, {
+    const response = await fetch(`${API_URL}/registro/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email, username, password })
     });
     const data = await response.json();
     if (response.ok) {
-      alert("¡Usuario creado! Ahora inicia sesión.");
+      alert("Código enviado al email. Completa la verificación para finalizar el registro.");
       return true;
     } else {
       alert("Error: " + (data.detail || JSON.stringify(data)));
@@ -49,12 +49,12 @@ async function registrarUsuario(username, password) {
 }
 
 // 2. INICIAR SESIÓN Y CARGAR DATOS
-async function iniciarSesion(username, password) {
+async function iniciarSesion(email, username, password) {
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email, username, password })
     });
     const data = await response.json();
         

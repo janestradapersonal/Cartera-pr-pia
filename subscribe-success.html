@@ -49,7 +49,15 @@
 
       show('Verificando en el servidor tus datos de usuario...');
       try {
-        const loginResp = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass }) });
+        // intentar recuperar email asociado si está disponible
+        let emailVar = sessionStorage.getItem('usuario_email') || null;
+        try { const sf = localStorage.getItem('sf_user'); if (!emailVar && sf) { const obj = JSON.parse(sf); if (obj && obj.email) emailVar = obj.email; } } catch(e){}
+        if (!emailVar && user && user.indexOf('@') !== -1) emailVar = user;
+        if (!emailVar) {
+          show('No disponemos de tu email en esta pestaña. Inicia sesión manualmente para completar la asignación de premium.', 'err');
+          return;
+        }
+        const loginResp = await fetch(API + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: emailVar, username: user, password: pass }) });
         if (!loginResp.ok) {
           const err = await loginResp.json().catch(()=>null);
           show('Error al verificar credenciales: ' + (err && err.detail ? err.detail : loginResp.statusText),'err');

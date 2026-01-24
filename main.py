@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, IntegrityError
 from fastapi.responses import JSONResponse
 import secrets
 import logging
@@ -9,6 +9,11 @@ from email_service import send_email
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
+from datetime import datetime, timedelta
+
+# Básico in-memory rate limiter para intentos de verificación por email
+verification_attempts = {}  # email -> { count: int, first_at: datetime }
+pending_resend_attempts = {}  # email -> { count: int, first_at: datetime }
 import stripe
 import json
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,6 +63,10 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
+    email = Column(String, unique=True, index=True, nullable=True)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    email_verification_code_hash = Column(String, nullable=True)
+    email_verification_expires_at = Column(DateTime(timezone=True), nullable=True)
     premium = Column(Boolean, default=False, nullable=False)
     stripe_subscription_id = Column(String, nullable=True)
     subscription_period_end = Column(Integer, nullable=True)
@@ -70,6 +79,17 @@ class DatoUsuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     contenido = Column(JSONB)
+
+
+class PendingUser(Base):
+    __tablename__ = 'pending_users'
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    verification_code_hash = Column(String, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 # Seguridad (Encriptar contraseñas)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -99,13 +119,168 @@ async def sqlalchemy_operational_error_handler(request: Request, exc: Operationa
         return JSONResponse(status_code=503, content={"detail": "DB reconnecting"})
 
 class RegistroSchema(BaseModel):
+    email: str
     username: str
     password: str
+
+
+class RegistroStartSchema(BaseModel):
+    email: str
+    username: str
+    password: str
+
+
+class RegistroConfirmSchema(BaseModel):
+    email: str
+    code: str
 
 class GuardarDatosSchema(BaseModel):
     username: str
     password: str # Necesitamos la contraseña para verificar que eres tú
     datos: dict   # Aquí va tu JSON
+
+
+class VerifyEmailSchema(BaseModel):
+    email: str
+    code: str
+
+
+@app.post('/verify-email')
+def verify_email(payload: VerifyEmailSchema, db: Session = Depends(get_db)):
+    usuario = db.query(Usuario).filter(Usuario.email == payload.email).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    if usuario.email_verified:
+        return {'ok': True, 'message': 'Email ya verificado'}
+    # Rate limit básico: máximo 5 intentos en ventana de 15 minutos por email
+    win_minutes = 15
+    max_attempts = 5
+    now = datetime.utcnow()
+    rec = verification_attempts.get(payload.email)
+    if rec:
+        first_at = rec.get('first_at')
+        if first_at and (now - first_at).total_seconds() > win_minutes * 60:
+            # ventana expiró, reset
+            verification_attempts[payload.email] = {'count': 0, 'first_at': now}
+            rec = verification_attempts[payload.email]
+    else:
+        verification_attempts[payload.email] = {'count': 0, 'first_at': now}
+        rec = verification_attempts[payload.email]
+
+    if rec.get('count', 0) >= max_attempts:
+        raise HTTPException(status_code=429, detail='Demasiados intentos, inténtalo más tarde')
+    # comprobar expiración
+    if not usuario.email_verification_expires_at or usuario.email_verification_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail='Código caducado')
+    # verificar código (hash)
+    if not usuario.email_verification_code_hash or not pwd_context.verify(payload.code, usuario.email_verification_code_hash):
+        # incrementar contador de intentos
+        verification_attempts[payload.email]['count'] = verification_attempts[payload.email].get('count', 0) + 1
+        raise HTTPException(status_code=400, detail='Código inválido')
+    # OK -> marcar verificado y limpiar campos
+    usuario.email_verified = True
+    usuario.email_verification_code_hash = None
+    usuario.email_verification_expires_at = None
+    db.add(usuario)
+    db.commit()
+    # limpiar contador de intentos tras verificación exitosa
+    try:
+        if payload.email in verification_attempts:
+            del verification_attempts[payload.email]
+    except Exception:
+        pass
+    return {'ok': True, 'message': 'Email verificado'}
+
+
+@app.post('/registro/start')
+def registro_start(payload: RegistroStartSchema, db: Session = Depends(get_db), request: Request = None):
+    # Validar unicidad contra usuarios y pending
+    if db.query(Usuario).filter(Usuario.username == payload.username).first():
+        raise HTTPException(status_code=400, detail='Username ya existe')
+    if db.query(Usuario).filter(Usuario.email == payload.email).first():
+        raise HTTPException(status_code=400, detail='Email ya registrado')
+    if db.query(PendingUser).filter((PendingUser.username == payload.username) | (PendingUser.email == payload.email)).first():
+        raise HTTPException(status_code=400, detail='Ya existe un registro pendiente para ese email o usuario')
+
+    codigo = str(secrets.randbelow(900000) + 100000)
+    codigo_hash = pwd_context.hash(codigo)
+    expires = datetime.utcnow() + timedelta(minutes=15)
+    pw_hash = pwd_context.hash(payload.password)
+
+    pu = PendingUser(email=payload.email, username=payload.username, password_hash=pw_hash,
+                     verification_code_hash=codigo_hash, expires_at=expires)
+    db.add(pu)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail='Username o email ya existe (pending)')
+
+    email_sent = True
+    try:
+        subject = 'Código de verificación de registro'
+        body = f'Tu código de verificación es: {codigo}\nCaduca en 15 minutos.'
+        send_email(payload.email, subject, body)
+    except Exception:
+        logging.exception('Error enviando email de registro')
+        email_sent = False
+
+    return {'ok': True, 'mensaje': 'Código enviado', 'email_sent': email_sent}
+
+
+@app.post('/registro/confirm')
+def registro_confirm(payload: RegistroConfirmSchema, db: Session = Depends(get_db)):
+    email = payload.get('email')
+    if not pu:
+        raise HTTPException(status_code=404, detail='Registro pendiente no encontrado')
+    # Rate limit básico: máximo 5 reenvíos en ventana de 15 minutos por email
+    win_minutes = 15
+    max_attempts = 5
+    now = datetime.utcnow()
+    rec = pending_resend_attempts.get(email)
+    if rec:
+        first_at = rec.get('first_at')
+        if first_at and (now - first_at).total_seconds() > win_minutes * 60:
+            pending_resend_attempts[email] = {'count': 0, 'first_at': now}
+            rec = pending_resend_attempts[email]
+    else:
+        pending_resend_attempts[email] = {'count': 0, 'first_at': now}
+        rec = pending_resend_attempts[email]
+
+    if rec.get('count', 0) >= max_attempts:
+        raise HTTPException(status_code=429, detail='Demasiados intentos, inténtalo más tarde')
+    if pu.expires_at < datetime.utcnow():
+        # eliminar pending
+        try:
+    # generar nuevo codigo y actualizar hash+expiry
+    codigo = str(secrets.randbelow(900000) + 100000)
+    codigo_hash = pwd_context.hash(codigo)
+    pu.verification_code_hash = codigo_hash
+    pu.expires_at = datetime.utcnow() + timedelta(minutes=15)
+    db.add(pu)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail='Error interno')
+
+    # incrementar contador de reenvío
+    pending_resend_attempts[email]['count'] = pending_resend_attempts[email].get('count', 0) + 1
+
+    # enviar email
+    email_sent = True
+    try:
+        send_email(email, 'Código de verificación de registro', f'Tu código de verificación es: {codigo}\nCaduca en 15 minutos.')
+    except Exception:
+        logging.exception('Error reenvío email registro')
+        email_sent = False
+
+    return {'ok': True, 'mensaje': 'Código reenviado', 'email_sent': email_sent}
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail='No se pudo crear el usuario (posible duplicado)')
+    return {'ok': True, 'mensaje': 'Usuario creado y email verificado'}
 
 
 class CancelSchema(BaseModel):
@@ -117,24 +292,21 @@ def read_root():
     return {"mensaje": "¡Tu servidor está vivo!"}
 
 @app.post("/registro")
-def registrarse(user: RegistroSchema, db: Session = Depends(get_db)):
-    # 1. Comprobar si ya existe
-    existe = db.query(Usuario).filter(Usuario.username == user.username).first()
-    if existe:
-        raise HTTPException(status_code=400, detail="Usuario ya existe")
-    
-    # 2. Crear usuario
-    hash_password = pwd_context.hash(user.password)
-    nuevo = Usuario(username=user.username, password_hash=hash_password, premium=False)
-    db.add(nuevo)
-    db.commit()
-    return {"mensaje": "Usuario creado"}
+def registrarse(user: RegistroSchema, db: Session = Depends(get_db), request: Request = None):
+    # Compatibilidad: indicar al cliente que use /registro/start
+    raise HTTPException(status_code=400, detail='Use /registro/start para iniciar el proceso de registro por email')
 
 @app.post("/login")
 def login(user: RegistroSchema, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == user.username).first()
     if not usuario or not pwd_context.verify(user.password, usuario.password_hash):
         raise HTTPException(status_code=400, detail="Credenciales incorrectas")
+    # Comprobar que el email proporcionado coincide con el del usuario
+    if not usuario.email or usuario.email.lower() != user.email.lower():
+        raise HTTPException(status_code=401, detail='Email no coincide')
+    # Verificar que el email esté validado
+    if usuario.email and not usuario.email_verified:
+        raise HTTPException(status_code=403, detail="Email no verificado")
     
     # Buscar sus datos
     datos = db.query(DatoUsuario).filter(DatoUsuario.usuario_id == usuario.id).first()
