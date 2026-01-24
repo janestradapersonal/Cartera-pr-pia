@@ -1,34 +1,38 @@
 import os
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+try:
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
+except Exception:
+    SendGridAPIClient = None
+    Mail = None
 
 logger = logging.getLogger(__name__)
 
 
 def send_email(recipient: str, subject: str, body: str):
-    sender = os.getenv("SMTP_SENDER")
-    password = os.getenv("SMTP_PASSWORD")
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    """Send email using SendGrid API. Requires env vars `SENDGRID_API_KEY` and `EMAIL_FROM`.
 
-    if not sender or not password or not smtp_server:
-        raise RuntimeError('SMTP no configurado en variables de entorno')
+    Raises RuntimeError if SendGrid client not available or env vars missing; re-raises
+    underlying exceptions to allow caller to log and return `email_sent: false`.
+    """
+    if SendGridAPIClient is None or Mail is None:
+        raise RuntimeError('sendgrid package not installed')
 
-    msg = MIMEMultipart()
-    msg["From"] = sender
-    msg["To"] = recipient
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    api_key = os.getenv('SENDGRID_API_KEY')
+    sender = os.getenv('EMAIL_FROM')
+    if not api_key or not sender:
+        raise RuntimeError('SENDGRID_API_KEY or EMAIL_FROM not configured')
 
     try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender, password)
-            server.sendmail(sender, recipient, msg.as_string())
-    except Exception as e:
-        # Log full exception for Render logs (timeout, auth error, connection refused...)
-        logger.exception('Failed to send email to %s', recipient)
-        # Re-raise so callers can decide how to handle
+        sg = SendGridAPIClient(api_key)
+        message = Mail(
+            from_email=sender,
+            to_emails=recipient,
+            subject=subject,
+            plain_text_content=body,
+        )
+        sg.send(message)
+    except Exception:
+        logger.exception('Failed to send email via SendGrid to %s', recipient)
         raise
