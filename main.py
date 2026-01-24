@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
+from sqlalchemy.exc import OperationalError
+from fastapi.responses import JSONResponse
 import secrets
 from email_service import send_email
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
@@ -41,7 +43,11 @@ def catch_options(path: str):
     return {"ok": True}
 
 # Base de datos
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -81,6 +87,15 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@app.exception_handler(OperationalError)
+async def sqlalchemy_operational_error_handler(request: Request, exc: OperationalError):
+    # Devuelve 503 para indicar que la BD está reconectando
+    try:
+        return JSONResponse(status_code=503, content={"detail": "DB reconnecting"})
+    except Exception:
+        return JSONResponse(status_code=503, content={"detail": "DB reconnecting"})
 
 class RegistroSchema(BaseModel):
     username: str
