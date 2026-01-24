@@ -619,18 +619,18 @@
         const e = document.getElementById('sf-email').value.trim();
         const u = document.getElementById('sf-username').value.trim();
         const p = document.getElementById('sf-password').value;
-        if (!e || !u || !p) return alert('Introduce email, usuario y contraseña para registrarte');
+        if (!u || !p) return alert('Introduce usuario y contraseña para registrarte');
         if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
         if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
         try {
           // soportar distintas formas de exponer la función (global o en window.SF)
           let ok = false;
           if (typeof window.registrarUsuario === 'function') {
-            ok = await window.registrarUsuario(e, u, p);
+            ok = await window.registrarUsuario(u, p);
           } else if (window.SF && typeof window.SF.registrarUsuario === 'function') {
-            ok = await window.SF.registrarUsuario(e, u, p);
+            ok = await window.SF.registrarUsuario(u, p);
           } else if (typeof registrarUsuario === 'function') {
-            ok = await registrarUsuario(e, u, p);
+            ok = await registrarUsuario(u, p);
           } else {
             // fallback: llamar al backend directamente
             try {
@@ -654,11 +654,11 @@
           // iniciar sesión usando la función disponible
           let logged = false;
           if (typeof window.iniciarSesion === 'function') {
-            logged = await window.iniciarSesion(e, u, p);
+            logged = await window.iniciarSesion(u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            logged = await window.SF.iniciarSesion(e, u, p);
+            logged = await window.SF.iniciarSesion(u, p);
           } else if (typeof iniciarSesion === 'function') {
-            logged = await iniciarSesion(e, u, p);
+            logged = await iniciarSesion(u, p);
           } else {
             // fallback: llamar a /login directamente y aplicar efectos localmente
             try {
@@ -700,15 +700,15 @@
         const e = document.getElementById('sf-email').value.trim();
         const u = document.getElementById('sf-username').value.trim();
         const p = document.getElementById('sf-password').value;
-        if (!e || !u || !p) return alert('Introduce email, usuario y contraseña');
+        if (!u || !p) return alert('Introduce usuario y contraseña');
         try {
           let ok = false;
           if (typeof window.iniciarSesion === 'function') {
-            ok = await window.iniciarSesion(e, u, p);
+            ok = await window.iniciarSesion(u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            ok = await window.SF.iniciarSesion(e, u, p);
+            ok = await window.SF.iniciarSesion(u, p);
           } else if (typeof iniciarSesion === 'function') {
-            ok = await iniciarSesion(e, u, p);
+            ok = await iniciarSesion(u, p);
           } else {
             // fallback: llamar a /login directamente
             try {

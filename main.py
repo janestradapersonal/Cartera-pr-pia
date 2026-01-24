@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 
 # Básico in-memory rate limiter para intentos de verificación por email
 verification_attempts = {}  # email -> { count: int, first_at: datetime }
-pending_resend_attempts = {}  # email -> { count: int, first_at: datetime }
 import stripe
 import json
 from fastapi.middleware.cors import CORSMiddleware
@@ -119,7 +118,7 @@ async def sqlalchemy_operational_error_handler(request: Request, exc: Operationa
         return JSONResponse(status_code=503, content={"detail": "DB reconnecting"})
 
 class RegistroSchema(BaseModel):
-    email: str
+    email: str = None
     username: str
     password: str
 
@@ -230,52 +229,26 @@ def registro_start(payload: RegistroStartSchema, db: Session = Depends(get_db), 
 
 @app.post('/registro/confirm')
 def registro_confirm(payload: RegistroConfirmSchema, db: Session = Depends(get_db)):
-    email = payload.get('email')
+    pu = db.query(PendingUser).filter(PendingUser.email == payload.email).first()
     if not pu:
         raise HTTPException(status_code=404, detail='Registro pendiente no encontrado')
-    # Rate limit básico: máximo 5 reenvíos en ventana de 15 minutos por email
-    win_minutes = 15
-    max_attempts = 5
-    now = datetime.utcnow()
-    rec = pending_resend_attempts.get(email)
-    if rec:
-        first_at = rec.get('first_at')
-        if first_at and (now - first_at).total_seconds() > win_minutes * 60:
-            pending_resend_attempts[email] = {'count': 0, 'first_at': now}
-            rec = pending_resend_attempts[email]
-    else:
-        pending_resend_attempts[email] = {'count': 0, 'first_at': now}
-        rec = pending_resend_attempts[email]
-
-    if rec.get('count', 0) >= max_attempts:
-        raise HTTPException(status_code=429, detail='Demasiados intentos, inténtalo más tarde')
     if pu.expires_at < datetime.utcnow():
         # eliminar pending
         try:
-    # generar nuevo codigo y actualizar hash+expiry
-    codigo = str(secrets.randbelow(900000) + 100000)
-    codigo_hash = pwd_context.hash(codigo)
-    pu.verification_code_hash = codigo_hash
-    pu.expires_at = datetime.utcnow() + timedelta(minutes=15)
-    db.add(pu)
+            db.delete(pu)
+            db.commit()
+        except Exception:
+            db.rollback()
+        raise HTTPException(status_code=400, detail='Código expirado')
+    if not pwd_context.verify(payload.code, pu.verification_code_hash):
+        raise HTTPException(status_code=400, detail='Código inválido')
+
+    # Crear usuario definitivo con email_verified=True
+    nuevo = Usuario(username=pu.username, password_hash=pu.password_hash, premium=False,
+                    email=pu.email, email_verified=True)
+    db.add(nuevo)
     try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail='Error interno')
-
-    # incrementar contador de reenvío
-    pending_resend_attempts[email]['count'] = pending_resend_attempts[email].get('count', 0) + 1
-
-    # enviar email
-    email_sent = True
-    try:
-        send_email(email, 'Código de verificación de registro', f'Tu código de verificación es: {codigo}\nCaduca en 15 minutos.')
-    except Exception:
-        logging.exception('Error reenvío email registro')
-        email_sent = False
-
-    return {'ok': True, 'mensaje': 'Código reenviado', 'email_sent': email_sent}
+        db.delete(pu)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -301,9 +274,10 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == user.username).first()
     if not usuario or not pwd_context.verify(user.password, usuario.password_hash):
         raise HTTPException(status_code=400, detail="Credenciales incorrectas")
-    # Comprobar que el email proporcionado coincide con el del usuario
-    if not usuario.email or usuario.email.lower() != user.email.lower():
-        raise HTTPException(status_code=401, detail='Email no coincide')
+    # Si el cliente envió email, comprobar que coincida con el del usuario
+    if getattr(user, 'email', None):
+        if not usuario.email or usuario.email.lower() != user.email.lower():
+            raise HTTPException(status_code=401, detail='Email no coincide')
     # Verificar que el email esté validado
     if usuario.email and not usuario.email_verified:
         raise HTTPException(status_code=403, detail="Email no verificado")

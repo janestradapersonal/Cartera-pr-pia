@@ -14,7 +14,6 @@
       <label>Email<br><input type="email" id="email" required></label><br>
       <label>Código (6 dígitos)<br><input type="text" id="code" required pattern="\\d{6}"></label><br>
       <button type="submit">Verificar</button>
-      <button type="button" id="resendCodeBtn">Reenviar código</button>
     </form>
     <div id="msg" role="status"></div>
   </main>
@@ -45,26 +44,6 @@
         msg.textContent = 'Email verificado, ya puedes iniciar sesión';
         // opcional: redirigir al login tras 2s
         setTimeout(() => { window.location.href = 'subscribe.html'; }, 2000);
-      } catch (err) {
-        msg.textContent = 'Error de red: ' + err.message;
-      }
-    });
-
-    document.getElementById('resendCodeBtn').addEventListener('click', async () => {
-      msg.textContent = '';
-      const email = emailInput.value.trim();
-      if (!email) { msg.textContent = 'Introduce el email para reenviar el código'; return; }
-      try {
-        const res = await fetch('/registro/resend', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json().catch(()=>null);
-        if (!res.ok) {
-          msg.textContent = data && data.detail ? data.detail : 'Error reenviando código';
-          return;
-        }
-        msg.textContent = 'Código reenviado al email (si existe un registro pendiente)';
       } catch (err) {
         msg.textContent = 'Error de red: ' + err.message;
       }
