@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boole
 from sqlalchemy.exc import OperationalError
 from fastapi.responses import JSONResponse
 import secrets
+import logging
 from email_service import send_email
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
@@ -503,14 +504,21 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
         reject_url = f"/role-requests/{rr.id}/reject?token={token}"
 
     body = f"El usuario {username} solicita el rol {payload.requested_role}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
+    email_sent = True
     try:
         admin_email = os.getenv('ROLE_REQUEST_ADMIN') or 'janestrada888@gmail.com'
+        # preferir APP_BASE_URL si está configurada para construir enlaces
+        app_base = os.getenv('APP_BASE_URL')
+        if app_base:
+            approve_url = f"{app_base}/role-requests/{rr.id}/approve?token={token}"
+            reject_url = f"{app_base}/role-requests/{rr.id}/reject?token={token}"
+            body = f"El usuario {username} solicita el rol {payload.requested_role}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
         send_email(admin_email, f"Solicitud de rol: {username}", body)
-    except Exception:
-        # no bloquear la creación si el email falla
-        pass
+    except Exception as e:
+        email_sent = False
+        logging.exception('Error sending role request email')
 
-    return {'ok': True, 'id': rr.id}
+    return {'ok': True, 'id': rr.id, 'email_sent': email_sent}
 
 
 @app.get('/role-requests/{req_id}/approve', include_in_schema=True)

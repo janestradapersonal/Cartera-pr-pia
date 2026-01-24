@@ -552,7 +552,12 @@
         const j = await resp.json().catch(()=>null);
         return alert('Error creando solicitud: ' + (j && j.detail ? j.detail : resp.statusText));
       }
-      alert('Solicitud creada. Recibirás email de confirmación a administración.');
+      const j = await resp.json().catch(()=>null) || {};
+      if (j.email_sent === false) {
+        alert('Solicitud creada, pero no se pudo enviar el email al administrador. Contacta manualmente.');
+      } else {
+        alert('Solicitud creada. Se ha enviado un email al administrador.');
+      }
     } catch (e) { alert('Error al crear la solicitud'); }
   }
 
