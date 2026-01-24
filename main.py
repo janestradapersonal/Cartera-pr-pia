@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
+import secrets
+from email_service import send_email
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
@@ -438,3 +440,89 @@ try:
     Base.metadata.create_all(bind=engine)
 except Exception:
     pass
+
+
+# Modelo para solicitudes de rol
+class RoleRequest(Base):
+    __tablename__ = 'role_requests'
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, ForeignKey('usuarios.username'), nullable=False)
+    requested_role = Column(String, nullable=False)
+    status = Column(String, nullable=False, default='pending')
+    token = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    decided_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class RoleRequestCreate(BaseModel):
+    requested_role: str
+    username: str = None
+    password: str = None
+
+
+@app.post('/role-requests', include_in_schema=True)
+def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db), request: Request = None):
+    # permitir envió vía body o headers x-username/x-password
+    username = payload.username or (request.headers.get('x-username') if request else None)
+    password = payload.password or (request.headers.get('x-password') if request else None)
+    if not username or not password:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    # validar rol solicitado
+    if payload.requested_role not in ('PREGUNTADOR_2','JEFE'):
+        raise HTTPException(status_code=400, detail='requested_role inválido')
+    token = secrets.token_urlsafe(32)
+    rr = RoleRequest(username=username, requested_role=payload.requested_role, status='pending', token=token)
+    db.add(rr)
+    db.commit()
+    db.refresh(rr)
+
+    # enviar email al admin con enlaces de aprobación/rechazo
+    try:
+        approve_url = f"{request.url.scheme}://{request.url.hostname}/role-requests/{rr.id}/approve?token={token}" if request else f"/role-requests/{rr.id}/approve?token={token}"
+        reject_url = f"{request.url.scheme}://{request.url.hostname}/role-requests/{rr.id}/reject?token={token}" if request else f"/role-requests/{rr.id}/reject?token={token}"
+    except Exception:
+        approve_url = f"/role-requests/{rr.id}/approve?token={token}"
+        reject_url = f"/role-requests/{rr.id}/reject?token={token}"
+
+    body = f"El usuario {username} solicita el rol {payload.requested_role}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
+    try:
+        admin_email = os.getenv('ROLE_REQUEST_ADMIN') or 'janestrada888@gmail.com'
+        send_email(admin_email, f"Solicitud de rol: {username}", body)
+    except Exception:
+        # no bloquear la creación si el email falla
+        pass
+
+    return {'ok': True, 'id': rr.id}
+
+
+@app.get('/role-requests/{req_id}/approve', include_in_schema=True)
+def approve_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
+    rr = db.query(RoleRequest).filter(RoleRequest.id == req_id).first()
+    if not rr or rr.token != token or rr.status != 'pending':
+        raise HTTPException(status_code=404, detail='Solicitud no encontrada o token inválido')
+    # asignar rol al usuario
+    usuario = db.query(Usuario).filter(Usuario.username == rr.username).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    usuario.role = rr.requested_role
+    rr.status = 'approved'
+    rr.decided_at = func.now()
+    db.add(usuario)
+    db.add(rr)
+    db.commit()
+    return {'ok': True, 'message': f'Usuario {usuario.username} ahora es {usuario.role}'}
+
+
+@app.get('/role-requests/{req_id}/reject', include_in_schema=True)
+def reject_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
+    rr = db.query(RoleRequest).filter(RoleRequest.id == req_id).first()
+    if not rr or rr.token != token or rr.status != 'pending':
+        raise HTTPException(status_code=404, detail='Solicitud no encontrada o token inválido')
+    rr.status = 'rejected'
+    rr.decided_at = func.now()
+    db.add(rr)
+    db.commit()
+    return {'ok': True, 'message': 'Solicitud rechazada'}

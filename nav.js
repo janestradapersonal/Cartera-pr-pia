@@ -392,7 +392,7 @@
             a.className = 'nav-item';
             a.setAttribute('data-page', 'newsletter');
             a.href = 'newsletter.html';
-            a.textContent = 'NEWSLETTER';
+            a.textContent = '7 - NEWSLETTER';
             // añadir al final de la lista
             try { navListEl.appendChild(a); } catch(e){ navListEl.appendChild(a); }
           }
@@ -474,6 +474,34 @@
 
       wrapper.appendChild(img);
       wrapper.appendChild(name);
+      // Botón Perfil (abre mini-dropdown para solicitar roles)
+      const profileBtn = document.createElement('button');
+      profileBtn.className = 'btn profile-btn';
+      profileBtn.textContent = 'Perfil';
+      profileBtn.style.marginLeft = '8px';
+      profileBtn.addEventListener('click', (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        let drop = wrapper.querySelector('.profile-drop');
+        if (!drop) {
+          drop = document.createElement('div');
+          drop.className = 'profile-drop';
+          drop.style.position = 'absolute';
+          drop.style.background = '#fff';
+          drop.style.border = '1px solid #ddd';
+          drop.style.padding = '8px';
+          drop.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
+          drop.style.zIndex = '10001';
+          const btn2 = document.createElement('button'); btn2.textContent = 'Solicitar nivel 2'; btn2.style.display='block'; btn2.style.marginBottom='6px';
+          const btnJ = document.createElement('button'); btnJ.textContent = 'Solicitar JEFE'; btnJ.style.display='block';
+          btn2.addEventListener('click', ()=>{ requestRole('PREGUNTADOR_2'); try{ drop.remove(); }catch(e){} });
+          btnJ.addEventListener('click', ()=>{ requestRole('JEFE'); try{ drop.remove(); }catch(e){} });
+          drop.appendChild(btn2); drop.appendChild(btnJ);
+          wrapper.appendChild(drop);
+        } else {
+          try{ drop.remove(); }catch(e){}
+        }
+      });
+      wrapper.appendChild(profileBtn);
       // En móvil: al clicar la imagen alternamos visibilidad del nombre y logout
       try {
         img.style.cursor = 'pointer';
@@ -512,6 +540,20 @@
       });
       userArea.appendChild(loginBtn);
     }
+  }
+
+  async function requestRole(role) {
+    try {
+      const username = sessionStorage.getItem('usuario_actual');
+      const password = sessionStorage.getItem('pass_actual');
+      if (!username || !password) return alert('Inicia sesión para solicitar roles');
+      const resp = await fetch(API_URL + '/role-requests', { method: 'POST', headers: {'Content-Type':'application/json', 'x-username': username, 'x-password': password}, body: JSON.stringify({ requested_role: role }) });
+      if (!resp.ok) {
+        const j = await resp.json().catch(()=>null);
+        return alert('Error creando solicitud: ' + (j && j.detail ? j.detail : resp.statusText));
+      }
+      alert('Solicitud creada. Recibirás email de confirmación a administración.');
+    } catch (e) { alert('Error al crear la solicitud'); }
   }
 
   /* --- Modal de autenticación (registro / inicio) --- */
