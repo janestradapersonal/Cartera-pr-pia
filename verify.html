@@ -14,7 +14,7 @@
       <div id="countdown" style="margin-top:6px; font-weight:600;">El código caduca en: <span id="countdownTimer">00:60</span></div>
       <div id="bannerError" style="color:#a00; font-weight:600; margin-top:6px; display:none;"></div>
     </div>
-    <form id="verifyForm">
+    <form id="verify-form">
       <label>Email<br><input type="email" id="email" required readonly></label><br>
       <label>Código (6 dígitos)<br><input type="text" id="code" required pattern="\\d{6}" inputmode="numeric" maxlength="6"></label><br>
       <button type="submit">Verificar</button>
@@ -26,152 +26,162 @@
     </div>
   </main>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const emailInput = document.getElementById('email');
-    const codeInput = document.getElementById('code');
-    const msg = document.getElementById('msg');
-    const bannerEmail = document.getElementById('bannerEmail');
-    const resendArea = document.getElementById('resendArea');
-    const expiredMsg = document.getElementById('expiredMsg');
-    const resendBtn = document.getElementById('resendBtn');
-    // Prefill email if viene en la query
-    if (params.get('email')) {
-      const e = params.get('email');
-      emailInput.value = e;
-      bannerEmail.textContent = e;
-    } else {
-      // si no viene, ocultar banner
-      document.getElementById('banner').style.display = 'none';
-    }
-
-    // Contador de expiración (60s)
-    let countdownSeconds = 60;
-    let countdownInterval = null;
-    const countdownTimer = document.getElementById('countdownTimer');
-
-    function formatTime(s) {
-      const mm = Math.floor(s / 60).toString().padStart(2, '0');
-      const ss = (s % 60).toString().padStart(2, '0');
-      return `${mm}:${ss}`;
-    }
-
-    function startCountdown(seconds) {
-      clearInterval(countdownInterval);
-      countdownSeconds = seconds;
-      countdownTimer.textContent = formatTime(countdownSeconds);
-      // disable resend while counting
-      resendBtn.disabled = true;
-      expiredMsg.style.visibility = 'hidden';
-      countdownInterval = setInterval(() => {
-        countdownSeconds -= 1;
-        if (countdownSeconds <= 0) {
-          clearInterval(countdownInterval);
-          countdownTimer.textContent = formatTime(0);
-          // mostrar expirado y permitir reenvío
-          expiredMsg.style.visibility = 'visible';
-          expiredMsg.style.color = '#a00';
-          expiredMsg.textContent = 'Código expirado';
-          resendBtn.disabled = false;
-        } else {
-          countdownTimer.textContent = formatTime(countdownSeconds);
-        }
-      }, 1000);
-    }
-
-    // iniciar en carga
-    startCountdown(60);
-
-    // reenviar: llamar al endpoint /registro/resend
-    resendBtn.addEventListener('click', async () => {
-      expiredMsg.style.visibility = 'hidden';
-      resendBtn.disabled = true;
-      try {
-        const resendUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/resend') : '/registro/resend';
-        const res = await fetch(resendUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailInput.value.trim() })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const err = data.detail || data.message || 'Error';
-          expiredMsg.style.visibility = 'visible';
-          expiredMsg.style.color = '#a00';
-          expiredMsg.textContent = err;
-          resendBtn.disabled = false;
-          return;
-        }
-        expiredMsg.style.visibility = 'visible';
-        expiredMsg.style.color = '#080';
-        expiredMsg.textContent = 'Código reenviado';
-        // reset countdown
-        startCountdown(60);
-      } catch (err) {
-        expiredMsg.style.visibility = 'visible';
-        expiredMsg.style.color = '#a00';
-        expiredMsg.textContent = 'Error de red: ' + err.message;
-        resendBtn.disabled = false;
-      }
-    });
-
-    document.getElementById('verifyForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      msg.textContent = '';
-      // limpiar banner de error
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const emailInput = document.getElementById('email');
+      const codeInput = document.getElementById('code');
+      const msg = document.getElementById('msg');
+      const bannerEmail = document.getElementById('bannerEmail');
+      const resendArea = document.getElementById('resendArea');
+      const expiredMsg = document.getElementById('expiredMsg');
+      const resendBtn = document.getElementById('resendBtn');
       const bannerError = document.getElementById('bannerError');
-      bannerError.style.display = 'none';
-      bannerError.textContent = '';
-      const email = emailInput.value.trim();
-      const code = String(codeInput.value || '').trim();
-      // validar formato previo al envío
-      if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
-        msg.textContent = 'Introduce un código válido de 6 dígitos';
-        return;
+
+      // Prefill email if viene en la query
+      if (params.get('email')) {
+        const e = params.get('email');
+        emailInput.value = e;
+        bannerEmail.textContent = e;
+      } else {
+        // si no viene, ocultar banner
+        document.getElementById('banner').style.display = 'none';
       }
-      try {
-        const confirmUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/confirm') : '/registro/confirm';
-        const res = await fetch(confirmUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, code })
-        });
-        // parsear respuesta con seguridad
-        let data = null;
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) data = await res.json().catch(()=>null);
-        else data = await res.text().catch(()=>null);
-        if (!res.ok) {
-          const status = res.status;
-          // mostrar detail exacto en el banner si viene
-          const err = (data && (data.detail || data.message || data.mensaje)) ? (data.detail || data.message || data.mensaje) : (typeof data === 'string' ? data : (res.statusText || 'Error'));
-          if (bannerError) {
-            bannerError.style.display = 'block';
-            bannerError.textContent = err;
-          }
-          if (status === 400) {
-            // distinguir entre expirado e inválido
-            if (err && (err.toString().toLowerCase().includes('caduc') || err === 'Código expirado')) {
-              expiredMsg.style.visibility = 'visible';
-              expiredMsg.style.color = '#a00';
-              expiredMsg.textContent = 'Código expirado';
-              resendBtn.disabled = false;
-            } else if (err && err.toString().toLowerCase().includes('inválid')) {
-              msg.textContent = 'Código incorrecto';
-            }
-          } else if (status === 429) {
-            msg.textContent = 'Demasiados intentos, espera 15 min';
+
+      // Contador de expiración (60s)
+      let countdownSeconds = 60;
+      let countdownInterval = null;
+      const countdownTimer = document.getElementById('countdownTimer');
+
+      function formatTime(s) {
+        const mm = Math.floor(s / 60).toString().padStart(2, '0');
+        const ss = (s % 60).toString().padStart(2, '0');
+        return `${mm}:${ss}`;
+      }
+
+      function startCountdown(seconds) {
+        clearInterval(countdownInterval);
+        countdownSeconds = seconds;
+        countdownTimer.textContent = formatTime(countdownSeconds);
+        // disable resend while counting
+        resendBtn.disabled = true;
+        expiredMsg.style.visibility = 'hidden';
+        bannerError.style.display = 'none';
+        bannerError.textContent = '';
+        countdownInterval = setInterval(() => {
+          countdownSeconds -= 1;
+          if (countdownSeconds <= 0) {
+            clearInterval(countdownInterval);
+            countdownTimer.textContent = formatTime(0);
+            // mostrar expirado y permitir reenvío
+            expiredMsg.style.visibility = 'visible';
+            expiredMsg.style.color = '#a00';
+            expiredMsg.textContent = 'Código expirado';
+            resendBtn.disabled = false;
           } else {
-            msg.textContent = err;
+            countdownTimer.textContent = formatTime(countdownSeconds);
           }
+        }, 1000);
+      }
+
+      // iniciar en carga
+      startCountdown(60);
+
+      // reenviar: llamar al endpoint /registro/resend
+      resendBtn.addEventListener('click', async () => {
+        expiredMsg.style.visibility = 'hidden';
+        resendBtn.disabled = true;
+        try {
+          const resendUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/resend') : '/registro/resend';
+          console.log('calling resend', { url: resendUrl, email: emailInput.value.trim() });
+          const res = await fetch(resendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailInput.value.trim() })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const err = data.detail || data.message || 'Error';
+            expiredMsg.style.visibility = 'visible';
+            expiredMsg.style.color = '#a00';
+            expiredMsg.textContent = err;
+            resendBtn.disabled = false;
+            return;
+          }
+          expiredMsg.style.visibility = 'visible';
+          expiredMsg.style.color = '#080';
+          expiredMsg.textContent = 'Código reenviado';
+          // reset countdown
+          startCountdown(60);
+        } catch (err) {
+          expiredMsg.style.visibility = 'visible';
+          expiredMsg.style.color = '#a00';
+          expiredMsg.textContent = 'Error de red: ' + err.message;
+          resendBtn.disabled = false;
+        }
+      });
+
+      // submit handler
+      document.getElementById('verify-form').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        console.log('submit fired');
+        msg.textContent = '';
+        // limpiar banner de error
+        bannerError.style.display = 'none';
+        bannerError.textContent = '';
+        const email = emailInput.value.trim();
+        const code = String(codeInput.value || '').trim();
+        // validar formato previo al envío
+        if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+          msg.textContent = 'Introduce un código válido de 6 dígitos';
           return;
         }
-        msg.style.color = '#080';
-        msg.textContent = 'Email verificado, cuenta creada';
-        // redirigir al inicio (login) tras 1.5s
-        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
-      } catch (err) {
-        msg.textContent = 'Error de red: ' + err.message;
-      }
+        try {
+          const confirmUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/confirm') : '/registro/confirm';
+          const payload = { email, code };
+          console.log('calling confirm', payload);
+          const res = await fetch(confirmUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          // parsear respuesta con seguridad
+          let data = null;
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) data = await res.json().catch(()=>null);
+          else data = await res.text().catch(()=>null);
+          if (!res.ok) {
+            const status = res.status;
+            // mostrar detail exacto en el banner si viene
+            const err = (data && (data.detail || data.message || data.mensaje)) ? (data.detail || data.message || data.mensaje) : (typeof data === 'string' ? data : (res.statusText || 'Error'));
+            if (bannerError) {
+              bannerError.style.display = 'block';
+              bannerError.textContent = err;
+            }
+            if (status === 400) {
+              // distinguir entre expirado e inválido
+              if (err && (err.toString().toLowerCase().includes('caduc') || err === 'Código expirado')) {
+                expiredMsg.style.visibility = 'visible';
+                expiredMsg.style.color = '#a00';
+                expiredMsg.textContent = 'Código expirado';
+                resendBtn.disabled = false;
+              } else if (err && err.toString().toLowerCase().includes('inválid')) {
+                msg.textContent = 'Código incorrecto';
+              }
+            } else if (status === 429) {
+              msg.textContent = 'Demasiados intentos, espera 15 min';
+            } else {
+              msg.textContent = err;
+            }
+            return;
+          }
+          msg.style.color = '#080';
+          msg.textContent = 'Email verificado, cuenta creada';
+          // redirigir al inicio (login) tras 1.5s
+          setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+        } catch (err) {
+          msg.textContent = 'Error de red: ' + err.message;
+        }
+      });
     });
   </script>
 </body>
