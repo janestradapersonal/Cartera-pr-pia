@@ -11,6 +11,32 @@ from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 
+# Roles (single source of truth)
+class Role:
+    MIEMBRO = 'MIEMBRO'
+    COLABORADOR = 'COLABORADOR'
+    ADMINISTRADOR = 'ADMINISTRADOR'
+
+# Backwards-compatibility mapping from old DB values to new role names
+OLD_ROLE_MAP = {
+    'PREGUNTADOR_1': Role.MIEMBRO,
+    'PREGUNTADOR_2': Role.COLABORADOR,
+    'JEFE': Role.ADMINISTRADOR,
+}
+
+DISPLAY_ROLE = {
+    Role.MIEMBRO: 'Miembro',
+    Role.COLABORADOR: 'Colaborador',
+    Role.ADMINISTRADOR: 'Administrador',
+}
+
+def normalize_role(r):
+    if not r:
+        return Role.MIEMBRO
+    if r in (Role.MIEMBRO, Role.COLABORADOR, Role.ADMINISTRADOR):
+        return r
+    return OLD_ROLE_MAP.get(r, r)
+
 
 def now_utc():
     """Return timezone-aware UTC datetime for consistent comparisons."""
@@ -81,8 +107,8 @@ class Usuario(Base):
     stripe_subscription_id = Column(String, nullable=True)
     subscription_period_end = Column(Integer, nullable=True)
     cancel_pending = Column(Boolean, default=False, nullable=False)
-    # Rol del usuario: 'PREGUNTADOR_1', 'PREGUNTADOR_2', 'JEFE'
-    role = Column(String, default='PREGUNTADOR_1', nullable=False)
+    # Rol del usuario (normalizado a los nuevos nombres)
+    role = Column(String, default=Role.MIEMBRO, nullable=False)
 
 class DatoUsuario(Base):
     __tablename__ = "datos_usuarios"
@@ -363,7 +389,7 @@ def login(user: RegistroSchema, db: Session = Depends(get_db)):
         "mensaje": "Login OK",
         "datos": datos.contenido if datos else None,
         "premium": bool(usuario.premium),
-        "role": (usuario.role if hasattr(usuario, 'role') else 'PREGUNTADOR_1'),
+        "role": normalize_role(usuario.role if hasattr(usuario, 'role') else None),
         "cancel_pending": bool(usuario.cancel_pending),
         "subscription_period_end": int(usuario.subscription_period_end) if usuario.subscription_period_end else None
     }
@@ -603,7 +629,7 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario or not pwd_context.verify(password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
-    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'role': (usuario.role if hasattr(usuario, 'role') else 'PREGUNTADOR_1') }
+    return { 'username': usuario.username, 'premium': bool(usuario.premium), 'role': normalize_role(usuario.role if hasattr(usuario, 'role') else None) }
 
 
 class NewsletterCreate(BaseModel):
@@ -637,8 +663,8 @@ def create_newsletter(payload: NewsletterCreate, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == payload.username).first()
     if not usuario or not pwd_context.verify(payload.password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
-    if (not hasattr(usuario, 'role')) or usuario.role != 'JEFE':
-        raise HTTPException(status_code=403, detail='Necesitas rol JEFE para publicar')
+    if (not hasattr(usuario, 'role')) or normalize_role(usuario.role) != Role.ADMINISTRADOR:
+        raise HTTPException(status_code=403, detail='Necesitas rol ADMINISTRADOR para publicar')
     post = NewsletterPost(title=payload.title, description=payload.description, file_url=payload.file_url, created_by_username=usuario.username)
     db.add(post)
     db.commit()
@@ -662,8 +688,8 @@ def delete_newsletter(post_id: int, request: Request, db: Session = Depends(get_
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario or not pwd_context.verify(password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
-    if (not hasattr(usuario, 'role')) or usuario.role != 'JEFE':
-        raise HTTPException(status_code=403, detail='Necesitas rol JEFE para eliminar')
+    if (not hasattr(usuario, 'role')) or normalize_role(usuario.role) != Role.ADMINISTRADOR:
+        raise HTTPException(status_code=403, detail='Necesitas rol ADMINISTRADOR para eliminar')
     post = db.query(NewsletterPost).filter(NewsletterPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail='Post no encontrado')
@@ -707,11 +733,17 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario or not pwd_context.verify(password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
-    # validar rol solicitado (permitir solicitar volver a PREGUNTADOR_1 también)
-    if payload.requested_role not in ('PREGUNTADOR_1','PREGUNTADOR_2','JEFE'):
+    # validar rol solicitado (aceptar tanto nombres antiguos como los nuevos)
+    allowed = {
+        'PREGUNTADOR_1', 'PREGUNTADOR_2', 'JEFE',
+        Role.MIEMBRO, Role.COLABORADOR, Role.ADMINISTRADOR
+    }
+    if payload.requested_role not in allowed:
         raise HTTPException(status_code=400, detail='requested_role inválido')
+    # Normalizar al nombre canonical (nuevo)
+    requested_normal = normalize_role(payload.requested_role)
     token = secrets.token_urlsafe(32)
-    rr = RoleRequest(username=username, requested_role=payload.requested_role, status='pending', token=token)
+    rr = RoleRequest(username=username, requested_role=requested_normal, status='pending', token=token)
     db.add(rr)
     db.commit()
     db.refresh(rr)
@@ -724,7 +756,9 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
         approve_url = f"/role-requests/{rr.id}/approve?token={token}"
         reject_url = f"/role-requests/{rr.id}/reject?token={token}"
 
-    body = f"El usuario {username} solicita el rol {payload.requested_role}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
+    # usar etiqueta legible en el email
+    display_requested = DISPLAY_ROLE.get(requested_normal, requested_normal)
+    body = f"El usuario {username} solicita el rol {display_requested}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
     email_sent = True
     try:
         admin_email = os.getenv('ROLE_REQUEST_ADMIN') or 'janestrada888@gmail.com'
@@ -751,7 +785,7 @@ def approve_role_request(req_id: int, token: str, db: Session = Depends(get_db))
     usuario = db.query(Usuario).filter(Usuario.username == rr.username).first()
     if not usuario:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
-    usuario.role = rr.requested_role
+    usuario.role = normalize_role(rr.requested_role)
     rr.status = 'approved'
     rr.decided_at = func.now()
     db.add(usuario)

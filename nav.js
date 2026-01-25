@@ -227,6 +227,10 @@
   // API base (coincide con scripts.js)
   const API_URL = 'https://cartera-pr-pia.onrender.com';
 
+  // Role constants (machine names) and display labels
+  const ROLE = { MIEMBRO: 'MIEMBRO', COLABORADOR: 'COLABORADOR', ADMINISTRADOR: 'ADMINISTRADOR' };
+  const ROLE_LABEL = { MIEMBRO: 'Miembro', COLABORADOR: 'Colaborador', ADMINISTRADOR: 'Administrador' };
+
   // Actualizar el estado del botón Suscribirse según si el usuario es premium
   async function updateSubscribeButtonState() {
     try {
@@ -458,24 +462,24 @@
         su.role = j.role;
         localStorage.setItem(USER_KEY, JSON.stringify(su));
       } catch(e){}
-      // actualizar cualquier badge visible
+      // actualizar cualquier badge visible usando etiquetas legibles
       try {
-        document.querySelectorAll('.role-badge').forEach(b => { b.textContent = j.role || '—'; });
+        document.querySelectorAll('.role-badge').forEach(b => { b.textContent = (ROLE_LABEL[j.role] || j.role) || '—'; });
       } catch(e){}
       // actualizar cualquier panel profile-drop que esté abierto
       try {
         document.querySelectorAll('.profile-drop').forEach(drop => {
           const firstDiv = drop.querySelector('div');
-          if (firstDiv) firstDiv.textContent = 'Rango: ' + (j.role || 'PREGUNTADOR_1');
+          if (firstDiv) firstDiv.textContent = 'Rango: ' + ((ROLE_LABEL[j.role] || j.role) || '—');
           // ajustar botones visibilidad dentro this drop
           try {
             const btn1 = drop.querySelector('button:nth-of-type(2)');
             const btn2 = drop.querySelector('button:nth-of-type(3)');
             const btnJ = drop.querySelector('button:nth-of-type(4)');
-            const current = j.role || 'PREGUNTADOR_1';
-            if (btn1) btn1.style.display = (current === 'PREGUNTADOR_1') ? 'none' : 'inline-block';
-            if (btn2) btn2.style.display = (current === 'PREGUNTADOR_2') ? 'none' : 'inline-block';
-            if (btnJ) btnJ.style.display = (current === 'JEFE') ? 'none' : 'inline-block';
+            const current = j.role || ROLE.MIEMBRO;
+            if (btn1) btn1.style.display = (current === ROLE.MIEMBRO || current === 'PREGUNTADOR_1') ? 'none' : 'inline-block';
+            if (btn2) btn2.style.display = (current === ROLE.COLABORADOR || current === 'PREGUNTADOR_2') ? 'none' : 'inline-block';
+            if (btnJ) btnJ.style.display = (current === ROLE.ADMINISTRADOR || current === 'JEFE') ? 'none' : 'inline-block';
           } catch(e){}
         });
       } catch(e){}
@@ -545,7 +549,7 @@
       // badge pequeño con el rol junto al nombre (actualizable)
       const roleBadge = document.createElement('span');
       roleBadge.className = 'role-badge';
-      roleBadge.textContent = (user && user.role) ? user.role : '—';
+      roleBadge.textContent = (user && user.role) ? (ROLE_LABEL[user.role] || user.role) : '—';
 
       wrapper.appendChild(img);
       wrapper.appendChild(name);
@@ -580,15 +584,15 @@
           requestContainer.appendChild(reqTitle);
 
           // Botones de solicitud (mostrar todos los roles excepto el actual)
-          const btn1 = document.createElement('button'); btn1.textContent = 'Nivel 1'; btn1.style.display='block';
-          const btn2 = document.createElement('button'); btn2.textContent = 'Nivel 2'; btn2.style.display='block';
-          const btnJ = document.createElement('button'); btnJ.textContent = 'JEFE'; btnJ.style.display='block';
+          const btn1 = document.createElement('button'); btn1.textContent = ROLE_LABEL.MIEMBRO; btn1.style.display='block';
+          const btn2 = document.createElement('button'); btn2.textContent = ROLE_LABEL.COLABORADOR; btn2.style.display='block';
+          const btnJ = document.createElement('button'); btnJ.textContent = ROLE_LABEL.ADMINISTRADOR; btnJ.style.display='block';
           // estilos similares
           [btn1, btn2, btnJ].forEach(b => { b.style.backgroundColor = '#007bff'; b.style.color = '#fff'; b.style.border = 'none'; b.style.padding = '6px 8px'; b.style.borderRadius = '4px'; b.style.fontSize = '13px'; });
           // eventos (usamos los códigos de rol reales)
-          btn1.addEventListener('click', ()=>{ requestRole('PREGUNTADOR_1'); try{ drop.remove(); }catch(e){} });
-          btn2.addEventListener('click', ()=>{ requestRole('PREGUNTADOR_2'); try{ drop.remove(); }catch(e){} });
-          btnJ.addEventListener('click', ()=>{ requestRole('JEFE'); try{ drop.remove(); }catch(e){} });
+          btn1.addEventListener('click', ()=>{ requestRole(ROLE.MIEMBRO); try{ drop.remove(); }catch(e){} });
+          btn2.addEventListener('click', ()=>{ requestRole(ROLE.COLABORADOR); try{ drop.remove(); }catch(e){} });
+          btnJ.addEventListener('click', ()=>{ requestRole(ROLE.ADMINISTRADOR); try{ drop.remove(); }catch(e){} });
           requestContainer.appendChild(btn1); requestContainer.appendChild(btn2); requestContainer.appendChild(btnJ);
 
           drop.appendChild(roleInfo);
@@ -613,18 +617,18 @@
                   } catch(e) { /* ignore */ }
                 }
               }
-              // Actualizar UI
-              roleInfo.textContent = 'Rango: ' + (role || 'PREGUNTADOR_1');
+              // Actualizar UI (mostrar etiqueta legible si existe)
+              roleInfo.textContent = 'Rango: ' + ((ROLE_LABEL[role] || role) || '—');
               // actualizar badge junto al nombre si existe
-              try { if (roleBadge) roleBadge.textContent = (role || '—'); } catch(e){}
+              try { if (roleBadge) roleBadge.textContent = (ROLE_LABEL[role] || role) || '—'; } catch(e){}
               // guardar role en localStorage.sf_user para sesiones futuras
               try { const su = JSON.parse(localStorage.getItem('sf_user')||'null') || {}; su.role = role || su.role; localStorage.setItem('sf_user', JSON.stringify(su)); } catch(e){}
               // Mostrar los otros roles (según los roles que el backend acepta)
-              // backend permite solicitar 'PREGUNTADOR_2' y 'JEFE'
-              const current = role || 'PREGUNTADOR_1';
-              btn1.style.display = (current === 'PREGUNTADOR_1') ? 'none' : 'block';
-              btn2.style.display = (current === 'PREGUNTADOR_2') ? 'none' : 'block';
-              btnJ.style.display = (current === 'JEFE') ? 'none' : 'block';
+              // backend permite solicitar 'COLABORADOR' (antes PREGUNTADOR_2) y 'ADMINISTRADOR' (antes JEFE)
+              const current = role || ROLE.MIEMBRO;
+              btn1.style.display = (current === ROLE.MIEMBRO || current === 'PREGUNTADOR_1') ? 'none' : 'block';
+              btn2.style.display = (current === ROLE.COLABORADOR || current === 'PREGUNTADOR_2') ? 'none' : 'block';
+              btnJ.style.display = (current === ROLE.ADMINISTRADOR || current === 'JEFE') ? 'none' : 'block';
             } catch (err) {
               // en caso de error, dejar texto por defecto
               roleInfo.textContent = 'Rango: —';
