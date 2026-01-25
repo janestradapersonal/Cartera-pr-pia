@@ -42,10 +42,30 @@
       document.getElementById('banner').style.display = 'none';
     }
 
-    // reenviar: llevar al formulario de registro con email prellenado
-    resendBtn.addEventListener('click', () => {
-      const e = encodeURIComponent(emailInput.value || '');
-      window.location.href = `registro.html?email=${e}`;
+    // reenviar: llamar al endpoint /registro/resend
+    resendBtn.addEventListener('click', async () => {
+      expiredMsg.textContent = '';
+      resendBtn.disabled = true;
+      try {
+        const res = await fetch('/registro/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailInput.value.trim() })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = data.detail || data.message || 'Error';
+          expiredMsg.textContent = err;
+          resendBtn.disabled = false;
+          return;
+        }
+        expiredMsg.style.color = '#080';
+        expiredMsg.textContent = 'Código reenviado';
+        resendBtn.disabled = false;
+      } catch (err) {
+        expiredMsg.textContent = 'Error de red: ' + err.message;
+        resendBtn.disabled = false;
+      }
     });
 
     document.getElementById('verifyForm').addEventListener('submit', async (e) => {

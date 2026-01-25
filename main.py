@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 
 # Básico in-memory rate limiter para intentos de verificación por email
 verification_attempts = {}  # email -> { count: int, first_at: datetime }
+# Rate limiter para reenvíos de código
+resend_attempts = {}  # email -> { count: int, first_at: datetime }
 import stripe
 import json
 from fastapi.middleware.cors import CORSMiddleware
@@ -131,6 +133,10 @@ class RegistroStartSchema(BaseModel):
 class RegistroConfirmSchema(BaseModel):
     email: str
     code: str
+
+
+class ResendSchema(BaseModel):
+    email: str
 
 class GuardarDatosSchema(BaseModel):
     username: str
@@ -254,6 +260,59 @@ def registro_confirm(payload: RegistroConfirmSchema, db: Session = Depends(get_d
         db.rollback()
         raise HTTPException(status_code=400, detail='No se pudo crear el usuario (posible duplicado)')
     return {'ok': True, 'mensaje': 'Usuario creado y email verificado'}
+
+
+@app.post('/registro/resend')
+def registro_resend(payload: ResendSchema, db: Session = Depends(get_db)):
+    # Rate limit básico para reenvíos: máximo 5 reenvíos en 15 minutos por email
+    win_minutes = 15
+    max_attempts = 5
+    now = datetime.utcnow()
+    rec = resend_attempts.get(payload.email)
+    if rec:
+        first_at = rec.get('first_at')
+        if first_at and (now - first_at).total_seconds() > win_minutes * 60:
+            resend_attempts[payload.email] = {'count': 0, 'first_at': now}
+            rec = resend_attempts[payload.email]
+    else:
+        resend_attempts[payload.email] = {'count': 0, 'first_at': now}
+        rec = resend_attempts[payload.email]
+
+    if rec.get('count', 0) >= max_attempts:
+        raise HTTPException(status_code=429, detail='Demasiados reenvíos, inténtalo más tarde')
+
+    pu = db.query(PendingUser).filter(PendingUser.email == payload.email).first()
+    if not pu:
+        # No hay pending; informar al cliente para que inicie registro
+        raise HTTPException(status_code=404, detail='Registro pendiente no encontrado')
+
+    # Generar nuevo código de 6 dígitos y actualizar
+    codigo = str(secrets.randbelow(900000) + 100000)
+    codigo_hash = pwd_context.hash(codigo)
+    pu.verification_code_hash = codigo_hash
+    pu.expires_at = datetime.utcnow() + timedelta(minutes=1)
+    db.add(pu)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    email_sent = True
+    try:
+        subject = 'Nuevo código de verificación'
+        body = f'Tu nuevo código de verificación es: {codigo}\nCaduca en 1 minuto.'
+        send_email(pu.email, subject, body)
+    except Exception:
+        logging.exception('Error enviando email de reenvío')
+        email_sent = False
+
+    # incrementar contador de reenvíos
+    try:
+        resend_attempts[payload.email]['count'] = resend_attempts[payload.email].get('count', 0) + 1
+    except Exception:
+        pass
+
+    return {'ok': True, 'email_sent': email_sent}
 
 
 class CancelSchema(BaseModel):
