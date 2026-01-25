@@ -24,6 +24,8 @@ try {
 
 // --- NUEVAS FUNCIONES PARA CONECTAR CON LA NUBE ---
 const API_URL = "https://cartera-pr-pia.onrender.com"; // Esto cambiará cuando subas a la nube
+// Exponer API_URL en window para que otros scripts/HTML puedan usarla
+try { window.API_URL = API_URL; } catch(e) { /* noop */ }
 
 // 1. REGISTRARSE (now two-step: calls /registro/start)
 async function registrarUsuario(email, username, password) {
