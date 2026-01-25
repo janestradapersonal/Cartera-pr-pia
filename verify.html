@@ -12,6 +12,7 @@
     <div id="banner" class="banner" style="margin-bottom:1rem; padding:0.75rem; background:#eef; border-radius:6px;">
       Introduce el código de verificación que hemos enviado a: <span id="bannerEmail"></span>
       <div id="countdown" style="margin-top:6px; font-weight:600;">El código caduca en: <span id="countdownTimer">00:60</span></div>
+      <div id="bannerError" style="color:#a00; font-weight:600; margin-top:6px; display:none;"></div>
     </div>
     <form id="verifyForm">
       <label>Email<br><input type="email" id="email" required readonly></label><br>
@@ -85,7 +86,8 @@
       expiredMsg.style.visibility = 'hidden';
       resendBtn.disabled = true;
       try {
-        const res = await fetch('/registro/resend', {
+        const resendUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/resend') : '/registro/resend';
+        const res = await fetch(resendUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailInput.value.trim() })
@@ -115,18 +117,37 @@
     document.getElementById('verifyForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       msg.textContent = '';
+      // limpiar banner de error
+      const bannerError = document.getElementById('bannerError');
+      bannerError.style.display = 'none';
+      bannerError.textContent = '';
       const email = emailInput.value.trim();
-      const code = codeInput.value.trim();
+      const code = String(codeInput.value || '').trim();
+      // validar formato previo al envío
+      if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+        msg.textContent = 'Introduce un código válido de 6 dígitos';
+        return;
+      }
       try {
-        const res = await fetch('/registro/confirm', {
+        const confirmUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/confirm') : '/registro/confirm';
+        const res = await fetch(confirmUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, code })
         });
-        const data = await res.json();
+        // parsear respuesta con seguridad
+        let data = null;
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) data = await res.json().catch(()=>null);
+        else data = await res.text().catch(()=>null);
         if (!res.ok) {
           const status = res.status;
-          const err = data.detail || data.message || 'Error';
+          // mostrar detail exacto en el banner si viene
+          const err = (data && (data.detail || data.message || data.mensaje)) ? (data.detail || data.message || data.mensaje) : (typeof data === 'string' ? data : (res.statusText || 'Error'));
+          if (bannerError) {
+            bannerError.style.display = 'block';
+            bannerError.textContent = err;
+          }
           if (status === 400) {
             // distinguir entre expirado e inválido
             if (err && (err.toString().toLowerCase().includes('caduc') || err === 'Código expirado')) {
@@ -134,11 +155,8 @@
               expiredMsg.style.color = '#a00';
               expiredMsg.textContent = 'Código expirado';
               resendBtn.disabled = false;
-              msg.textContent = err;
             } else if (err && err.toString().toLowerCase().includes('inválid')) {
               msg.textContent = 'Código incorrecto';
-            } else {
-              msg.textContent = err;
             }
           } else if (status === 429) {
             msg.textContent = 'Demasiados intentos, espera 15 min';
