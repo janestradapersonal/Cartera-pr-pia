@@ -356,6 +356,10 @@
 
   // Escuchar cambios de sesión o eventos relacionados con suscripción
   window.addEventListener('sf:auth-changed', () => { setTimeout(() => { updateSubscribeButtonState(); ensureNewsletterLink(); }, 200); });
+  // También refrescar rol cuando la sesión cambia
+  window.addEventListener('sf:auth-changed', () => { try { refreshRoleFromServer(); } catch(e){} });
+  // Refrescar rol al recuperar foco (para detectar cambios aprobados en backoffice)
+  window.addEventListener('focus', () => { try { refreshRoleFromServer(); } catch(e){} });
   window.addEventListener('storage', (e) => {
     if (!e.key) return;
     if (e.key === 'sf_subscription_completed' || e.key === 'sf_pending_subscribe' || e.key === 'sf_user') {
@@ -437,6 +441,56 @@
     localStorage.removeItem(USER_KEY);
     renderUser();
   }
+
+  // Refrescar rol desde el servidor y actualizar badge/UI
+  async function refreshRoleFromServer() {
+    try {
+      const username = sessionStorage.getItem('usuario_actual');
+      const password = sessionStorage.getItem('pass_actual');
+      if (!username || !password) return;
+      const resp = await fetch(API_URL + '/me', { headers: { 'x-username': username, 'x-password': password } });
+      if (!resp.ok) return;
+      const j = await resp.json().catch(()=>null);
+      if (!j || !j.role) return;
+      // actualizar localStorage.sf_user
+      try {
+        const su = JSON.parse(localStorage.getItem(USER_KEY) || 'null') || {};
+        su.role = j.role;
+        localStorage.setItem(USER_KEY, JSON.stringify(su));
+      } catch(e){}
+      // actualizar cualquier badge visible
+      try {
+        document.querySelectorAll('.role-badge').forEach(b => { b.textContent = j.role || '—'; });
+      } catch(e){}
+      // actualizar cualquier panel profile-drop que esté abierto
+      try {
+        document.querySelectorAll('.profile-drop').forEach(drop => {
+          const firstDiv = drop.querySelector('div');
+          if (firstDiv) firstDiv.textContent = 'Rango: ' + (j.role || 'PREGUNTADOR_1');
+          // ajustar botones visibilidad dentro this drop
+          try {
+            const btn1 = drop.querySelector('button:nth-of-type(2)');
+            const btn2 = drop.querySelector('button:nth-of-type(3)');
+            const btnJ = drop.querySelector('button:nth-of-type(4)');
+            const current = j.role || 'PREGUNTADOR_1';
+            if (btn1) btn1.style.display = (current === 'PREGUNTADOR_1') ? 'none' : 'inline-block';
+            if (btn2) btn2.style.display = (current === 'PREGUNTADOR_2') ? 'none' : 'inline-block';
+            if (btnJ) btnJ.style.display = (current === 'JEFE') ? 'none' : 'inline-block';
+          } catch(e){}
+        });
+      } catch(e){}
+    } catch (e) {
+      // ignore network errors
+    }
+  }
+
+  // Iniciar polling periódico para mantener rol sincronizado (cada 20s)
+  try {
+    if (!window.sf_role_poll_id) {
+      refreshRoleFromServer();
+      window.sf_role_poll_id = setInterval(() => { try { refreshRoleFromServer(); } catch(e){} }, 20000);
+    }
+  } catch(e) {}
 
   function renderUser() {
     if (!mainNav) return;

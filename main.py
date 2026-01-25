@@ -707,8 +707,8 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario or not pwd_context.verify(password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
-    # validar rol solicitado
-    if payload.requested_role not in ('PREGUNTADOR_2','JEFE'):
+    # validar rol solicitado (permitir solicitar volver a PREGUNTADOR_1 también)
+    if payload.requested_role not in ('PREGUNTADOR_1','PREGUNTADOR_2','JEFE'):
         raise HTTPException(status_code=400, detail='requested_role inválido')
     token = secrets.token_urlsafe(32)
     rr = RoleRequest(username=username, requested_role=payload.requested_role, status='pending', token=token)
