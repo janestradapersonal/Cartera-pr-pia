@@ -9,21 +9,44 @@
 <body>
   <main class="container">
     <h1>Verifica tu email</h1>
-    <p>Introduce el código que hemos enviado a tu email.</p>
+    <div id="banner" class="banner" style="margin-bottom:1rem; padding:0.75rem; background:#eef; border-radius:6px;">
+      Introduce el código de verificación que hemos enviado a: <span id="bannerEmail"></span>
+    </div>
     <form id="verifyForm">
-      <label>Email<br><input type="email" id="email" required></label><br>
-      <label>Código (6 dígitos)<br><input type="text" id="code" required pattern="\\d{6}"></label><br>
+      <label>Email<br><input type="email" id="email" required readonly></label><br>
+      <label>Código (6 dígitos)<br><input type="text" id="code" required pattern="\\d{6}" inputmode="numeric" maxlength="6"></label><br>
       <button type="submit">Verificar</button>
     </form>
     <div id="msg" role="status"></div>
+    <div id="resendArea" style="margin-top:1rem; display:none;">
+      <p id="expiredMsg" style="color:#a00;"></p>
+      <button id="resendBtn">Reenviar código</button>
+    </div>
   </main>
   <script>
     const params = new URLSearchParams(window.location.search);
     const emailInput = document.getElementById('email');
     const codeInput = document.getElementById('code');
     const msg = document.getElementById('msg');
+    const bannerEmail = document.getElementById('bannerEmail');
+    const resendArea = document.getElementById('resendArea');
+    const expiredMsg = document.getElementById('expiredMsg');
+    const resendBtn = document.getElementById('resendBtn');
     // Prefill email if viene en la query
-    if (params.get('email')) emailInput.value = params.get('email');
+    if (params.get('email')) {
+      const e = params.get('email');
+      emailInput.value = e;
+      bannerEmail.textContent = e;
+    } else {
+      // si no viene, ocultar banner
+      document.getElementById('banner').style.display = 'none';
+    }
+
+    // reenviar: llevar al formulario de registro con email prellenado
+    resendBtn.addEventListener('click', () => {
+      const e = encodeURIComponent(emailInput.value || '');
+      window.location.href = `registro.html?email=${e}`;
+    });
 
     document.getElementById('verifyForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -38,7 +61,13 @@
         });
         const data = await res.json();
         if (!res.ok) {
-          msg.textContent = data.detail || data.message || 'Error';
+          const err = data.detail || data.message || 'Error';
+          // si el código expiró, mostrar botón de reenviar
+          if (err && err.toString().toLowerCase().includes('caduc') || err === 'Código expirado') {
+            expiredMsg.textContent = 'Código expirado';
+            resendArea.style.display = 'block';
+          }
+          msg.textContent = err;
           return;
         }
         msg.textContent = 'Email verificado, ya puedes iniciar sesión';

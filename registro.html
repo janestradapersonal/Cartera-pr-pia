@@ -20,6 +20,11 @@
   <script>
     const form = document.getElementById('registroForm');
     const msg = document.getElementById('msg');
+    // Prefill email if viene en la query (útil al reenviar desde verify.html)
+    const rparams = new URLSearchParams(window.location.search);
+    if (rparams.get('email')) {
+      document.getElementById('email').value = rparams.get('email');
+    }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       msg.textContent = '';

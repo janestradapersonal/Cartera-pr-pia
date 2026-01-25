@@ -202,7 +202,8 @@ def registro_start(payload: RegistroStartSchema, db: Session = Depends(get_db), 
 
     codigo = str(secrets.randbelow(900000) + 100000)
     codigo_hash = pwd_context.hash(codigo)
-    expires = datetime.utcnow() + timedelta(minutes=15)
+    # El código expira en 1 minuto para verificación rápida durante pruebas
+    expires = datetime.utcnow() + timedelta(minutes=1)
     pw_hash = pwd_context.hash(payload.password)
 
     pu = PendingUser(email=payload.email, username=payload.username, password_hash=pw_hash,
