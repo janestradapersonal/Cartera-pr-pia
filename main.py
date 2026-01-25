@@ -629,6 +629,10 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.username == username).first()
     if not usuario or not pwd_context.verify(password, usuario.password_hash):
         raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    try:
+        print('ME premium=', bool(usuario.premium))
+    except Exception:
+        print('ME premium: error reading attribute')
     return { 'username': usuario.username, 'premium': bool(usuario.premium), 'role': normalize_role(usuario.role if hasattr(usuario, 'role') else None) }
 
 

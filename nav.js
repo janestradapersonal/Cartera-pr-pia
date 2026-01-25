@@ -237,6 +237,46 @@
       const btn = document.getElementById('subscribe-btn');
       if (!btn) return;
       btn.classList.remove('subscribed');
+      // Helper: aplicar estado al botón según payload { premium, cancel_pending, subscription_period_end }
+      function applySubscribePayload(payload) {
+        try {
+          console.log('applySubscribePayload payload', payload);
+          console.log('btn before', btn, btn && btn.outerHTML, 'textBefore:', btn && btn.textContent);
+          const lang = (localStorage.getItem('sf_lang')||'es');
+          if (!payload || payload.premium !== true) {
+            btn.textContent = TRANSLATIONS[lang]['subscribe.newsletter'] || TRANSLATIONS[lang]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
+            btn.href = SUBSCRIBE_URL;
+            btn.classList.remove('subscribed');
+            btn.classList.remove('scheduled');
+            btn.dataset.premium = 'false';
+            delete btn.dataset.cancel_pending;
+            console.log('btn after not premium', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
+            return;
+          }
+          if (payload.cancel_pending === true) {
+            const dateStr = payload.subscription_period_end ? formatPeriodEnd(payload.subscription_period_end) : null;
+            if (dateStr) {
+              const tpl = TRANSLATIONS[lang]['subscribe.scheduled_until'] || TRANSLATIONS[lang]['subscribe.scheduled'] || 'Cancelación programada';
+              btn.textContent = tpl.replace('{date}', dateStr);
+            } else {
+              btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+            }
+            btn.classList.add('scheduled');
+            btn.href = '#';
+            btn.dataset.premium = 'true';
+            btn.dataset.cancel_pending = 'true';
+            console.log('btn after cancel_pending', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
+            return;
+          }
+          // Premium and not cancel_pending
+          btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
+          btn.classList.add('subscribed');
+          btn.href = '#';
+          btn.dataset.premium = 'true';
+          delete btn.dataset.cancel_pending;
+          console.log('btn after premium', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
+        } catch(e) { /* ignore */ }
+      }
       // usuario en localStorage (la UI usa localStorage sf_user)
       const su = localStorage.getItem('sf_user');
       if (!su) {
@@ -247,6 +287,13 @@
         return;
       }
       const userObj = JSON.parse(su);
+      // Si localmente ya está marcado como premium, aplicar cambio inmediato (mejora UX offline)
+      try {
+        if (userObj && (userObj.premium === true || userObj.cancel_pending === true)) {
+          applySubscribePayload({ premium: !!userObj.premium, cancel_pending: !!userObj.cancel_pending, subscription_period_end: userObj.subscription_period_end });
+          return;
+        }
+      } catch(e) { /* ignore parse/display errors */ }
       // Intentar usar credenciales de sessionStorage para verificar con el servidor
       const username = sessionStorage.getItem('usuario_actual') || userObj.name;
       const password = sessionStorage.getItem('pass_actual');
@@ -254,8 +301,9 @@
         // No tenemos contraseña: intentar fallback querying debug endpoint por username
         try {
           const debugResp = await fetch(API_URL + '/debug/user/' + encodeURIComponent(username || userObj.name));
-          if (debugResp && debugResp.ok) {
+            if (debugResp && debugResp.ok) {
               const debugJson = await debugResp.json();
+              console.log('debug user', debugJson);
                 if (debugJson && debugJson.cancel_pending === true) {
                   const lang = (localStorage.getItem('sf_lang')||'es');
                   const pe = debugJson.subscription_period_end || null;
@@ -264,21 +312,12 @@
                     const tpl = TRANSLATIONS[lang]['subscribe.scheduled_until'] || TRANSLATIONS[lang]['subscribe.scheduled'] || 'Cancelación programada';
                     btn.textContent = tpl.replace('{date}', dateStr);
                   } else {
-                    btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+                    applySubscribePayload({ premium: true, cancel_pending: true, subscription_period_end: pe });
                   }
-                  btn.classList.add('scheduled');
-                  btn.href = '#';
-                  btn.dataset.premium = 'true';
-                  btn.dataset.cancel_pending = 'true';
                   return;
                 }
                 if (debugJson && debugJson.premium === true) {
-                  const lang = (localStorage.getItem('sf_lang')||'es');
-                  // Mostrar etiqueta de cancelar mientras no haya cancel_pending
-                  btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
-                  btn.classList.add('subscribed');
-                  btn.href = '#';
-                  btn.dataset.premium = 'true';
+                  applySubscribePayload({ premium: true });
                   return;
                 }
           }
@@ -302,6 +341,8 @@
         });
         if (!resp.ok) throw new Error('login failed');
         const data = await resp.json();
+        console.log('login response', data);
+        console.log('premium?', data.premium);
         const datos = data.datos || {};
         const apiPremium = (data.premium === true) || (datos && datos.premium === true);
         const apiCancel = (data.cancel_pending === true) || (datos && datos.cancel_pending === true);
@@ -329,24 +370,13 @@
             const tpl = TRANSLATIONS[lang]['subscribe.scheduled_until'] || TRANSLATIONS[lang]['subscribe.scheduled'] || 'Cancelación programada';
             btn.textContent = tpl.replace('{date}', dateStr);
           } else {
-            btn.textContent = TRANSLATIONS[lang]['subscribe.scheduled'] || TRANSLATIONS[lang]['subscribe.cancel'] || 'Cancelación programada';
+            applySubscribePayload({ premium: true, cancel_pending: true, subscription_period_end: periodEnd });
           }
-          btn.classList.add('scheduled');
-          btn.href = '#';
-          btn.dataset.premium = 'true';
-          btn.dataset.cancel_pending = 'true';
         } else if (apiPremium) {
-          const lang = (localStorage.getItem('sf_lang')||'es');
-          // Si el usuario es premium y no hay cancel_pending, mostrar la acción de cancelar (sin fecha)
-          btn.textContent = TRANSLATIONS[lang]['subscribe.cancel'] || TRANSLATIONS[lang]['subscribe'] || 'Cancelar subscripción Newsletter';
-          btn.classList.add('subscribed');
-          btn.href = '#';
-          btn.dataset.premium = 'true';
+          applySubscribePayload({ premium: true });
         } else {
           const lang = (localStorage.getItem('sf_lang')||'es');
-          btn.textContent = TRANSLATIONS[lang]['subscribe.newsletter'] || TRANSLATIONS[lang]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
-          btn.href = SUBSCRIBE_URL;
-          btn.dataset.premium = 'false';
+          applySubscribePayload({ premium: false });
         }
       } catch (e) {
         // en caso de fallo, dejar por defecto
@@ -426,6 +456,8 @@
         });
         if (!resp.ok) { removeNewsletterLink(); return; }
         const j = await resp.json();
+        console.log('me response', j);
+        console.log('premium?', j && j.premium);
         if (j && j.premium === true) {
           // añadir link si no existe
           if (!document.querySelector('.nav-item[data-page="newsletter"]')) {
@@ -484,6 +516,8 @@
       const resp = await fetch(API_URL + '/me', { headers: { 'x-username': username, 'x-password': password } });
       if (!resp.ok) return;
       const j = await resp.json().catch(()=>null);
+      console.log('me response', j);
+      console.log('premium?', j && j.premium);
       if (!j || !j.role) return;
       // actualizar localStorage.sf_user
       try {
@@ -641,6 +675,8 @@
                     const resp = await fetch(API_URL + '/me', { headers: { 'x-username': username, 'x-password': password } });
                     if (resp && resp.ok) {
                       const j = await resp.json().catch(()=>null);
+                      console.log('me response (profile drop)', j);
+                      console.log('premium?', j && j.premium);
                       if (j && j.role) role = j.role;
                     }
                   } catch(e) { /* ignore */ }
@@ -1099,6 +1135,14 @@
             cloned.classList.remove('nav-list');
             cloned.classList.add('mobile-nav-list');
             if (cloned.id) cloned.id = '';
+            // evitar duplicar el id subscribe-btn: renombrar/eliminar y marcar como mobile-subscribe para sincronización
+            try {
+              const clonedBtn = cloned.querySelector('#subscribe-btn');
+              if (clonedBtn) {
+                try { clonedBtn.removeAttribute('id'); } catch(e){}
+                try { clonedBtn.classList.add('mobile-subscribe'); } catch(e){}
+              }
+            } catch(e) {}
             mobileMenu.appendChild(cloned);
           } catch(e) { mobileMenu.appendChild(navList.cloneNode(true)); }
         }
