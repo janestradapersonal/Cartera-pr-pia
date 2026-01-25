@@ -750,13 +750,24 @@
       logout.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        try{ sessionStorage.removeItem('foro_current'); localStorage.removeItem('foro_current'); }catch(err){}
-        try{ sessionStorage.removeItem('usuario_actual'); sessionStorage.removeItem('pass_actual'); }catch(err){}
-        try{ localStorage.removeItem(USER_KEY); }catch(err){}
-        try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(err){}
-        try { clearUser(); } catch(e){}
-        // Forzar actualización de botones/estado (evita que se intente /login tras logout)
-        try { if (typeof updateSubscribeButtonState === 'function') updateSubscribeButtonState(); } catch(e){}
+        try {
+          // limpiar sesión y banderas relacionadas
+          const keysToRemove = ['foro_current','usuario_actual','pass_actual', USER_KEY, 'sf_pending_subscribe', 'sf_subscription_completed'];
+          keysToRemove.forEach(k => { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch(e){} });
+          // cerrar dropdowns y clases móviles
+          try { document.querySelectorAll('.profile-drop').forEach(d => d.remove()); } catch(e){}
+          try { document.querySelectorAll('.mobile-open').forEach(n=>n.classList.remove('mobile-open')); } catch(e){}
+          // forzar limpieza y re-render
+          try { clearUser(); } catch(e){}
+          try { window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); } catch(e){}
+          try { renderUser(); } catch(e){}
+          try { if (typeof updateSubscribeButtonState === 'function') updateSubscribeButtonState(); } catch(e){}
+          try { if (typeof ensureNewsletterLink === 'function') ensureNewsletterLink(); } catch(e){}
+          try { if (typeof refreshRoleFromServer === 'function') refreshRoleFromServer(); } catch(e){}
+        } catch(err) {
+          console.error('logout error', err);
+          try { showToast('Error al cerrar sesión'); } catch(e){}
+        }
       });
       wrapper.appendChild(logout);
       userArea.appendChild(wrapper);
@@ -1178,7 +1189,17 @@
           if (current && current.name) {
             const nameEl = document.createElement('div'); nameEl.textContent = current.name; nameEl.style.fontWeight = '700'; nameEl.style.marginBottom = '6px'; drop.appendChild(nameEl);
             const lo = document.createElement('button'); lo.className = 'btn btn-logout-mobile'; lo.textContent = 'Cerrar sesión';
-            lo.addEventListener('click', ()=>{ try{ localStorage.removeItem(USER_KEY); sessionStorage.removeItem('usuario_actual'); sessionStorage.removeItem('pass_actual'); renderUser(); try{ window.dispatchEvent(new CustomEvent('sf:auth-changed',{detail:{user:null}})); }catch(e){} }catch(e){} });
+            lo.addEventListener('click', ()=>{
+              try {
+                const keysToRemove = ['foro_current','usuario_actual','pass_actual', USER_KEY, 'sf_pending_subscribe', 'sf_subscription_completed'];
+                keysToRemove.forEach(k => { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch(e){} });
+                try { document.querySelectorAll('.profile-drop').forEach(d => d.remove()); } catch(e){}
+                try { renderUser(); } catch(e){}
+                try { window.dispatchEvent(new CustomEvent('sf:auth-changed',{detail:{user:null}})); }catch(e){}
+                try { if (typeof updateSubscribeButtonState === 'function') updateSubscribeButtonState(); } catch(e){}
+                try { if (typeof ensureNewsletterLink === 'function') ensureNewsletterLink(); } catch(e){}
+              } catch(e) { console.error('mobile logout error', e); }
+            });
             drop.appendChild(lo);
           } else {
             const li = document.createElement('button'); li.className = 'btn mobile-login'; li.textContent = 'Iniciar sesión';
