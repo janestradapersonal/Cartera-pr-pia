@@ -371,6 +371,35 @@
     }
   });
 
+  // Mantener sincronizados los botones de suscripción en la vista móvil
+  try {
+    function syncMobileSubscribeButtons() {
+      try {
+        const btn = document.getElementById('subscribe-btn');
+        if (!btn) return;
+        const nodes = document.querySelectorAll('.mobile-subscribe-small, .mobile-subscribe');
+        nodes.forEach(ms => {
+          try {
+            ms.textContent = btn.textContent;
+            if (btn.dataset) {
+              ms.dataset.premium = btn.dataset.premium || 'false';
+              if (btn.dataset.cancel_pending) ms.dataset.cancel_pending = btn.dataset.cancel_pending;
+            }
+            if (ms.tagName === 'A') ms.href = btn.href;
+          } catch(e) {}
+        });
+      } catch(e) {}
+    }
+    // Observer para detectar cambios dinámicos en el botón principal
+    const subscribeBtn = document.getElementById('subscribe-btn');
+    if (subscribeBtn && window.MutationObserver) {
+      const mo = new MutationObserver(() => { try { syncMobileSubscribeButtons(); } catch(e){} });
+      mo.observe(subscribeBtn, { attributes: true, childList: true, subtree: true, characterData: true });
+    }
+    // sincronizar ahora por si ya está establecido
+    setTimeout(syncMobileSubscribeButtons, 300);
+  } catch(e) {}
+
   // --- Newsletter link: mostrar solo si el usuario es premium ---
   function removeNewsletterLink() {
     try {

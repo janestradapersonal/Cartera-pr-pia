@@ -29,8 +29,8 @@
     return;
   }
 
-  // Si es JEFE, mostrar formulario para publicar
-  if (me.role === 'JEFE') {
+  // Si es ADMINISTRADOR (o el nombre antiguo JEFE), mostrar formulario para publicar
+  if (me.role === 'ADMINISTRADOR' || me.role === 'JEFE') {
     const form = document.createElement('form');
     form.innerHTML = `
       <div><input name="title" placeholder="Título" required style="width:100%"/></div>
@@ -85,7 +85,7 @@
         link.textContent = 'LEER';
         actions.appendChild(link);
 
-        if (me.role === 'JEFE') {
+        if (me.role === 'ADMINISTRADOR' || me.role === 'JEFE') {
           const del = document.createElement('button'); del.textContent = 'Eliminar'; del.className = 'delete-btn';
           del.addEventListener('click', async ()=>{
             if (!confirm('Eliminar entrada?')) return;
