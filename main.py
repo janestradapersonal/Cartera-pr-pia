@@ -9,7 +9,12 @@ from email_service import send_email
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.dialects.postgresql import JSONB
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+
+def now_utc():
+    """Return timezone-aware UTC datetime for consistent comparisons."""
+    return datetime.now(timezone.utc)
 
 # Básico in-memory rate limiter para intentos de verificación por email
 verification_attempts = {}  # email -> { count: int, first_at: datetime }
@@ -163,7 +168,7 @@ def verify_email(payload: VerifyEmailSchema, db: Session = Depends(get_db)):
     # Rate limit básico: máximo 5 intentos en ventana de 15 minutos por email
     win_minutes = 15
     max_attempts = 5
-    now = datetime.utcnow()
+    now = now_utc()
     rec = verification_attempts.get(payload.email)
     if rec:
         first_at = rec.get('first_at')
@@ -178,7 +183,7 @@ def verify_email(payload: VerifyEmailSchema, db: Session = Depends(get_db)):
     if rec.get('count', 0) >= max_attempts:
         raise HTTPException(status_code=429, detail='Demasiados intentos, inténtalo más tarde')
     # comprobar expiración
-    if not usuario.email_verification_expires_at or usuario.email_verification_expires_at < datetime.utcnow():
+    if not usuario.email_verification_expires_at or usuario.email_verification_expires_at < now:
         raise HTTPException(status_code=400, detail='Código caducado')
     # verificar código (hash)
     if not usuario.email_verification_code_hash or not pwd_context.verify(payload.code, usuario.email_verification_code_hash):
@@ -212,8 +217,8 @@ def registro_start(payload: RegistroStartSchema, db: Session = Depends(get_db), 
 
     codigo = str(secrets.randbelow(900000) + 100000)
     codigo_hash = pwd_context.hash(codigo)
-    # El código expira en 1 minuto para verificación rápida durante pruebas
-    expires = datetime.utcnow() + timedelta(minutes=1)
+    # El código expira en 1 minuto para verificación rápida durante pruebas (UTC-aware)
+    expires = now_utc() + timedelta(minutes=1)
     pw_hash = pwd_context.hash(payload.password)
 
     pu = PendingUser(email=payload.email, username=payload.username, password_hash=pw_hash,
@@ -242,7 +247,13 @@ def registro_confirm(payload: RegistroConfirmSchema, db: Session = Depends(get_d
     pu = db.query(PendingUser).filter(PendingUser.email == payload.email).first()
     if not pu:
         raise HTTPException(status_code=404, detail='Registro pendiente no encontrado')
-    if pu.expires_at < datetime.utcnow():
+    now = now_utc()
+    # Log temporal para depuración de timezone
+    try:
+        logging.debug('registro_confirm: pu.expires_at=%s pu.expires_at.tzinfo=%s now.tzinfo=%s', pu.expires_at, getattr(pu.expires_at, 'tzinfo', None), now.tzinfo)
+    except Exception:
+        pass
+    if pu.expires_at < now:
         # eliminar pending
         try:
             db.delete(pu)
@@ -271,7 +282,7 @@ def registro_resend(payload: ResendSchema, db: Session = Depends(get_db)):
     # Rate limit básico para reenvíos: máximo 5 reenvíos en 15 minutos por email
     win_minutes = 15
     max_attempts = 5
-    now = datetime.utcnow()
+    now = now_utc()
     rec = resend_attempts.get(payload.email)
     if rec:
         first_at = rec.get('first_at')
@@ -294,7 +305,7 @@ def registro_resend(payload: ResendSchema, db: Session = Depends(get_db)):
     codigo = str(secrets.randbelow(900000) + 100000)
     codigo_hash = pwd_context.hash(codigo)
     pu.verification_code_hash = codigo_hash
-    pu.expires_at = datetime.utcnow() + timedelta(minutes=1)
+    pu.expires_at = now + timedelta(minutes=1)
     db.add(pu)
     try:
         db.commit()
