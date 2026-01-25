@@ -25,8 +25,10 @@
       <button id="resendBtn" disabled>Reenviar código</button>
     </div>
   </main>
+  <script src="scripts.js" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      const API_URL = window.API_URL || 'https://cartera-pr-pia.onrender.com';
       console.log('verify script loaded');
       const params = new URLSearchParams(window.location.search);
       const emailInput = document.getElementById('email');
@@ -92,8 +94,8 @@
         expiredMsg.style.visibility = 'hidden';
         resendBtn.disabled = true;
         try {
-          const resendUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/resend') : '/registro/resend';
-          console.log('POST to', resendUrl);
+          const resendUrl = API_URL + '/registro/resend';
+          console.log('POST to', API_URL + '/registro/resend');
           console.log('calling resend', { url: resendUrl, email: emailInput.value.trim() });
           const res = await fetch(resendUrl, {
             method: 'POST',
@@ -142,9 +144,9 @@
           return;
         }
         try {
-          const confirmUrl = (typeof API_URL !== 'undefined') ? (API_URL + '/registro/confirm') : '/registro/confirm';
+          const confirmUrl = API_URL + '/registro/confirm';
           const payload = { email, code };
-          console.log('POST to', confirmUrl);
+          console.log('POST to', API_URL + '/registro/confirm');
           console.log('calling confirm', payload);
           const res = await fetch(confirmUrl, {
             method: 'POST',

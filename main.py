@@ -38,8 +38,8 @@ app.add_middleware(
         # añade aquí tu dominio real del frontend en Render si lo tienes
         # "https://TU-FRONTEND.onrender.com",
     ],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
