@@ -33,18 +33,17 @@ async function registrarUsuario(email, username, password) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, username, password })
     });
-    const data = await response.json();
-    if (response.ok) {
-      alert("Código enviado al email. Comprueba tu bandeja y verifica para completar el registro.");
-      return true;
+    const contentType = response.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await response.json().catch(() => null);
     } else {
-      alert("Error: " + (data.detail || JSON.stringify(data)));
-      return false;
+      data = await response.text().catch(() => null);
     }
+    return { ok: response.ok, status: response.status, data };
   } catch (error) {
     console.error("Error conectando:", error);
-    alert("No se pudo conectar con el servidor.");
-    return false;
+    return { ok: false, status: 0, data: { message: 'No se pudo conectar con el servidor.' } };
   }
 }
 
@@ -56,35 +55,33 @@ async function iniciarSesion(email, username, password) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, username, password })
     });
-    const data = await response.json();
-        
-    if (response.ok) {
-      alert("¡Bienvenido, " + username + "!");
-      // Guardamos temporalmente quién eres en el navegador para no pedirte contraseña a cada rato
-      sessionStorage.setItem("usuario_actual", username);
-      sessionStorage.setItem("pass_actual", password);
-      // Guardar objeto de usuario en localStorage incluyendo flag premium
-      try {
-        const userObj = { name: username, avatar: 'imagenes/foto_de_perfil.png', premium: !!data.premium };
-        localStorage.setItem('sf_user', JSON.stringify(userObj));
-      } catch (e) { }
-            
-      // Si hay datos en la nube, actualizamos tu web
-      if (data.datos) {
-        console.log("Datos descargados:", data.datos);
-        // --- AQUÍ ES DONDE ACTUALIZAS TU WEB ---
-        // Ejemplo: misDatos = data.datos;
-        // guardarEnLocalStorage(data.datos); // Opcional: guardar copia local
-        // actualizarPantalla();
-      }
-      return true;
+    const contentType = response.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await response.json().catch(() => null);
     } else {
-      alert("Usuario o contraseña incorrectos");
-      return false;
+      data = await response.text().catch(() => null);
     }
+    return { ok: response.ok, status: response.status, data };
   } catch (error) {
     console.error(error);
-    return false;
+    return { ok: false, status: 0, data: { message: 'No se pudo conectar con el servidor.' } };
+  }
+}
+
+// Helper para parsear error de respuesta
+async function parseError(response) {
+  if (!response) return { message: 'Error desconocido' };
+  const contentType = response.headers ? (response.headers.get('content-type') || '') : '';
+  try {
+    if (contentType.includes('application/json')) {
+      const j = await response.json();
+      return j && (j.detail || j.message || j.mensaje) ? (j.detail || j.message || j.mensaje) : j;
+    }
+    const txt = await response.text();
+    return txt || response.statusText || ('Error ' + response.status);
+  } catch (e) {
+    return response.statusText || ('Error ' + response.status);
   }
 }
 

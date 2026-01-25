@@ -11,6 +11,7 @@
     <h1>Verifica tu email</h1>
     <div id="banner" class="banner" style="margin-bottom:1rem; padding:0.75rem; background:#eef; border-radius:6px;">
       Introduce el código de verificación que hemos enviado a: <span id="bannerEmail"></span>
+      <div id="countdown" style="margin-top:6px; font-weight:600;">El código caduca en: <span id="countdownTimer">00:60</span></div>
     </div>
     <form id="verifyForm">
       <label>Email<br><input type="email" id="email" required readonly></label><br>
@@ -18,9 +19,9 @@
       <button type="submit">Verificar</button>
     </form>
     <div id="msg" role="status"></div>
-    <div id="resendArea" style="margin-top:1rem; display:none;">
-      <p id="expiredMsg" style="color:#a00;"></p>
-      <button id="resendBtn">Reenviar código</button>
+    <div id="resendArea" style="margin-top:1rem; display:block;">
+      <p id="expiredMsg" style="color:#a00; visibility:hidden; margin:0 0 .5rem 0"></p>
+      <button id="resendBtn" disabled>Reenviar código</button>
     </div>
   </main>
   <script>
@@ -42,9 +43,46 @@
       document.getElementById('banner').style.display = 'none';
     }
 
+    // Contador de expiración (60s)
+    let countdownSeconds = 60;
+    let countdownInterval = null;
+    const countdownTimer = document.getElementById('countdownTimer');
+
+    function formatTime(s) {
+      const mm = Math.floor(s / 60).toString().padStart(2, '0');
+      const ss = (s % 60).toString().padStart(2, '0');
+      return `${mm}:${ss}`;
+    }
+
+    function startCountdown(seconds) {
+      clearInterval(countdownInterval);
+      countdownSeconds = seconds;
+      countdownTimer.textContent = formatTime(countdownSeconds);
+      // disable resend while counting
+      resendBtn.disabled = true;
+      expiredMsg.style.visibility = 'hidden';
+      countdownInterval = setInterval(() => {
+        countdownSeconds -= 1;
+        if (countdownSeconds <= 0) {
+          clearInterval(countdownInterval);
+          countdownTimer.textContent = formatTime(0);
+          // mostrar expirado y permitir reenvío
+          expiredMsg.style.visibility = 'visible';
+          expiredMsg.style.color = '#a00';
+          expiredMsg.textContent = 'Código expirado';
+          resendBtn.disabled = false;
+        } else {
+          countdownTimer.textContent = formatTime(countdownSeconds);
+        }
+      }, 1000);
+    }
+
+    // iniciar en carga
+    startCountdown(60);
+
     // reenviar: llamar al endpoint /registro/resend
     resendBtn.addEventListener('click', async () => {
-      expiredMsg.textContent = '';
+      expiredMsg.style.visibility = 'hidden';
       resendBtn.disabled = true;
       try {
         const res = await fetch('/registro/resend', {
@@ -55,14 +93,20 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           const err = data.detail || data.message || 'Error';
+          expiredMsg.style.visibility = 'visible';
+          expiredMsg.style.color = '#a00';
           expiredMsg.textContent = err;
           resendBtn.disabled = false;
           return;
         }
+        expiredMsg.style.visibility = 'visible';
         expiredMsg.style.color = '#080';
         expiredMsg.textContent = 'Código reenviado';
-        resendBtn.disabled = false;
+        // reset countdown
+        startCountdown(60);
       } catch (err) {
+        expiredMsg.style.visibility = 'visible';
+        expiredMsg.style.color = '#a00';
         expiredMsg.textContent = 'Error de red: ' + err.message;
         resendBtn.disabled = false;
       }
@@ -81,18 +125,32 @@
         });
         const data = await res.json();
         if (!res.ok) {
+          const status = res.status;
           const err = data.detail || data.message || 'Error';
-          // si el código expiró, mostrar botón de reenviar
-          if (err && err.toString().toLowerCase().includes('caduc') || err === 'Código expirado') {
-            expiredMsg.textContent = 'Código expirado';
-            resendArea.style.display = 'block';
+          if (status === 400) {
+            // distinguir entre expirado e inválido
+            if (err && (err.toString().toLowerCase().includes('caduc') || err === 'Código expirado')) {
+              expiredMsg.style.visibility = 'visible';
+              expiredMsg.style.color = '#a00';
+              expiredMsg.textContent = 'Código expirado';
+              resendBtn.disabled = false;
+              msg.textContent = err;
+            } else if (err && err.toString().toLowerCase().includes('inválid')) {
+              msg.textContent = 'Código incorrecto';
+            } else {
+              msg.textContent = err;
+            }
+          } else if (status === 429) {
+            msg.textContent = 'Demasiados intentos, espera 15 min';
+          } else {
+            msg.textContent = err;
           }
-          msg.textContent = err;
           return;
         }
-        msg.textContent = 'Email verificado, ya puedes iniciar sesión';
-        // opcional: redirigir al login tras 2s
-        setTimeout(() => { window.location.href = 'subscribe.html'; }, 2000);
+        msg.style.color = '#080';
+        msg.textContent = 'Email verificado, cuenta creada';
+        // redirigir al inicio (login) tras 1.5s
+        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
       } catch (err) {
         msg.textContent = 'Error de red: ' + err.message;
       }

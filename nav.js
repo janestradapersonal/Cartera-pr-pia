@@ -627,75 +627,52 @@
         if (u.length < 5) return alert('El nombre de usuario debe tener al menos 5 caracteres');
         if (p.length < 8) return alert('La contraseña debe tener al menos 8 caracteres');
         try {
-          // soportar distintas formas de exponer la función (global o en window.SF)
-          let ok = false;
+          // Llamar al handler de registro (puede ser window.registrarUsuario)
+          let result = null;
           if (typeof window.registrarUsuario === 'function') {
-            ok = await window.registrarUsuario(e, u, p);
+            result = await window.registrarUsuario(e, u, p);
           } else if (window.SF && typeof window.SF.registrarUsuario === 'function') {
-            ok = await window.SF.registrarUsuario(e, u, p);
+            result = await window.SF.registrarUsuario(e, u, p);
           } else if (typeof registrarUsuario === 'function') {
-            ok = await registrarUsuario(e, u, p);
+            result = await registrarUsuario(e, u, p);
           } else {
-            // fallback: llamar al backend directamente
+            // fallback: llamar al backend
             try {
-              const resp = await fetch(API_URL + '/registro/start', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ email: e, username: u, password: p })
-              });
-              const j = await resp.json().catch(()=>null);
-              if (resp.ok) {
-                ok = true;
-              } else {
-                alert('Error registro: ' + (j && (j.detail||j.mensaje) ? (j.detail||j.mensaje) : resp.statusText));
-                return;
-              }
-            } catch (e) {
+              const resp = await fetch(API_URL + '/registro/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: e, username: u, password: p }) });
+              const contentType = resp.headers.get('content-type') || '';
+              const data = contentType.includes('application/json') ? await resp.json().catch(()=>null) : await resp.text().catch(()=>null);
+              result = { ok: resp.ok, status: resp.status, data };
+            } catch (err) {
               alert('No se pudo conectar al servidor para registrar.');
               return;
             }
           }
-          if (!ok) return;
-          // iniciar sesión usando la función disponible
-          let logged = false;
-              if (typeof window.iniciarSesion === 'function') {
-            logged = await window.iniciarSesion(e || undefined, u, p);
-          } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            logged = await window.SF.iniciarSesion(e || undefined, u, p);
-          } else if (typeof iniciarSesion === 'function') {
-            logged = await iniciarSesion(e || undefined, u, p);
-          } else {
-            // fallback: llamar a /login directamente y aplicar efectos localmente
-            try {
-              const resp = await fetch(API_URL + '/login', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ email: e || undefined, username: u, password: p })
-              });
-              const data = await resp.json().catch(()=>null);
-              if (resp.ok) {
-                logged = true;
-                // guardar en session/local
-                try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
-                try { localStorage.setItem('sf_user', JSON.stringify({ name: u, avatar: 'imagenes/foto_de_perfil.png', premium: !!(data && data.premium) })); } catch(e){}
-                try { window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); } catch(e){}
-              } else {
-                alert('Usuario o contraseña incorrectos');
-                return;
-              }
-            } catch(e) {
-              alert('Error conectando al servidor para login.');
-              return;
+
+          if (result && result.ok) {
+            // Mostrar mensaje claro y redirigir al flujo de verificación
+            alert('Código de verificación enviado');
+            window.location.href = `verify.html?email=${encodeURIComponent(e)}`;
+            return;
+          }
+
+          // Si hay error, mostrar detalle específico (no el banner genérico de login)
+          if (result) {
+            const d = result.data;
+            let msg = '';
+            if (d) {
+              if (typeof d === 'string') msg = d;
+              else if (d.detail) msg = d.detail;
+              else if (d.message) msg = d.message;
+              else if (d.mensaje) msg = d.mensaje;
+              else msg = JSON.stringify(d);
+            } else {
+              msg = 'Error en el registro';
             }
+            alert(msg);
+            return;
           }
-          if (logged) {
-            const avatar = 'imagenes/foto_de_perfil.png';
-            const userObj = { name: u, avatar };
-            try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
-            try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
-            if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
-            renderUser(); hideAuthModal();
-            try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
-          }
-        } catch (e) { console && console.warn && console.warn('registro error', e); }
+
+        } catch (err) { console && console.warn && console.warn('registro error', err); }
       })();
     });
 
@@ -706,41 +683,70 @@
         const p = document.getElementById('sf-password').value;
         if (!u || !p) return alert('Introduce usuario y contraseña');
         try {
-          let ok = false;
-            if (typeof window.iniciarSesion === 'function') {
-            ok = await window.iniciarSesion(e || undefined, u, p);
+          // Llamar al handler de login
+          let result = null;
+          if (typeof window.iniciarSesion === 'function') {
+            result = await window.iniciarSesion(e || undefined, u, p);
           } else if (window.SF && typeof window.SF.iniciarSesion === 'function') {
-            ok = await window.SF.iniciarSesion(e || undefined, u, p);
+            result = await window.SF.iniciarSesion(e || undefined, u, p);
           } else if (typeof iniciarSesion === 'function') {
-            ok = await iniciarSesion(e || undefined, u, p);
+            result = await iniciarSesion(e || undefined, u, p);
           } else {
-            // fallback: llamar a /login directamente
+            // fallback: llamar al backend
             try {
-              const resp = await fetch(API_URL + '/login', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ email: e || undefined, username: u, password: p })
-              });
-              const data = await resp.json().catch(()=>null);
-              if (resp.ok) {
-                ok = true;
-                try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
-                try { localStorage.setItem('sf_user', JSON.stringify({ name: u, avatar: 'imagenes/foto_de_perfil.png', premium: !!(data && data.premium) })); } catch(e){}
-                try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); } catch(e){}
-              } else {
-                alert('Usuario o contraseña incorrectos');
-                return;
-              }
-            } catch (e) { alert('Error conectando al servidor para login.'); return; }
+              const resp = await fetch(API_URL + '/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: e || undefined, username: u, password: p }) });
+              const contentType = resp.headers.get('content-type') || '';
+              const data = contentType.includes('application/json') ? await resp.json().catch(()=>null) : await resp.text().catch(()=>null);
+              result = { ok: resp.ok, status: resp.status, data };
+            } catch (err) {
+              alert('Error conectando al servidor para login.');
+              return;
+            }
           }
-          if (!ok) { alert('Usuario o contraseña incorrectos'); return; }
-          const avatar = 'imagenes/foto_de_perfil.png';
-          const userObj = { name: u, avatar };
-          try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
-          try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
-          if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
-          renderUser(); hideAuthModal();
-          try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
-          alert('Has iniciado sesión correctamente');
+
+          if (result && result.ok) {
+            // Login OK: aplicar efectos locales
+            try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+            try { localStorage.setItem('sf_user', JSON.stringify({ name: u, avatar: 'imagenes/foto_de_perfil.png', premium: !!(result.data && result.data.premium) })); } catch(e){}
+            try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); } catch(e){}
+            const avatar = 'imagenes/foto_de_perfil.png';
+            const userObj = { name: u, avatar };
+            try{ localStorage.setItem('sf_user', JSON.stringify(userObj)); sessionStorage.setItem('foro_current', u); }catch(e){}
+            try { sessionStorage.setItem('usuario_actual', u); sessionStorage.setItem('pass_actual', p); } catch(e){}
+            if (document.getElementById('sf-remember').checked) { localStorage.setItem('foro_current', u); }
+            renderUser(); hideAuthModal();
+            try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: u } })); }catch(e){}
+            alert('Has iniciado sesión correctamente');
+            return;
+          }
+
+          // error handling: mostrar mensajes claros según status
+          if (result) {
+            const status = result.status;
+            const d = result.data;
+            let msg = '';
+            if (d) {
+              if (typeof d === 'string') msg = d;
+              else if (d.detail) msg = d.detail;
+              else if (d.message) msg = d.message;
+              else if (d.mensaje) msg = d.mensaje;
+              else msg = JSON.stringify(d);
+            } else {
+              msg = 'Error en el login';
+            }
+            if (status === 401) {
+              alert('Usuario o contraseña incorrectos');
+            } else if (status === 403) {
+              alert(msg || 'Cuenta bloqueada');
+            } else if (status === 429) {
+              alert(msg || 'Demasiados intentos, espera 15 min');
+            } else {
+              alert(msg);
+            }
+            return;
+          }
+          // por defecto
+          alert('Usuario o contraseña incorrectos');
         } catch (e) { console && console.warn && console.warn('login error', e); }
       })();
     });
