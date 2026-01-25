@@ -461,7 +461,19 @@
         }
       });
     }catch(e){}
-    const user = getUser();
+    let user = getUser();
+    // Si no hay `sf_user` en localStorage pero la sesión tiene el username,
+    // crear un usuario temporal para que el recuadro muestre el nombre.
+    if (!user) {
+      try {
+        const uname = sessionStorage.getItem('usuario_actual');
+        if (uname) {
+          const temp = { name: uname, avatar: 'imagenes/foto_de_perfil.png' };
+          try { localStorage.setItem(USER_KEY, JSON.stringify(temp)); } catch(e) {}
+          user = temp;
+        }
+      } catch (e) { /* ignore */ }
+    }
     if (user && user.name) {
       const wrapper = document.createElement('div');
       wrapper.className = 'nav-user sf-active-user';
@@ -476,8 +488,14 @@
       const name = document.createElement('small');
       name.textContent = user.name;
 
+      // badge pequeño con el rol junto al nombre (actualizable)
+      const roleBadge = document.createElement('span');
+      roleBadge.className = 'role-badge';
+      roleBadge.textContent = (user && user.role) ? user.role : '—';
+
       wrapper.appendChild(img);
       wrapper.appendChild(name);
+      wrapper.appendChild(roleBadge);
       // Botón Perfil (abre mini-dropdown para solicitar roles)
       const profileBtn = document.createElement('button');
       profileBtn.className = 'btn profile-btn';
@@ -495,12 +513,70 @@
           drop.style.padding = '8px';
           drop.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
           drop.style.zIndex = '10001';
-          const btn2 = document.createElement('button'); btn2.textContent = 'Solicitar nivel 2'; btn2.style.display='block'; btn2.style.marginBottom='6px';
-          const btnJ = document.createElement('button'); btnJ.textContent = 'Solicitar JEFE'; btnJ.style.display='block';
+          // Mostrar rango actual (placeholder) y sección de solicitudes en el mismo recuadro
+          const roleInfo = document.createElement('div'); roleInfo.textContent = 'Rango: —'; roleInfo.style.marginBottom = '8px'; roleInfo.style.fontWeight = '600'; roleInfo.style.color = '#111';
+
+          const requestContainer = document.createElement('div');
+          requestContainer.style.marginTop = '6px';
+          requestContainer.style.display = 'flex';
+          requestContainer.style.gap = '8px';
+          requestContainer.style.alignItems = 'center';
+          // Título de la sección de solicitudes (más compacto)
+          const reqTitle = document.createElement('div'); reqTitle.textContent = 'Ascenso a:'; reqTitle.style.marginBottom = '8px'; reqTitle.style.fontSize = '13px'; reqTitle.style.fontWeight = '600'; reqTitle.style.color = '#111';
+          requestContainer.appendChild(reqTitle);
+
+          // Botones de solicitud (mostrar todos los roles excepto el actual)
+          const btn1 = document.createElement('button'); btn1.textContent = 'Nivel 1'; btn1.style.display='block';
+          const btn2 = document.createElement('button'); btn2.textContent = 'Nivel 2'; btn2.style.display='block';
+          const btnJ = document.createElement('button'); btnJ.textContent = 'JEFE'; btnJ.style.display='block';
+          // estilos similares
+          [btn1, btn2, btnJ].forEach(b => { b.style.backgroundColor = '#007bff'; b.style.color = '#fff'; b.style.border = 'none'; b.style.padding = '6px 8px'; b.style.borderRadius = '4px'; b.style.fontSize = '13px'; });
+          // eventos (usamos los códigos de rol reales)
+          btn1.addEventListener('click', ()=>{ requestRole('PREGUNTADOR_1'); try{ drop.remove(); }catch(e){} });
           btn2.addEventListener('click', ()=>{ requestRole('PREGUNTADOR_2'); try{ drop.remove(); }catch(e){} });
           btnJ.addEventListener('click', ()=>{ requestRole('JEFE'); try{ drop.remove(); }catch(e){} });
-          drop.appendChild(btn2); drop.appendChild(btnJ);
+          requestContainer.appendChild(btn1); requestContainer.appendChild(btn2); requestContainer.appendChild(btnJ);
+
+          drop.appendChild(roleInfo);
+          drop.appendChild(requestContainer);
           wrapper.appendChild(drop);
+
+          // Obtener rango desde localStorage o desde el backend (/me)
+          (async ()=>{
+            try {
+              let role = null;
+              try { const su = JSON.parse(localStorage.getItem('sf_user')||'null'); if (su && su.role) role = su.role; } catch(e){}
+              if (!role) {
+                const username = sessionStorage.getItem('usuario_actual');
+                const password = sessionStorage.getItem('pass_actual');
+                if (username && password) {
+                  try {
+                    const resp = await fetch(API_URL + '/me', { headers: { 'x-username': username, 'x-password': password } });
+                    if (resp && resp.ok) {
+                      const j = await resp.json().catch(()=>null);
+                      if (j && j.role) role = j.role;
+                    }
+                  } catch(e) { /* ignore */ }
+                }
+              }
+              // Actualizar UI
+              roleInfo.textContent = 'Rango: ' + (role || 'PREGUNTADOR_1');
+              // actualizar badge junto al nombre si existe
+              try { if (roleBadge) roleBadge.textContent = (role || '—'); } catch(e){}
+              // guardar role en localStorage.sf_user para sesiones futuras
+              try { const su = JSON.parse(localStorage.getItem('sf_user')||'null') || {}; su.role = role || su.role; localStorage.setItem('sf_user', JSON.stringify(su)); } catch(e){}
+              // Mostrar los otros roles (según los roles que el backend acepta)
+              // backend permite solicitar 'PREGUNTADOR_2' y 'JEFE'
+              const current = role || 'PREGUNTADOR_1';
+              btn1.style.display = (current === 'PREGUNTADOR_1') ? 'none' : 'block';
+              btn2.style.display = (current === 'PREGUNTADOR_2') ? 'none' : 'block';
+              btnJ.style.display = (current === 'JEFE') ? 'none' : 'block';
+            } catch (err) {
+              // en caso de error, dejar texto por defecto
+              roleInfo.textContent = 'Rango: —';
+            }
+          })();
+
         } else {
           try{ drop.remove(); }catch(e){}
         }
@@ -527,12 +603,14 @@
         e.preventDefault();
         e.stopPropagation();
         try{ sessionStorage.removeItem('foro_current'); localStorage.removeItem('foro_current'); }catch(err){}
+        try{ sessionStorage.removeItem('usuario_actual'); sessionStorage.removeItem('pass_actual'); }catch(err){}
         try{ localStorage.removeItem(USER_KEY); }catch(err){}
         try{ window.dispatchEvent(new CustomEvent('sf:auth-changed', { detail: { user: null } })); }catch(err){}
-        clearUser();
+        try { clearUser(); } catch(e){}
+        // Forzar actualización de botones/estado (evita que se intente /login tras logout)
+        try { if (typeof updateSubscribeButtonState === 'function') updateSubscribeButtonState(); } catch(e){}
       });
       wrapper.appendChild(logout);
-      userArea.appendChild(wrapper);
       userArea.appendChild(wrapper);
     } else {
       const loginBtn = document.createElement('button');

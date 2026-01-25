@@ -201,6 +201,18 @@ h1 {
 .nav-user small { font-weight:600; color:rgba(255,255,255,0.9); opacity:0.95; }
 .nav-user-avatar { width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.12); box-shadow:0 4px 10px rgba(2,6,23,0.1); }
 
+/* Badge pequeño para mostrar el rol junto al nombre en la cabecera */
+.role-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+  border-radius: 12px;
+}
+
 /* Area que contiene el control de usuario (login / perfil) a la derecha */
 .nav-user-area {
   display: inline-flex;
