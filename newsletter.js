@@ -46,13 +46,14 @@
         const resp = await fetch(API_URL + '/newsletter', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         if (!resp.ok) {
           const j = await resp.json().catch(()=>null);
-          alert('Error publicando: ' + (j && j.detail ? j.detail : resp.statusText));
+          show('Error publicando: ' + (j && j.detail ? j.detail : resp.statusText));
+          console.error('newsletter publish error', j || resp.status);
           return;
         }
-        alert('Publicado');
+        show('Publicado');
         loadPosts();
         form.reset();
-      } catch (err) { alert('Error conectando al servidor'); }
+      } catch (err) { console.error('newsletter publish network error', err); show('Error conectando al servidor'); }
     });
     controls.appendChild(form);
   }
@@ -91,9 +92,9 @@
             if (!confirm('Eliminar entrada?')) return;
             try {
               const resp = await fetch(API_URL + '/newsletter/' + p.id, { method: 'DELETE', headers: {'Content-Type':'application/json', 'x-username': username, 'x-password': password } });
-              if (!resp.ok) { alert('Error al eliminar'); return; }
+              if (!resp.ok) { show('Error al eliminar'); console.error('delete newsletter failed', resp.status); return; }
               loadPosts();
-            } catch(e) { alert('Error conectando al servidor'); }
+            } catch(e) { console.error('newsletter delete network error', e); show('Error conectando al servidor'); }
           });
           actions.appendChild(del);
         }

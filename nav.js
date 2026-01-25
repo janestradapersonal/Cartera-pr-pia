@@ -81,7 +81,7 @@
               alert('Cancelación programada. Seguirás siendo premium hasta el final del periodo.');
               setTimeout(updateSubscribeButtonState, 500);
             } catch (err) {
-              alert('No se pudo conectar al servidor para cancelar la suscripción.');
+              showToast('No se pudo conectar al servidor para cancelar la suscripción.');
             }
           })();
           return;
@@ -240,8 +240,6 @@
       // Helper: aplicar estado al botón según payload { premium, cancel_pending, subscription_period_end }
       function applySubscribePayload(payload) {
         try {
-          console.log('applySubscribePayload payload', payload);
-          console.log('btn before', btn, btn && btn.outerHTML, 'textBefore:', btn && btn.textContent);
           const lang = (localStorage.getItem('sf_lang')||'es');
           if (!payload || payload.premium !== true) {
             btn.textContent = TRANSLATIONS[lang]['subscribe.newsletter'] || TRANSLATIONS[lang]['subscribe'] || 'Suscribirme a la Newsletter 2,99€ / mes';
@@ -250,7 +248,6 @@
             btn.classList.remove('scheduled');
             btn.dataset.premium = 'false';
             delete btn.dataset.cancel_pending;
-            console.log('btn after not premium', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
             return;
           }
           if (payload.cancel_pending === true) {
@@ -265,7 +262,6 @@
             btn.href = '#';
             btn.dataset.premium = 'true';
             btn.dataset.cancel_pending = 'true';
-            console.log('btn after cancel_pending', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
             return;
           }
           // Premium and not cancel_pending
@@ -274,7 +270,6 @@
           btn.href = '#';
           btn.dataset.premium = 'true';
           delete btn.dataset.cancel_pending;
-          console.log('btn after premium', btn && btn.outerHTML, 'textAfter:', btn && btn.textContent);
         } catch(e) { /* ignore */ }
       }
       // usuario en localStorage (la UI usa localStorage sf_user)
@@ -386,6 +381,36 @@
         btn.dataset.premium = 'false';
       }
     } catch (e) { /* ignore */ }
+  }
+
+  // Mensajes no bloqueantes (toast) para errores/avisos en UI
+  function showToast(message, timeout = 6000) {
+    try {
+      let container = document.getElementById('sf-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'sf-toast-container';
+        container.style.position = 'fixed';
+        container.style.top = '12px';
+        container.style.right = '12px';
+        container.style.zIndex = '20000';
+        document.body.appendChild(container);
+      }
+      const t = document.createElement('div');
+      t.className = 'sf-toast';
+      t.textContent = message;
+      t.style.background = 'rgba(0,0,0,0.8)';
+      t.style.color = 'white';
+      t.style.padding = '10px 14px';
+      t.style.marginTop = '8px';
+      t.style.borderRadius = '8px';
+      t.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
+      t.style.fontSize = '14px';
+      t.style.maxWidth = '320px';
+      t.style.wordBreak = 'break-word';
+      container.appendChild(t);
+      setTimeout(()=>{ try { t.style.transition = 'opacity 300ms'; t.style.opacity = '0'; setTimeout(()=>{ try{ t.remove(); }catch(e){} }, 300); } catch(e){} }, timeout);
+    } catch (e) { try { console.error('toast error', e); alert(message); } catch(_){} }
   }
 
   // Escuchar cambios de sesión o eventos relacionados con suscripción
@@ -844,7 +869,7 @@
               const data = contentType.includes('application/json') ? await resp.json().catch(()=>null) : await resp.text().catch(()=>null);
               result = { ok: resp.ok, status: resp.status, data };
             } catch (err) {
-              alert('No se pudo conectar al servidor para registrar.');
+              showToast('No se pudo conectar al servidor para registrar. Comprueba tu conexión o el servidor.');
               return;
             }
           }
@@ -900,7 +925,7 @@
               const data = contentType.includes('application/json') ? await resp.json().catch(()=>null) : await resp.text().catch(()=>null);
               result = { ok: resp.ok, status: resp.status, data };
             } catch (err) {
-              alert('Error conectando al servidor para login.');
+              showToast('No se pudo conectar al servidor para iniciar sesión.');
               return;
             }
           }
@@ -1135,14 +1160,6 @@
             cloned.classList.remove('nav-list');
             cloned.classList.add('mobile-nav-list');
             if (cloned.id) cloned.id = '';
-            // evitar duplicar el id subscribe-btn: renombrar/eliminar y marcar como mobile-subscribe para sincronización
-            try {
-              const clonedBtn = cloned.querySelector('#subscribe-btn');
-              if (clonedBtn) {
-                try { clonedBtn.removeAttribute('id'); } catch(e){}
-                try { clonedBtn.classList.add('mobile-subscribe'); } catch(e){}
-              }
-            } catch(e) {}
             mobileMenu.appendChild(cloned);
           } catch(e) { mobileMenu.appendChild(navList.cloneNode(true)); }
         }
