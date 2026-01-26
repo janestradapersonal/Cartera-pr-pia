@@ -780,6 +780,7 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
             print('role change request, could not read email')
 
         # Intentar usar plantilla dinámica de SendGrid si está configurada
+        print("SENDGRID_ROLE_REQUEST_TEMPLATE=", os.getenv("SENDGRID_ROLE_REQUEST_TEMPLATE"))
         template_id = os.getenv('SENDGRID_ROLE_REQUEST_TEMPLATE')
         dynamic_data = {
             'requester_username': username,

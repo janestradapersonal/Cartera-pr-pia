@@ -28,6 +28,7 @@ def send_email(recipient: str, subject: str = None, body: str = None, template_i
         sg = SendGridAPIClient(api_key)
         # Si se proporciona template_id, usar plantilla dinámica
         if template_id:
+            print('Sending with template_id', template_id)
             message = Mail(from_email=sender, to_emails=recipient)
             # algunos helpers aceptan template_id directamente, pero por compatibilidad lo asignamos
             message.template_id = template_id
