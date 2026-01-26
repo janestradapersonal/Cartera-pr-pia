@@ -760,9 +760,10 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
         approve_url = f"/role-requests/{rr.id}/approve?token={token}"
         reject_url = f"/role-requests/{rr.id}/reject?token={token}"
 
-    # usar etiqueta legible en el email
+    # usar etiqueta legible en el email y enviar datos del solicitante al admin
     display_requested = DISPLAY_ROLE.get(requested_normal, requested_normal)
-    body = f"El usuario {username} solicita el rol {display_requested}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
+    # construir body de respaldo (en caso de no usar plantilla dinámica)
+    body = f"El usuario {username} ({usuario.email or 'sin email'}) solicita el rol {display_requested}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
     email_sent = True
     try:
         admin_email = os.getenv('ROLE_REQUEST_ADMIN') or 'janestrada888@gmail.com'
@@ -771,8 +772,26 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
         if app_base:
             approve_url = f"{app_base}/role-requests/{rr.id}/approve?token={token}"
             reject_url = f"{app_base}/role-requests/{rr.id}/reject?token={token}"
-            body = f"El usuario {username} solicita el rol {payload.requested_role}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
-        send_email(admin_email, f"Solicitud de rol: {username}", body)
+            body = f"El usuario {username} ({usuario.email or 'sin email'}) solicita el rol {display_requested}.\n\nAprobar: {approve_url}\nRechazar: {reject_url}\n"
+        # Log temporal antes de enviar
+        try:
+            print('role change request', username, usuario.email, requested_normal)
+        except Exception:
+            print('role change request, could not read email')
+
+        # Intentar usar plantilla dinámica de SendGrid si está configurada
+        template_id = os.getenv('SENDGRID_ROLE_REQUEST_TEMPLATE')
+        dynamic_data = {
+            'requester_username': username,
+            'requester_email': usuario.email or '',
+            'requested_role': display_requested,
+            'approve_url': approve_url,
+            'reject_url': reject_url,
+        }
+        if template_id:
+            send_email(admin_email, subject=f"Solicitud de rol: {username}", template_id=template_id, dynamic_template_data=dynamic_data)
+        else:
+            send_email(admin_email, f"Solicitud de rol: {username}", body)
     except Exception as e:
         email_sent = False
         logging.exception('Error sending role request email')

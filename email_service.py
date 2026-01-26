@@ -10,7 +10,7 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 
-def send_email(recipient: str, subject: str, body: str):
+def send_email(recipient: str, subject: str = None, body: str = None, template_id: str = None, dynamic_template_data: dict = None):
     """Send email using SendGrid API. Requires env vars `SENDGRID_API_KEY` and `EMAIL_FROM`.
 
     Raises RuntimeError if SendGrid client not available or env vars missing; re-raises
@@ -26,12 +26,20 @@ def send_email(recipient: str, subject: str, body: str):
 
     try:
         sg = SendGridAPIClient(api_key)
-        message = Mail(
-            from_email=sender,
-            to_emails=recipient,
-            subject=subject,
-            plain_text_content=body,
-        )
+        # Si se proporciona template_id, usar plantilla dinámica
+        if template_id:
+            message = Mail(from_email=sender, to_emails=recipient)
+            # algunos helpers aceptan template_id directamente, pero por compatibilidad lo asignamos
+            message.template_id = template_id
+            if dynamic_template_data:
+                message.dynamic_template_data = dynamic_template_data
+        else:
+            message = Mail(
+                from_email=sender,
+                to_emails=recipient,
+                subject=subject,
+                plain_text_content=body,
+            )
         response = sg.send(message)
         try:
             # SendGrid response tiene status_code en la mayoría de versiones
