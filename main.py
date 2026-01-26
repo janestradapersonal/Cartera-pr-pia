@@ -802,29 +802,97 @@ def create_role_request(payload: RoleRequestCreate, db: Session = Depends(get_db
 
 @app.get('/role-requests/{req_id}/approve', include_in_schema=True)
 def approve_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
+    print('DECISION endpoint HIT', req_id, 'approve')
     rr = db.query(RoleRequest).filter(RoleRequest.id == req_id).first()
     if not rr or rr.token != token or rr.status != 'pending':
         raise HTTPException(status_code=404, detail='Solicitud no encontrada o token inválido')
-    # asignar rol al usuario
-    usuario = db.query(Usuario).filter(Usuario.username == rr.username).first()
+    # intentar obtener usuario por user_id si está presente, sino por username
+    usuario = None
+    try:
+        if hasattr(rr, 'user_id') and rr.user_id:
+            usuario = db.query(Usuario).filter(Usuario.id == rr.user_id).first()
+    except Exception:
+        usuario = None
+    if not usuario and hasattr(rr, 'username') and rr.username:
+        usuario = db.query(Usuario).filter(Usuario.username == rr.username).first()
     if not usuario:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    # Log antes de la decisión y del envío
+    try:
+        print('DECISION email target', 'user_id=', getattr(rr, 'user_id', None), 'email=', usuario.email, 'username=', usuario.username, 'requested_role=', rr.requested_role)
+    except Exception:
+        print('DECISION email target: could not read some fields')
+    print('ENV SENDGRID_ROLE_DECISION_TEMPLATE=', os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE'))
+
+    # asignar rol
     usuario.role = normalize_role(rr.requested_role)
     rr.status = 'approved'
     rr.decided_at = func.now()
     db.add(usuario)
     db.add(rr)
     db.commit()
+
+    # enviar email al solicitante informando la decisión
+    try:
+        template_id = os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE')
+        subject = f"Solicitud de rol - decisión: Aprobada"
+        body = f"Hola {usuario.username},\n\nTu solicitud para el rol {DISPLAY_ROLE.get(rr.requested_role, rr.requested_role)} ha sido aprobada.\n\nGracias.\n"
+        dynamic = {'requester_username': usuario.username, 'requester_email': usuario.email or '', 'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role), 'approve_url': '', 'reject_url': ''}
+        if template_id:
+            send_email(usuario.email, subject=subject, template_id=template_id, dynamic_template_data=dynamic)
+        else:
+            send_email(usuario.email, subject, body)
+    except Exception:
+        logging.exception('Error sending decision email to user')
+
     return {'ok': True, 'message': f'Usuario {usuario.username} ahora es {usuario.role}'}
 
 
 @app.get('/role-requests/{req_id}/reject', include_in_schema=True)
 def reject_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
+    print('DECISION endpoint HIT', req_id, 'reject')
     rr = db.query(RoleRequest).filter(RoleRequest.id == req_id).first()
     if not rr or rr.token != token or rr.status != 'pending':
         raise HTTPException(status_code=404, detail='Solicitud no encontrada o token inválido')
+    # intentar obtener usuario por user_id si está presente, sino por username
+    usuario = None
+    try:
+        if hasattr(rr, 'user_id') and rr.user_id:
+            usuario = db.query(Usuario).filter(Usuario.id == rr.user_id).first()
+    except Exception:
+        usuario = None
+    if not usuario and hasattr(rr, 'username') and rr.username:
+        usuario = db.query(Usuario).filter(Usuario.username == rr.username).first()
+    if not usuario:
+        # marcar solicitud rechazada igualmente
+        rr.status = 'rejected'
+        rr.decided_at = func.now()
+        db.add(rr)
+        db.commit()
+        return {'ok': True, 'message': 'Solicitud rechazada (usuario no encontrado)'}
+    # Log antes de enviar
+    try:
+        print('DECISION email target', 'user_id=', getattr(rr, 'user_id', None), 'email=', usuario.email, 'username=', usuario.username, 'requested_role=', rr.requested_role)
+    except Exception:
+        print('DECISION email target: could not read some fields')
+    print('ENV SENDGRID_ROLE_DECISION_TEMPLATE=', os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE'))
+
     rr.status = 'rejected'
     rr.decided_at = func.now()
     db.add(rr)
     db.commit()
+
+    # enviar email al solicitante informando la decisión
+    try:
+        template_id = os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE')
+        subject = f"Solicitud de rol - decisión: Rechazada"
+        body = f"Hola {usuario.username},\n\nTu solicitud para el rol {DISPLAY_ROLE.get(rr.requested_role, rr.requested_role)} ha sido rechazada.\n\nGracias.\n"
+        dynamic = {'requester_username': usuario.username, 'requester_email': usuario.email or '', 'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role), 'approve_url': '', 'reject_url': ''}
+        if template_id:
+            send_email(usuario.email, subject=subject, template_id=template_id, dynamic_template_data=dynamic)
+        else:
+            send_email(usuario.email, subject, body)
+    except Exception:
+        logging.exception('Error sending decision email to user')
+
     return {'ok': True, 'message': 'Solicitud rechazada'}

@@ -41,12 +41,29 @@ def send_email(recipient: str, subject: str = None, body: str = None, template_i
                 subject=subject,
                 plain_text_content=body,
             )
-        response = sg.send(message)
+        # Log mode
         try:
-            # SendGrid response tiene status_code en la mayoría de versiones
-            logger.info('SendGrid send response status_code=%s', getattr(response, 'status_code', response))
+            print('send_email mode', 'template' if template_id else 'plain', 'to=', recipient, 'subject=', subject, 'template_id=', template_id)
         except Exception:
-            logger.info('SendGrid send returned: %s', response)
+            pass
+        try:
+            response = sg.send(message)
+            try:
+                # SendGrid response tiene status_code y body en algunas versiones
+                status_code = getattr(response, 'status_code', None)
+                body = getattr(response, 'body', None)
+                headers = getattr(response, 'headers', None)
+                print('SendGrid response', status_code)
+                print('SendGrid body', body)
+                print('SendGrid headers', headers)
+                logger.info('SendGrid send response status_code=%s', status_code)
+            except Exception:
+                print('SendGrid send returned (raw):', response)
+                logger.info('SendGrid send returned: %s', response)
+        except Exception as e:
+            print('SendGrid exception', str(e))
+            logger.exception('Failed to send email via SendGrid to %s', recipient)
+            raise
     except Exception:
         logger.exception('Failed to send email via SendGrid to %s', recipient)
         raise
