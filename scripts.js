@@ -267,36 +267,119 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyPatrimonioObject(obj) {
     if (!obj) return;
-    // globals
-    document.querySelectorAll('.importe-global').forEach(i => {
-      const cat = i.dataset.categoria || (i.name || i.id || 'unknown');
-      if (obj.globals && typeof obj.globals[cat] !== 'undefined') {
-        i.value = obj.globals[cat];
+    try {
+      console && console.log && console.log('applyPatrimonioObject received:', obj);
+      // List all inputs with ids for debugging and mapping
+      try {
+        Array.from(document.querySelectorAll('input')).forEach(inp => {
+          if (inp.id) console && console.log && console.log('input id:', inp.id, 'dataset-categoria:', inp.dataset && inp.dataset.categoria, 'currentValue:', inp.value);
+        });
+      } catch (e) { /* ignore */ }
+
+      // If object follows the new structure { global: {}, detalle: {} }, try explicit mapping
+      if (obj.global || obj.detalle || obj.globals || obj.tablas) {
+        // Map explicit global field 'importe' -> input with id 'importe-global'
+        try {
+          const imp = (obj.global && obj.global.importe) || (obj.globals && obj.globals.importe);
+          const impEl = document.getElementById('importe-global');
+          if (impEl && typeof imp !== 'undefined') { impEl.value = imp; console && console.log && console.log('Set #importe-global ->', imp); }
+        } catch(e) {}
+
+        // Map all keys inside global to inputs by id or by data-categoria
+        const globalObj = obj.global || obj.globals || {};
+        Object.entries(globalObj).forEach(([k,v]) => {
+          try {
+            const byId = document.getElementById(k);
+            if (byId) { byId.value = v; console && console.log && console.log('Set by id', k, '->', v); return; }
+            // intentar data-categoria
+            const byData = Array.from(document.querySelectorAll('.importe-global')).find(el=>el.dataset && el.dataset.categoria===k);
+            if (byData) { byData.value = v; console && console.log && console.log('Set by data-categoria', k, '->', v); return; }
+          } catch(e){}
+        });
+        // globals
+        document.querySelectorAll('.importe-global').forEach(i => {
+          const cat = i.dataset.categoria || (i.name || i.id || 'unknown');
+          if (obj.globals && typeof obj.globals[cat] !== 'undefined') {
+            i.value = obj.globals[cat];
+            console && console.log && console.log('Set importe-global', cat, '->', i.value);
+          }
+        });
+        // tablas (si vienen bajo 'tablas')
+        ['tablaColchon','tablaFija','tablaVariable'].forEach(id => {
+          const tab = document.getElementById(id);
+          if (!tab) return;
+          const tbody = tab.querySelector('tbody');
+          tbody.innerHTML = '';
+          const rows = (obj.tablas && obj.tablas[id]) ? obj.tablas[id] : [];
+          rows.forEach(r => {
+            const tr = crearFilaNueva(id === 'tablaVariable' ? 'variable' : (id === 'tablaFija' ? 'fija' : 'colchon'));
+            const nameInp = tr.querySelector('td:nth-child(1) input');
+            const valInp = tr.querySelector('td:nth-child(2) input');
+            if (nameInp) nameInp.value = r.name || '';
+            if (valInp) valInp.value = r.value || 0;
+            tbody.appendChild(tr);
+          });
+        });
+
+        // detalle: si viene un objeto con claves que coinciden con input ids (ej. liquidos)
+        const detalle = obj.detalle || {};
+        Object.entries(detalle).forEach(([key, val]) => {
+          try {
+            if (val == null) return;
+            // Si es array, intentar popular tabla con id 'tabla'+CapitalizedKey
+            if (Array.isArray(val)) {
+              const cap = key.charAt(0).toUpperCase() + key.slice(1);
+              const tableId = 'tabla' + cap;
+              const table = document.getElementById(tableId);
+              if (table) {
+                const tb = table.querySelector('tbody'); tb.innerHTML = '';
+                val.forEach(item => {
+                  const tipo = tableId.toLowerCase().indexOf('variable')>-1 ? 'variable' : (tableId.toLowerCase().indexOf('fija')>-1 ? 'fija' : 'colchon');
+                  const tr = crearFilaNueva(tipo);
+                  const nameInp = tr.querySelector('td:nth-child(1) input');
+                  const valInp = tr.querySelector('td:nth-child(2) input');
+                  if (nameInp) nameInp.value = item.name || item.label || '';
+                  if (valInp) valInp.value = (item.amount || item.value || item.importe || 0);
+                  tb.appendChild(tr);
+                });
+                console && console.log && console.log('Populated table', tableId);
+                return;
+              }
+            }
+            // Si no es array, intentar asignar al input con id igual a la clave
+            const inp = document.getElementById(key);
+            if (inp) { inp.value = val; console && console.log && console.log('Set detalle input', key, '->', val); return; }
+            // como fallback, si existe input con data-categoria igual a key
+            const byData2 = Array.from(document.querySelectorAll('input')).find(el=>el.dataset && el.dataset.categoria===key);
+            if (byData2) { byData2.value = val; console && console.log && console.log('Set detalle by data-categoria', key, '->', val); }
+          } catch(e) { console && console.warn && console.warn('detalle mapping error', e); }
+        });
+      } else {
+        // Fallback: if server returns a flat object with keys matching input ids
+        // e.g. { liquidos: 100, acciones: 200, ... }
+        try {
+          Array.from(document.querySelectorAll('input[id]')).forEach(inp => {
+            const key = inp.id;
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+              try { inp.value = obj[key] == null ? '' : obj[key]; console && console.log && console.log('Set input by id', key, '->', inp.value); } catch(e) { console && console.warn && console.warn('Could not set', key, e); }
+            } else if (inp.dataset && inp.dataset.categoria && obj.globals && Object.prototype.hasOwnProperty.call(obj.globals, inp.dataset.categoria)) {
+              // also accept globals inside a nested object
+              try { inp.value = obj.globals[inp.dataset.categoria]; console && console.log && console.log('Set input by data-categoria', inp.dataset.categoria, '->', inp.value); } catch(e) {}
+            }
+          });
+        } catch(e) { console && console.warn && console.warn('Fallback mapping error', e); }
       }
-    });
-    // tablas
-    ['tablaColchon','tablaFija','tablaVariable'].forEach(id => {
-      const tab = document.getElementById(id);
-      if (!tab) return;
-      const tbody = tab.querySelector('tbody');
-      // clear
-      tbody.innerHTML = '';
-      const rows = (obj.tablas && obj.tablas[id]) ? obj.tablas[id] : [];
-      rows.forEach(r => {
-        const tr = crearFilaNueva(id === 'tablaVariable' ? 'variable' : (id === 'tablaFija' ? 'fija' : 'colchon'));
-        const nameInp = tr.querySelector('td:nth-child(1) input');
-        const valInp = tr.querySelector('td:nth-child(2) input');
-        if (nameInp) nameInp.value = r.name || '';
-        if (valInp) valInp.value = r.value || 0;
-        tbody.appendChild(tr);
-      });
-    });
-    // actualizar visuales
-    actualizarGraficoGlobal();
-    actualizarGraficoDetalle('#tablaColchon', '.importe-colchon', chartColchon, 'Detalle colchón de emergencia');
-    actualizarGraficoDetalle('#tablaFija', '.importe-fija', chartFija, 'Detalle renta fija');
-    actualizarGraficoDetalle('#tablaVariable', '.importe-variable', chartVariable, 'Detalle renta variable');
-    actualizarTotalGlobal();
+
+      // actualizar visuales
+      try { actualizarGraficoGlobal(); } catch(e){}
+      try { actualizarGraficoDetalle('#tablaColchon', '.importe-colchon', chartColchon, 'Detalle colchón de emergencia'); } catch(e){}
+      try { actualizarGraficoDetalle('#tablaFija', '.importe-fija', chartFija, 'Detalle renta fija'); } catch(e){}
+      try { actualizarGraficoDetalle('#tablaVariable', '.importe-variable', chartVariable, 'Detalle renta variable'); } catch(e){}
+      try { actualizarTotalGlobal(); } catch(e){}
+      console && console.log && console.log('Form filled with:', obj);
+    } catch (e) {
+      console && console.warn && console.warn('applyPatrimonioObject error', e);
+    }
   }
 
   function savePatrimonioForCurrentUser() {
