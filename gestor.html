@@ -303,6 +303,13 @@
           }
           if(status) status.textContent = 'Guardado correctamente';
           console.log('Guardar OK');
+          try {
+            // actualizar copia local para que al recargar la página se muestren
+            // los mismos valores guardados en la nube
+            const key = 'patrimonio_' + username;
+            localStorage.setItem(key, JSON.stringify(walletData));
+            console.log('Local copy updated', key);
+          } catch (e) { console.warn('Error updating local copy', e); }
         }catch(err){
           console.error('saveWallet error', err);
           if(status) status.textContent = 'Error guardando (ver consola).';
