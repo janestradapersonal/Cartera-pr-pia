@@ -211,10 +211,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------- Persistencia de patrimonio por usuario ----------------
   function getLoggedUserName() {
     try {
-      const su = localStorage.getItem('sf_user');
-      if (!su) return null;
-      const obj = JSON.parse(su);
-      return obj && obj.name ? obj.name : null;
+      // Preferir la info almacenada por el sistema (`sf_user`) pero si no
+      // existe, usar la sesión activa (`sessionStorage.usuario_actual`) para
+      // asegurar que la página carga datos desde la base de datos.
+      try {
+        const su = localStorage.getItem('sf_user');
+        if (su) {
+          const obj = JSON.parse(su);
+          if (obj && obj.name) return obj.name;
+        }
+      } catch (e) {}
+      // Fallback a sessionStorage (seteo por el login)
+      try {
+        const sUsr = sessionStorage.getItem('usuario_actual');
+        if (sUsr) return sUsr;
+      } catch (e) {}
+      return null;
     } catch (e) { return null; }
   }
 
@@ -292,20 +304,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const obj = buildPatrimonioObject();
     try {
       if (user) {
-        const key = 'patrimonio_' + user;
-        localStorage.setItem(key, JSON.stringify(obj));
-        // intentar guardar en la nube (no bloquear si falla)
+        // Persistir siempre en servidor (BD). No escribir en localStorage para
+        // que los datos estén disponibles desde otros dispositivos.
         try { guardarEnNube(obj); } catch(e) { console && console.warn && console.warn('guardarEnNube error', e); }
       } else {
-        // si no hay usuario, guardar local temporalmente
-        try { localStorage.setItem('patrimonio_guest', JSON.stringify(obj)); } catch(e){}
+        // No estamos logueados: no persistir en local por diseño del usuario.
+        console && console.log && console.log('Usuario no logueado: cambios no persisten en ningún dispositivo.');
       }
     } catch (e) { console && console.warn && console.warn('savePatrimonio error', e); }
   }
 
   async function loadPatrimonioForCurrentUser() {
+    // Aceptar nombre de usuario desde getLoggedUserName o desde sessionStorage
     const user = getLoggedUserName();
-    if (!user) return;
+    if (!user) {
+      console && console.log && console.log('No hay usuario detectado en local; comprobar sessionStorage.');
+      try { const s = sessionStorage.getItem('usuario_actual'); if (s) { console && console.log && console.log('usuario_actual from sessionStorage=', s); } } catch(e){}
+      // si no hay usuario, no intentar cargar
+      if (!sessionStorage.getItem || !sessionStorage.getItem('usuario_actual')) return;
+    }
     try {
       // Si hay credenciales en sessionStorage, intentar cargar desde servidor
       const su = sessionStorage.getItem('usuario_actual');
@@ -316,29 +333,51 @@ document.addEventListener("DOMContentLoaded", () => {
           let email = null;
           try { const suObj = JSON.parse(localStorage.getItem('sf_user')||'null'); if (suObj && suObj.email) email = suObj.email; } catch(e){}
           if (!email) try { email = sessionStorage.getItem('usuario_email') || null; } catch(e){}
-          const resp = await fetch(`${API_URL}/login`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email || undefined, username: su, password: sp })
+          // Intentar cargar directamente el JSON de la cartera mediante GET
+          // Endpoint protegido: enviamos la contraseña en header `x-password`.
+          const url = `${API_URL}/api/wallet/${encodeURIComponent(su)}`;
+          const resp = await fetch(url, {
+            method: 'GET', headers: { 'x-password': sp }
           });
           if (resp.ok) {
             const data = await resp.json();
+            console && console.log && console.log('loadPatrimonio: server response', data);
             if (data && data.datos) {
               applyPatrimonioObject(data.datos);
-              // almacenar copia local también
-              try { localStorage.setItem('patrimonio_' + user, JSON.stringify(data.datos)); } catch(e){}
+              console && console.log && console.log('Patrimonio cargado desde servidor');
               return;
             }
+          } else {
+            // si el GET falla, registrar el error para depuración
+            try { const txt = await resp.text(); console && console.warn && console.warn('GET wallet failed', resp.status, txt); } catch(e){}
           }
         } catch (e) { /* ignore server load errors and fallback to local */ }
       }
 
-      // Fallback: cargar desde localStorage
-      const key = 'patrimonio_' + user;
-      const raw = localStorage.getItem(key);
-      if (!raw) return;
-      const obj = JSON.parse(raw);
-      applyPatrimonioObject(obj);
+      // Si no se pudo cargar del servidor, no hacemos fallback a localStorage
+      // para evitar lecturas desde el equipo del usuario. Mantener valores
+      // actuales en la página (defaults) y pedir al usuario que inicie sesión.
+      console && console.log && console.log('No se pudo cargar patrimonio desde servidor o no hay credenciales.');
     } catch (e) { console && console.warn && console.warn('loadPatrimonio error', e); }
+  }
+
+  // Polling para refrescar valores desde la base de datos periódicamente.
+  function startPatrimonioPolling(intervalMs = 15000) {
+    try {
+      if (window._patrimonioPollInterval) return;
+      if (!getLoggedUserName()) return;
+      window._patrimonioPollInterval = setInterval(() => {
+        try { loadPatrimonioForCurrentUser(); } catch(e){}
+      }, intervalMs);
+      console && console.log && console.log('Patrimonio polling started (', intervalMs, 'ms)');
+    } catch(e) { console && console.warn && console.warn('startPatrimonioPolling error', e); }
+  }
+
+  function stopPatrimonioPolling() {
+    try {
+      if (window._patrimonioPollInterval) { clearInterval(window._patrimonioPollInterval); window._patrimonioPollInterval = null; }
+      console && console.log && console.log('Patrimonio polling stopped');
+    } catch(e) { console && console.warn && console.warn('stopPatrimonioPolling error', e); }
   }
 
   // Recordatorio para usuarios no logueados: crear/show/hide
@@ -456,9 +495,18 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener('sf:auth-changed', (ev) => {
     try {
       // al cambiar de usuario, intentar cargar su patrimonio
-      loadPatrimonioForCurrentUser();
+      const user = getLoggedUserName();
+      if (user) {
+        loadPatrimonioForCurrentUser();
+        startPatrimonioPolling();
+      } else {
+        stopPatrimonioPolling();
+      }
     } catch(e){}
   });
+
+  // iniciar polling si ya hay usuario logueado
+  try { if (getLoggedUserName()) { startPatrimonioPolling(); } } catch(e){}
 
   // Intentar inicializar ahora; si falla, reintentar varias veces
   let chartsOk = initChartsOnce();

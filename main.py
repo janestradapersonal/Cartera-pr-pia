@@ -649,6 +649,25 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     return { 'username': usuario.username, 'premium': bool(usuario.premium), 'role': normalize_role(usuario.role if hasattr(usuario, 'role') else None) }
 
 
+@app.get('/api/wallet/{username}')
+def get_wallet(username: str, request: Request, db: Session = Depends(get_db)):
+    """Devuelve el JSON de la cartera del usuario.
+
+    Requiere autenticación simple: pasar la contraseña en el header `x-password`
+    o en el query param `password` (coincidir con la contraseña en BD).
+    """
+    password = request.headers.get('x-password') or request.query_params.get('password')
+    if not username or not password:
+        raise HTTPException(status_code=401, detail='Credenciales requeridas')
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        raise HTTPException(status_code=401, detail='Credenciales inválidas')
+    datos = db.query(DatoUsuario).filter(DatoUsuario.usuario_id == usuario.id).first()
+    if not datos:
+        return {'ok': True, 'datos': None}
+    return {'ok': True, 'datos': datos.contenido}
+
+
 class NewsletterCreate(BaseModel):
     title: str
     description: str = None
