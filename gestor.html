@@ -67,6 +67,11 @@
     <div class="grafico-contenedor">
       <canvas id="graficoGlobal"></canvas>
     </div>
+
+    <div class="save-row">
+      <button type="button" id="saveWalletBtn" class="btn">GUARDAR</button>
+      <span id="saveStatus" aria-live="polite" style="margin-left:12px;color:#333;"></span>
+    </div>
   </section>
 
   <!-- FILA INFERIOR CON 3 BLOQUES: COLCHÓN, FIJA, VARIABLE -->
@@ -242,6 +247,27 @@
 
   <script src="scripts.js"></script>
   <script src="nav.js"></script>
+  <script>
+    // Hacer el botón GUARDAR visible y resaltado para depuración
+    (function(){
+      const btn = document.getElementById('saveWalletBtn');
+      try{ console.log('debug: saveWalletBtn element=', btn); }catch(e){}
+      if(!btn) return;
+      try{
+        btn.style.position = 'fixed';
+        btn.style.bottom = '18px';
+        btn.style.right = '18px';
+        btn.style.zIndex = '2000';
+        btn.style.padding = '12px 18px';
+        btn.style.backgroundColor = '#ff6a00';
+        btn.style.color = '#fff';
+        btn.style.borderRadius = '8px';
+        btn.style.boxShadow = '0 8px 18px rgba(0,0,0,0.24)';
+        btn.style.outline = '3px solid #ff0';
+        btn.scrollIntoView({behavior:'smooth', block:'center'});
+      }catch(e){}
+    })();
+  </script>
   <footer class="site-footer" aria-label="Contacto">
     <div class="container footer-inner">
       <div class="contact">
