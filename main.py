@@ -835,9 +835,31 @@ def approve_role_request(req_id: int, token: str, db: Session = Depends(get_db))
     # enviar email al solicitante informando la decisión
     try:
         template_id = os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE')
-        subject = f"Solicitud de rol - decisión: Aprobada"
+        subject = "Cambio de rol | Senzillament Finances"
         body = f"Hola {usuario.username},\n\nTu solicitud para el rol {DISPLAY_ROLE.get(rr.requested_role, rr.requested_role)} ha sido aprobada.\n\nGracias.\n"
-        dynamic = {'requester_username': usuario.username, 'requester_email': usuario.email or '', 'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role), 'approve_url': '', 'reject_url': ''}
+        # construir home_url desde FRONTEND_URL o APP_BASE_URL, con fallback seguro
+        home_url = os.getenv("FRONTEND_URL") or os.getenv("APP_BASE_URL") or 'https://janestradapersonal.github.io'
+        if not str(home_url).lower().startswith('http'):
+            home_url = 'https://' + str(home_url)
+        try:
+            print('DECISION home_url used=', home_url)
+        except Exception:
+            print('DECISION home_url used: could not stringify')
+        dynamic = {
+            'requester_username': usuario.username,
+            'requester_email': usuario.email or '',
+            'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role),
+            'approve_url': '',
+            'reject_url': '',
+            'home_url': home_url,
+            'decision': 'ACEPTADO',
+            'subject': subject,
+        }
+        # log para depuración en Render: confirmar qué datos dinámicos se envían
+        try:
+            print('DECISION dynamic_data', dynamic)
+        except Exception:
+            print('DECISION dynamic_data: could not stringify')
         if template_id:
             send_email(usuario.email, subject=subject, template_id=template_id, dynamic_template_data=dynamic)
         else:
@@ -885,9 +907,31 @@ def reject_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
     # enviar email al solicitante informando la decisión
     try:
         template_id = os.getenv('SENDGRID_ROLE_DECISION_TEMPLATE')
-        subject = f"Solicitud de rol - decisión: Rechazada"
+        subject = "Cambio de rol | Senzillament Finances"
         body = f"Hola {usuario.username},\n\nTu solicitud para el rol {DISPLAY_ROLE.get(rr.requested_role, rr.requested_role)} ha sido rechazada.\n\nGracias.\n"
-        dynamic = {'requester_username': usuario.username, 'requester_email': usuario.email or '', 'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role), 'approve_url': '', 'reject_url': ''}
+        # construir home_url desde FRONTEND_URL o APP_BASE_URL, con fallback seguro
+        home_url = os.getenv("FRONTEND_URL") or os.getenv("APP_BASE_URL") or 'https://janestradapersonal.github.io'
+        if not str(home_url).lower().startswith('http'):
+            home_url = 'https://' + str(home_url)
+        try:
+            print('DECISION home_url used=', home_url)
+        except Exception:
+            print('DECISION home_url used: could not stringify')
+        dynamic = {
+            'requester_username': usuario.username,
+            'requester_email': usuario.email or '',
+            'requested_role': DISPLAY_ROLE.get(rr.requested_role, rr.requested_role),
+            'approve_url': '',
+            'reject_url': '',
+            'home_url': home_url,
+            'decision': 'RECHAZADO',
+            'subject': subject,
+        }
+        # log para depuración en Render: confirmar qué datos dinámicos se envían
+        try:
+            print('DECISION dynamic_data', dynamic)
+        except Exception:
+            print('DECISION dynamic_data: could not stringify')
         if template_id:
             send_email(usuario.email, subject=subject, template_id=template_id, dynamic_template_data=dynamic)
         else:
