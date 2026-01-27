@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.exc import OperationalError, IntegrityError
@@ -60,30 +60,42 @@ app = FastAPI()
 # Permisos para que tu web (HTML) pueda hablar con este script
 # Permitir todos los orígenes durante desarrollo; en producción restringir al dominio de tu web
 # Configurar CORS. Preferir la variable de entorno FRONTEND_URL (o FRONTEND_ORIGIN)
-frontend_origin = os.getenv('FRONTEND_URL') or os.getenv('FRONTEND_ORIGIN') or 'https://janestradapersonal.github.io'
-local_origins = [
+frontend_env = os.getenv('FRONTEND_URL') or os.getenv('FRONTEND_ORIGIN')
+# Orígenes permitidos: orígenes locales + GitHub Pages (sin path)
+origins = [
     "http://127.0.0.1:5501",
     "http://localhost:5501",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+    "https://janestradapersonal.github.io",
 ]
-allow_origins = local_origins + ([frontend_origin] if frontend_origin else [])
+if frontend_env and frontend_env not in origins:
+    origins.append(frontend_env)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-print('CORS enabled', allow_origins)
+print('CORS enabled', origins)
 
 
 # Añadir un handler OPTIONS genérico (por si el proxy interfiere con preflight)
 @app.options("/{path:path}")
 def catch_options(path: str):
     return {"ok": True}
+
+
+# Asegurar que el preflight a /login responde 200
+@app.options('/login')
+def options_login():
+    try:
+        return Response(status_code=200)
+    except Exception:
+        return Response(status_code=200)
 
 # Base de datos
 engine = create_engine(
