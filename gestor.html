@@ -248,6 +248,83 @@
   <script src="scripts.js"></script>
   <script src="nav.js"></script>
   <script>
+    // Handler para el botón GUARDAR: recoge datos y hace POST a /guardar
+    (function(){
+      function readWalletData(){
+        const wallet = { global: {}, detalle: { colchon: [], fija: [], variable: [] } };
+        document.querySelectorAll('.importe-global').forEach(inp => {
+          const cat = inp.dataset.categoria || inp.getAttribute('data-categoria') || 'unknown';
+          wallet.global[cat] = Number(inp.value) || 0;
+        });
+        document.querySelectorAll('#tablaColchon tbody tr').forEach(tr => {
+          const name = (tr.querySelector('input[type="text"]') && tr.querySelector('input[type="text"]').value) || '';
+          const amt = Number(tr.querySelector('input[type="number"]') && tr.querySelector('input[type="number"]').value) || 0;
+          wallet.detalle.colchon.push({ name, amount: amt });
+        });
+        document.querySelectorAll('#tablaFija tbody tr').forEach(tr => {
+          const name = (tr.querySelector('input[type="text"]') && tr.querySelector('input[type="text"]').value) || '';
+          const amt = Number(tr.querySelector('input[type="number"]') && tr.querySelector('input[type="number"]').value) || 0;
+          wallet.detalle.fija.push({ name, amount: amt });
+        });
+        document.querySelectorAll('#tablaVariable tbody tr').forEach(tr => {
+          const name = (tr.querySelector('input[type="text"]') && tr.querySelector('input[type="text"]').value) || '';
+          const amt = Number(tr.querySelector('input[type="number"]') && tr.querySelector('input[type="number"]').value) || 0;
+          wallet.detalle.variable.push({ name, amount: amt });
+        });
+        return wallet;
+      }
+
+      async function saveWallet(){
+        const btn = document.getElementById('saveWalletBtn');
+        const status = document.getElementById('saveStatus');
+        if(!btn) return;
+        btn.disabled = true;
+        if(status) status.textContent = 'Guardando...';
+        try{
+          const walletData = readWalletData();
+          const username = sessionStorage.getItem('usuario_actual');
+          const password = sessionStorage.getItem('pass_actual');
+          if(!username || !password){
+            if(status) status.textContent = 'Necesitas iniciar sesión para guardar.';
+            btn.disabled = false;
+            return;
+          }
+          const payload = { username: username, password: password, datos: walletData };
+          const url = (typeof API_URL !== 'undefined') ? (API_URL + '/guardar') : '/guardar';
+          console.log('Saving payload to', url, payload);
+          const resp = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          if(!resp.ok){
+            let text = await resp.text().catch(()=>null);
+            try{ const j = JSON.parse(text); if(j && j.detail) text = j.detail; }catch(e){}
+            if(status) status.textContent = 'Error guardando: ' + (text || resp.statusText || resp.status);
+            console.warn('Guardar fallo', resp.status, text);
+            btn.disabled = false;
+            return;
+          }
+          if(status) status.textContent = 'Guardado correctamente';
+          console.log('Guardar OK');
+        }catch(err){
+          console.error('saveWallet error', err);
+          if(status) status.textContent = 'Error guardando (ver consola).';
+        }finally{
+          btn.disabled = false;
+          setTimeout(()=>{ if(status) status.textContent = ''; }, 3000);
+        }
+      }
+
+      // attach
+      try{
+        const btn = document.getElementById('saveWalletBtn');
+        if(btn){
+          btn.addEventListener('click', function(e){ e.preventDefault && e.preventDefault(); saveWallet(); });
+          console.log('saveWallet listener attached');
+        } else {
+          console.log('saveWalletBtn not found at attach time');
+        }
+      }catch(e){ console.error('attach saveWallet error', e); }
+    })();
+  </script>
+  <script>
     // Hacer el botón GUARDAR visible y resaltado para depuración
     (function(){
       const btn = document.getElementById('saveWalletBtn');
