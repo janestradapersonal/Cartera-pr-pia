@@ -59,24 +59,25 @@ app = FastAPI()
 
 # Permisos para que tu web (HTML) pueda hablar con este script
 # Permitir todos los orígenes durante desarrollo; en producción restringir al dominio de tu web
+# Configurar CORS. Preferir la variable de entorno FRONTEND_URL (o FRONTEND_ORIGIN)
+frontend_origin = os.getenv('FRONTEND_URL') or os.getenv('FRONTEND_ORIGIN') or 'https://janestradapersonal.github.io'
+local_origins = [
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+]
+allow_origins = local_origins + ([frontend_origin] if frontend_origin else [])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5501",
-        "http://localhost:5501",
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        # añade aquí tu dominio real del frontend en Render si lo tienes
-        # "https://TU-FRONTEND.onrender.com",
-    ],
-    allow_credentials=False,
+    allow_origins=allow_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print('CORS enabled', [
-    "http://127.0.0.1:5501",
-    "http://localhost:5501",
-])
+
+print('CORS enabled', allow_origins)
 
 
 # Añadir un handler OPTIONS genérico (por si el proxy interfiere con preflight)
