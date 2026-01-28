@@ -7,6 +7,44 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <style>
+    /* Simulador styles */
+    #simuladorEscenarios{ background: linear-gradient(180deg,#fafafa,#fff); padding:18px; border-radius:12px; box-shadow:0 6px 18px rgba(20,20,40,0.06); }
+    .sim-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    @media(max-width:720px){ .sim-grid{ grid-template-columns:1fr; } }
+    .sim-card{ padding:14px; border-radius:10px; transition:transform .18s ease, box-shadow .18s ease; cursor:default; position:relative; }
+    .sim-card:hover{ transform:translateY(-6px); box-shadow:0 14px 30px rgba(12,12,30,0.08); }
+    .sim-card--crisis{ background: linear-gradient(180deg,#fff5f5,#fff); border:1px solid rgba(200,40,40,0.06);} 
+    .sim-card--growth{ background: linear-gradient(180deg,#f4fff5,#fff); border:1px solid rgba(30,140,40,0.06);} 
+    .sim-badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-weight:700; font-size:0.9rem; margin-left:8px; }
+    .sim-badge--neg{ background:#ffebee; color:#b71c1c; border:1px solid rgba(183,28,28,0.08); }
+    .sim-badge--pos{ background:#e8f5e9; color:#1b5e20; border:1px solid rgba(27,94,32,0.06); }
+    .sim-btn{ padding:8px 12px; border-radius:8px; font-weight:700; border:none; cursor:pointer; }
+    .sim-btn:focus{ outline:3px solid rgba(34,150,243,0.18); box-shadow:0 4px 14px rgba(34,150,243,0.12); }
+    .sim-btn--crisis{ background:#d32f2f; color:#fff; }
+    .sim-btn--crisis:hover{ background:#b71c1c; }
+    .sim-btn--growth{ background:#2e7d32; color:#fff; }
+    .sim-btn--growth:hover{ background:#1b5e20; }
+    .sim-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    .sim-table thead th{ background:#263238; color:#fff; padding:8px 10px; text-align:left; }
+    .sim-table tbody tr:nth-child(odd){ background:#fff; }
+    .sim-table tbody tr:nth-child(even){ background:#fafafa; }
+    .sim-table tbody tr:hover{ background:#f1f8ff; }
+    .sim-table td{ padding:8px 10px; }
+    .sim-impact--pos{ color:#1b5e20; font-weight:800; }
+    .sim-impact--neg{ color:#b71c1c; font-weight:800; }
+    /* Differences column */
+    .diff-col{ text-align:right; font-weight:700; }
+    .diff-pos{ color:#22c55e; }
+    .diff-pos:hover{ color:#16a34a; }
+    .diff-neg{ color:#ef4444; }
+    .diff-neg:hover{ color:#dc2626; }
+    /* Impacto total emphasis */
+    #impactoTotal{ font-size:1.05rem; font-weight:800; }
+    /* flash animation */
+    @keyframes simFlash { 0%{ background:rgba(255,255,0,0.08);} 50%{ background:rgba(255,255,0,0.18);} 100%{ background:transparent;} }
+    .flash{ animation: simFlash .9s ease-in-out; }
+  </style>
 </head>
 <body>
   <h1>SenzillamentFinances</h1>
@@ -166,36 +204,36 @@
       <p class="muted">Això és una simulació, no una predicció.</p>
       <p style="font-weight:600; color:#b71c1c;">Simulació (no guarda canvis)</p>
 
-      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
-        <div class="card" style="flex:1 1 280px; padding:12px; border:1px solid #ddd; border-radius:8px;">
-          <h3>Aranzels de Trump (crisi)</h3>
+      <div class="sim-grid" style="margin-top:12px;">
+        <div class="sim-card sim-card--crisis">
+          <h3>Aranzels de Trump <span class="sim-badge sim-badge--neg">-30%</span></h3>
           <p>Escenari: Renda variable -30%, Renta fixa -2%, Colchó 0%.</p>
           <div style="margin-top:8px;">
-            <button id="btnEscenarioCrisis" class="btn">Aplicar escenari</button>
+            <button id="btnEscenarioCrisis" class="sim-btn sim-btn--crisis">Aplicar escenari</button>
           </div>
         </div>
 
-        <div class="card" style="flex:1 1 280px; padding:12px; border:1px solid #ddd; border-radius:8px;">
-          <h3>Creixement econòmic global</h3>
+        <div class="sim-card sim-card--growth">
+          <h3>Creixement econòmic global <span class="sim-badge sim-badge--pos">+25%</span></h3>
           <p>Escenari: Renda variable +25%, Renta fixa +3%, Colchó 0%.</p>
           <div style="margin-top:8px;">
-            <button id="btnEscenarioGrowth" class="btn">Aplicar escenari</button>
+            <button id="btnEscenarioGrowth" class="sim-btn sim-btn--growth">Aplicar escenari</button>
           </div>
         </div>
       </div>
 
       <div id="simResultado" style="margin-top:18px; border-top:1px solid #eee; padding-top:12px; display:none;">
         <h3>Abans vs Després</h3>
-        <table class="tabla" id="tablaSim">
+        <table class="sim-table" id="tablaSim">
           <thead>
-            <tr><th>Classe</th><th>Abans</th><th>Després</th></tr>
+            <tr><th>Classe</th><th>Abans</th><th>Després</th><th>Diferència</th></tr>
           </thead>
           <tbody>
-            <tr><td>Renda variable</td><td id="rvAntes">-</td><td id="rvDespues">-</td></tr>
-            <tr><td>Renta fixa</td><td id="rfAntes">-</td><td id="rfDespues">-</td></tr>
-            <tr><td>Colchó</td><td id="cashAntes">-</td><td id="cashDespues">-</td></tr>
-            <tr><td><strong>Total</strong></td><td id="totalAntes"><strong>-</strong></td><td id="totalDespues"><strong>-</strong></td></tr>
-            <tr><td><strong>Impacte total</strong></td><td colspan="2" id="impactoTotal">-</td></tr>
+            <tr><td>Renda variable</td><td id="rvAntes">-</td><td id="rvDespues">-</td><td id="rvDiff" class="diff-col">-</td></tr>
+            <tr><td>Renta fixa</td><td id="rfAntes">-</td><td id="rfDespues">-</td><td id="rfDiff" class="diff-col">-</td></tr>
+            <tr><td>Colchó</td><td id="cashAntes">-</td><td id="cashDespues">-</td><td id="cashDiff" class="diff-col">-</td></tr>
+            <tr><td><strong>Total</strong></td><td id="totalAntes"><strong>-</strong></td><td id="totalDespues"><strong>-</strong></td><td id="totalDiff" class="diff-col"><strong>-</strong></td></tr>
+            <tr><td><strong>Impacte total</strong></td><td colspan="3" id="impactoTotal">-</td></tr>
           </tbody>
         </table>
         <div style="margin-top:8px;">
@@ -365,11 +403,55 @@
           $('cashDespues').textContent = formatEUR(res.after.cash);
           $('totalDespues').textContent = formatEUR(res.after.total);
 
+          // calcular i mostrar diferències per fila
+          const rvDiff = res.after.rv - res.before.rv;
+          const rfDiff = res.after.rf - res.before.rf;
+          const cashDiff = res.after.cash - res.before.cash;
+          const totalDiff = res.after.total - res.before.total;
+
+          function setDiff(id, val){
+            try{
+              const el = $(id);
+              if(!el) return;
+              // netejar classes
+              el.classList.remove('diff-pos','diff-neg');
+              const text = (val >= 0 ? '+' : '-') + formatEUR(Math.abs(val));
+              el.textContent = text;
+              if(val >= 0) el.classList.add('diff-pos'); else el.classList.add('diff-neg');
+            }catch(e){ console.log('setDiff error', id, e); }
+          }
+
+          setDiff('rvDiff', rvDiff);
+          setDiff('rfDiff', rfDiff);
+          setDiff('cashDiff', cashDiff);
+          setDiff('totalDiff', totalDiff);
+
           const impactoEl = $('impactoTotal');
           const sign = res.impacto >= 0 ? '+' : '-';
           impactoEl.textContent = formatEUR(res.impacto) + ` (${sign}${(Math.abs(res.impacto)/Math.max(1,res.before.total)*100).toFixed(2)}%)`;
+          // marcar color d'impacte
+          try{
+            impactoEl.classList.remove('sim-impact--pos','sim-impact--neg');
+            if (res.impacto >= 0) impactoEl.classList.add('sim-impact--pos'); else impactoEl.classList.add('sim-impact--neg');
+            // també destacar totalDiff visualment
+            try{ const td = $('totalDiff'); if(td){ td.classList.remove('diff-pos','diff-neg'); if(totalDiff >= 0) td.classList.add('diff-pos'); else td.classList.add('diff-neg'); } }catch(e){}
+          }catch(e){ }
+          // marcar color d'impacte
+          try{
+            impactoEl.classList.remove('sim-impact--pos','sim-impact--neg');
+            if (res.impacto >= 0) impactoEl.classList.add('sim-impact--pos'); else impactoEl.classList.add('sim-impact--neg');
+          }catch(e){ }
 
-          $('simResultado').style.display = 'block';
+          // mostrar i animar el bloc de resultats (flash)
+          const wrap = $('simResultado');
+          if (wrap){
+            wrap.style.display = 'block';
+            wrap.classList.remove('flash');
+            // trigger reflow to restart animation
+            void wrap.offsetWidth;
+            wrap.classList.add('flash');
+            setTimeout(()=>{ try{ wrap.classList.remove('flash'); }catch(e){} }, 900);
+          }
         }catch(e){ console.log('renderResultado: selector missing', e); }
       }
 
