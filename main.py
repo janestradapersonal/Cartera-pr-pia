@@ -457,6 +457,24 @@ def debug_user(username: str, db: Session = Depends(get_db)):
     return { 'username': usuario.username, 'premium': bool(usuario.premium), 'cancel_pending': bool(usuario.cancel_pending), 'subscription_period_end': int(usuario.subscription_period_end) if usuario.subscription_period_end else None }
 
 
+@app.get('/api/debug/routes')
+def debug_routes():
+    """Devuelve la lista de rutas registradas (path + methods) para debug en producción."""
+    out = []
+    try:
+        for r in app.routes:
+            methods = None
+            try:
+                methods = list(r.methods) if getattr(r, 'methods', None) else None
+            except Exception:
+                methods = None
+            path = getattr(r, 'path', None) or getattr(r, 'name', None) or str(r)
+            out.append({'path': path, 'methods': methods})
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
+    return out
+
+
 @app.post('/stripe/webhook')
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """Webhook para procesar eventos de Stripe y marcar `premium=True`.
@@ -1014,6 +1032,21 @@ def require_roles(usuario, allowed_roles):
     return r in allowed_roles
 
 
+# Dependency factory para verificar roles vía Depends
+from typing import List
+
+def require_roles_dependency(allowed_roles: List[str]):
+    def dependency(request: Request, db: Session = Depends(get_db)):
+        usuario = get_authenticated_user_from_headers(request, db)
+        if not usuario:
+            raise HTTPException(status_code=401, detail='No autorizado')
+        r = normalize_role(usuario.role if hasattr(usuario, 'role') else None)
+        if r not in allowed_roles:
+            raise HTTPException(status_code=403, detail='Rol insuficiente')
+        return usuario
+    return dependency
+
+
 # --- Endpoints del foro ---
 class ForumQuestionCreate(BaseModel):
     title: str
@@ -1101,6 +1134,74 @@ def delete_forum_answer(aid: int, request: Request = None, db: Session = Depends
         raise HTTPException(status_code=401, detail='No autorizado')
     if not require_roles(usuario, {Role.ADMINISTRADOR}):
         raise HTTPException(status_code=403, detail='Rol insuficiente')
+    a = db.query(ForumAnswer).filter(ForumAnswer.id == aid).first()
+    if not a:
+        raise HTTPException(status_code=404, detail='Respuesta no encontrada')
+    a.deleted_at = func.now()
+    db.add(a)
+    db.commit()
+    return {'ok': True}
+
+
+# Rutas en español solicitadas (/api/foro/...)
+@app.get('/api/foro/preguntas')
+def listar_preguntas(db: Session = Depends(get_db)):
+    qs = db.query(ForumQuestion).filter(ForumQuestion.deleted_at == None).order_by(ForumQuestion.created_at.desc()).all()
+    out = []
+    for q in qs:
+        cnt = db.query(ForumAnswer).filter(ForumAnswer.question_id == q.id, ForumAnswer.deleted_at == None).count()
+        out.append({'id': q.id, 'title': q.title, 'body': q.body, 'author_username': q.author_username, 'created_at': q.created_at.isoformat() if q.created_at else None, 'answers_count': cnt})
+    return out
+
+
+@app.get('/api/foro/preguntas/{qid}')
+def obtener_pregunta(qid: int, db: Session = Depends(get_db)):
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid, ForumQuestion.deleted_at == None).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    answers = db.query(ForumAnswer).filter(ForumAnswer.question_id == q.id, ForumAnswer.deleted_at == None).order_by(ForumAnswer.created_at.asc()).all()
+    ans_out = [{'id': a.id, 'body': a.body, 'author_username': a.author_username, 'created_at': a.created_at.isoformat() if a.created_at else None} for a in answers]
+    return {'question': {'id': q.id, 'title': q.title, 'body': q.body, 'author_username': q.author_username, 'created_at': q.created_at.isoformat() if q.created_at else None}, 'answers': ans_out}
+
+
+@app.post('/api/foro/preguntas')
+@app.api_route('/api/foro/preguntas/', methods=['POST'])
+def crear_pregunta(payload: ForumQuestionCreate, usuario: Usuario = Depends(require_roles_dependency([Role.MIEMBRO, Role.COLABORADOR, Role.ADMINISTRADOR])), db: Session = Depends(get_db)):
+    q = ForumQuestion(title=payload.title, body=payload.body, author_username=usuario.username)
+    db.add(q)
+    db.commit()
+    db.refresh(q)
+    return {'ok': True, 'id': q.id}
+
+
+@app.post('/api/foro/preguntas/{qid}/respuestas')
+@app.api_route('/api/foro/preguntas/{qid}/respuestas/', methods=['POST'])
+def crear_respuesta(qid: int, payload: ForumAnswerCreate, usuario: Usuario = Depends(require_roles_dependency([Role.COLABORADOR, Role.ADMINISTRADOR])), db: Session = Depends(get_db)):
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid, ForumQuestion.deleted_at == None).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    a = ForumAnswer(question_id=q.id, body=payload.body, author_username=usuario.username)
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return {'ok': True, 'id': a.id}
+
+
+@app.delete('/api/foro/preguntas/{qid}')
+@app.api_route('/api/foro/preguntas/{qid}/', methods=['DELETE'])
+def eliminar_pregunta(qid: int, usuario: Usuario = Depends(require_roles_dependency([Role.ADMINISTRADOR])), db: Session = Depends(get_db)):
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    q.deleted_at = func.now()
+    db.add(q)
+    db.commit()
+    return {'ok': True}
+
+
+@app.delete('/api/foro/respuestas/{aid}')
+@app.api_route('/api/foro/respuestas/{aid}/', methods=['DELETE'])
+def eliminar_respuesta(aid: int, usuario: Usuario = Depends(require_roles_dependency([Role.ADMINISTRADOR])), db: Session = Depends(get_db)):
     a = db.query(ForumAnswer).filter(ForumAnswer.id == aid).first()
     if not a:
         raise HTTPException(status_code=404, detail='Respuesta no encontrada')
