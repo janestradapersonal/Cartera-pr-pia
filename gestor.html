@@ -160,6 +160,50 @@
     </section>
   </div>
 
+    <!-- Simulador d'escenaris del mercat -->
+    <section class="bloque" id="simuladorEscenarios" style="margin-top:24px;">
+      <h2>Simula escenaris del mercat</h2>
+      <p class="muted">Això és una simulació, no una predicció.</p>
+      <p style="font-weight:600; color:#b71c1c;">Simulació (no guarda canvis)</p>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+        <div class="card" style="flex:1 1 280px; padding:12px; border:1px solid #ddd; border-radius:8px;">
+          <h3>Aranzels de Trump (crisi)</h3>
+          <p>Escenari: Renda variable -30%, Renta fixa -2%, Colchó 0%.</p>
+          <div style="margin-top:8px;">
+            <button id="btnEscenarioCrisis" class="btn">Aplicar escenari</button>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1 1 280px; padding:12px; border:1px solid #ddd; border-radius:8px;">
+          <h3>Creixement econòmic global</h3>
+          <p>Escenari: Renda variable +25%, Renta fixa +3%, Colchó 0%.</p>
+          <div style="margin-top:8px;">
+            <button id="btnEscenarioGrowth" class="btn">Aplicar escenari</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="simResultado" style="margin-top:18px; border-top:1px solid #eee; padding-top:12px; display:none;">
+        <h3>Abans vs Després</h3>
+        <table class="tabla" id="tablaSim">
+          <thead>
+            <tr><th>Classe</th><th>Abans</th><th>Després</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Renda variable</td><td id="rvAntes">-</td><td id="rvDespues">-</td></tr>
+            <tr><td>Renta fixa</td><td id="rfAntes">-</td><td id="rfDespues">-</td></tr>
+            <tr><td>Colchó</td><td id="cashAntes">-</td><td id="cashDespues">-</td></tr>
+            <tr><td><strong>Total</strong></td><td id="totalAntes"><strong>-</strong></td><td id="totalDespues"><strong>-</strong></td></tr>
+            <tr><td><strong>Impacte total</strong></td><td colspan="2" id="impactoTotal">-</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;">
+          <button id="btnResetSim" class="btn">Reiniciar</button>
+        </div>
+      </div>
+    </section>
+
   <!-- Carrusel móvil y scripts (igual que antes) -->
   <div class="carrusel-graficos" aria-hidden="true">
     <div class="slides" id="slidesGraficos">
@@ -247,6 +291,132 @@
 
   <script src="scripts.js"></script>
   <script src="nav.js"></script>
+  <script>
+    // Simulador d'escenaris — no persisteix res, només UI
+    (function(){
+      const $ = id => document.getElementById(id);
+
+      function formatEUR(val){
+        try{ return (Number(val) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }); }catch(e){ return '€0,00'; }
+      }
+
+      function safeNum(v){ return (typeof v === 'number') ? v : (v ? Number(v) : 0); }
+
+      // Aplica l'escenari al patrimoni i retorna objecte amb abans/després i impactes
+      function applyScenario(patrimonio, pct){
+        // patrimonio: { global: { colchon, fija, variable } } o pla
+        const rvBefore = safeNum((patrimonio && patrimonio.global && patrimonio.global.variable) || patrimonio.variable || patrimonio.rv || 0);
+        const rfBefore = safeNum((patrimonio && patrimonio.global && patrimonio.global.fija) || patrimonio.fija || patrimonio.rf || 0);
+        const cashBefore = safeNum((patrimonio && patrimonio.global && patrimonio.global.colchon) || patrimonio.colchon || patrimonio.cash || 0);
+
+        const rvAfter = rvBefore * (1 + (pct.rv || 0));
+        const rfAfter = rfBefore * (1 + (pct.rf || 0));
+        const cashAfter = cashBefore * (1 + (pct.cash || 0));
+
+        const totalAntes = rvBefore + rfBefore + cashBefore;
+        const totalDespues = rvAfter + rfAfter + cashAfter;
+        const impacto = totalDespues - totalAntes;
+
+        return {
+          before: { rv: rvBefore, rf: rfBefore, cash: cashBefore, total: totalAntes },
+          after: { rv: rvAfter, rf: rfAfter, cash: cashAfter, total: totalDespues },
+          impacto: impacto
+        };
+      }
+
+      function readPatrimonioFromDOM(){
+        // Mapatge explícit als inputs únics de la pàgina: evitar heurístiques
+        try{
+          // Preferir la funció global si està disponible
+          if (window.readWalletData && typeof window.readWalletData === 'function'){
+            const w = window.readWalletData();
+            // assegurar que té la forma esperada
+            if (w && w.global) return w;
+          }
+        }catch(e){ console.log('readPatrimonioFromDOM: readWalletData not available'); }
+
+        try{
+          const rvInput = document.querySelector('.importe-global[data-categoria="variable"]');
+          const rfInput = document.querySelector('.importe-global[data-categoria="fija"]');
+          const cashInput = document.querySelector('.importe-global[data-categoria="colchon"]');
+
+          if (!rvInput || !rfInput || !cashInput){
+            console.log('readPatrimonioFromDOM: expected inputs not found', { rvInput, rfInput, cashInput });
+            return { global: { variable:0, fija:0, colchon:0 } };
+          }
+
+          const rv = Number(rvInput.value) || 0;
+          const rf = Number(rfInput.value) || 0;
+          const cash = Number(cashInput.value) || 0;
+
+          return { global: { variable: rv, fija: rf, colchon: cash } };
+        }catch(e){ console.log('readPatrimonioFromDOM error', e); return { global: { variable:0, fija:0, colchon:0 } }; }
+      }
+
+      function renderResultado(res){
+        try{
+          $('rvAntes').textContent = formatEUR(res.before.rv);
+          $('rfAntes').textContent = formatEUR(res.before.rf);
+          $('cashAntes').textContent = formatEUR(res.before.cash);
+          $('totalAntes').textContent = formatEUR(res.before.total);
+
+          $('rvDespues').textContent = formatEUR(res.after.rv);
+          $('rfDespues').textContent = formatEUR(res.after.rf);
+          $('cashDespues').textContent = formatEUR(res.after.cash);
+          $('totalDespues').textContent = formatEUR(res.after.total);
+
+          const impactoEl = $('impactoTotal');
+          const sign = res.impacto >= 0 ? '+' : '-';
+          impactoEl.textContent = formatEUR(res.impacto) + ` (${sign}${(Math.abs(res.impacto)/Math.max(1,res.before.total)*100).toFixed(2)}%)`;
+
+          $('simResultado').style.display = 'block';
+        }catch(e){ console.log('renderResultado: selector missing', e); }
+      }
+
+      function resetResultado(){
+        try{
+          $('rvDespues').textContent = '-'; $('rfDespues').textContent = '-'; $('cashDespues').textContent = '-';
+          $('rvAntes').textContent = '-'; $('rfAntes').textContent = '-'; $('cashAntes').textContent = '-';
+          $('totalAntes').textContent = '<strong>-</strong>'; $('totalDespues').textContent = '<strong>-</strong>';
+          $('impactoTotal').textContent = '-';
+          $('simResultado').style.display = 'none';
+        }catch(e){ console.log('resetResultado: selector missing', e); }
+      }
+
+      // Handlers
+      try{
+        const btnCrisis = $('btnEscenarioCrisis');
+        const btnGrowth = $('btnEscenarioGrowth');
+        const btnReset = $('btnResetSim');
+        if(!btnCrisis || !btnGrowth || !btnReset){ console.log('Simulador selectors not found', {btnCrisis, btnGrowth, btnReset}); }
+
+        btnCrisis && btnCrisis.addEventListener('click', ()=>{
+          const patrimonio = readPatrimonioFromDOM();
+          const rv = (patrimonio && patrimonio.global && patrimonio.global.variable) || 0;
+          const rf = (patrimonio && patrimonio.global && patrimonio.global.fija) || 0;
+          const cash = (patrimonio && patrimonio.global && patrimonio.global.colchon) || 0;
+          console.log('Sim input', { rv, rf, cash });
+          const scenario = { rv: -0.30, rf: -0.02, cash: 0 };
+          const res = applyScenario(patrimonio, scenario);
+          renderResultado(res);
+        });
+
+        btnGrowth && btnGrowth.addEventListener('click', ()=>{
+          const patrimonio = readPatrimonioFromDOM();
+          const rv = (patrimonio && patrimonio.global && patrimonio.global.variable) || 0;
+          const rf = (patrimonio && patrimonio.global && patrimonio.global.fija) || 0;
+          const cash = (patrimonio && patrimonio.global && patrimonio.global.colchon) || 0;
+          console.log('Sim input', { rv, rf, cash });
+          const scenario = { rv: 0.25, rf: 0.03, cash: 0 };
+          const res = applyScenario(patrimonio, scenario);
+          renderResultado(res);
+        });
+
+        btnReset && btnReset.addEventListener('click', ()=>{ resetResultado(); });
+      }catch(e){ console.log('attach simulador handlers error', e); }
+
+    })();
+  </script>
   <script>
     // Handler para el botón GUARDAR: recoge datos y hace POST a /guardar
     (function(){
