@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Boolean, DateTime, func, Text
 from sqlalchemy.exc import OperationalError, IntegrityError
 from fastapi.responses import JSONResponse
 import secrets
@@ -128,6 +128,27 @@ class DatoUsuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     contenido = Column(JSONB)
+
+
+# Modelos para el foro
+class ForumQuestion(Base):
+    __tablename__ = 'forum_questions'
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    body = Column(Text)
+    author_username = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ForumAnswer(Base):
+    __tablename__ = 'forum_answers'
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey('forum_questions.id', ondelete='CASCADE'))
+    body = Column(Text, nullable=False)
+    author_username = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class PendingUser(Base):
@@ -972,3 +993,118 @@ def reject_role_request(req_id: int, token: str, db: Session = Depends(get_db)):
         logging.exception('Error sending decision email to user')
 
     return {'ok': True, 'message': 'Solicitud rechazada'}
+
+
+# Helpers de autenticación para el foro
+def get_authenticated_user_from_headers(request: Request, db: Session):
+    username = request.headers.get('x-username') or request.query_params.get('username')
+    password = request.headers.get('x-password') or request.query_params.get('password')
+    if not username or not password:
+        return None
+    usuario = db.query(Usuario).filter(Usuario.username == username).first()
+    if not usuario or not pwd_context.verify(password, usuario.password_hash):
+        return None
+    return usuario
+
+
+def require_roles(usuario, allowed_roles):
+    if not usuario:
+        return False
+    r = normalize_role(usuario.role if hasattr(usuario, 'role') else None)
+    return r in allowed_roles
+
+
+# --- Endpoints del foro ---
+class ForumQuestionCreate(BaseModel):
+    title: str
+    body: str = None
+
+
+class ForumAnswerCreate(BaseModel):
+    body: str
+
+
+@app.get('/api/forum/questions')
+def list_forum_questions(db: Session = Depends(get_db)):
+    # público: listar preguntas no eliminadas con contador de respuestas activas
+    qs = db.query(ForumQuestion).filter(ForumQuestion.deleted_at == None).order_by(ForumQuestion.created_at.desc()).all()
+    out = []
+    for q in qs:
+        cnt = db.query(ForumAnswer).filter(ForumAnswer.question_id == q.id, ForumAnswer.deleted_at == None).count()
+        out.append({'id': q.id, 'title': q.title, 'body': q.body, 'author': q.author_username, 'created_at': q.created_at.isoformat() if q.created_at else None, 'answers_count': cnt})
+    return out
+
+
+@app.get('/api/forum/questions/{qid}')
+def get_forum_question(qid: int, db: Session = Depends(get_db)):
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid, ForumQuestion.deleted_at == None).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    answers = db.query(ForumAnswer).filter(ForumAnswer.question_id == q.id, ForumAnswer.deleted_at == None).order_by(ForumAnswer.created_at.asc()).all()
+    ans_out = [{'id': a.id, 'body': a.body, 'author': a.author_username, 'created_at': a.created_at.isoformat() if a.created_at else None} for a in answers]
+    return {'question': {'id': q.id, 'title': q.title, 'body': q.body, 'author': q.author_username, 'created_at': q.created_at.isoformat() if q.created_at else None}, 'answers': ans_out}
+
+
+@app.post('/api/forum/questions')
+def create_forum_question(payload: ForumQuestionCreate, request: Request = None, db: Session = Depends(get_db)):
+    usuario = get_authenticated_user_from_headers(request, db)
+    if not usuario:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    # roles permitidos: MIEMBRO, COLABORADOR, ADMINISTRADOR
+    if not require_roles(usuario, {Role.MIEMBRO, Role.COLABORADOR, Role.ADMINISTRADOR}):
+        raise HTTPException(status_code=403, detail='Rol insuficiente')
+    q = ForumQuestion(title=payload.title, body=payload.body, author_username=usuario.username)
+    db.add(q)
+    db.commit()
+    db.refresh(q)
+    return {'ok': True, 'id': q.id}
+
+
+@app.post('/api/forum/questions/{qid}/answers')
+def create_forum_answer(qid: int, payload: ForumAnswerCreate, request: Request = None, db: Session = Depends(get_db)):
+    usuario = get_authenticated_user_from_headers(request, db)
+    if not usuario:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    # solo COLABORADOR y ADMIN pueden responder
+    if not require_roles(usuario, {Role.COLABORADOR, Role.ADMINISTRADOR}):
+        raise HTTPException(status_code=403, detail='Rol insuficiente')
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid, ForumQuestion.deleted_at == None).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    a = ForumAnswer(question_id=q.id, body=payload.body, author_username=usuario.username)
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return {'ok': True, 'id': a.id}
+
+
+@app.delete('/api/forum/questions/{qid}')
+def delete_forum_question(qid: int, request: Request = None, db: Session = Depends(get_db)):
+    usuario = get_authenticated_user_from_headers(request, db)
+    if not usuario:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    if not require_roles(usuario, {Role.ADMINISTRADOR}):
+        raise HTTPException(status_code=403, detail='Rol insuficiente')
+    q = db.query(ForumQuestion).filter(ForumQuestion.id == qid).first()
+    if not q:
+        raise HTTPException(status_code=404, detail='Pregunta no encontrada')
+    q.deleted_at = func.now()
+    db.add(q)
+    db.commit()
+    return {'ok': True}
+
+
+@app.delete('/api/forum/answers/{aid}')
+def delete_forum_answer(aid: int, request: Request = None, db: Session = Depends(get_db)):
+    usuario = get_authenticated_user_from_headers(request, db)
+    if not usuario:
+        raise HTTPException(status_code=401, detail='No autorizado')
+    if not require_roles(usuario, {Role.ADMINISTRADOR}):
+        raise HTTPException(status_code=403, detail='Rol insuficiente')
+    a = db.query(ForumAnswer).filter(ForumAnswer.id == aid).first()
+    if not a:
+        raise HTTPException(status_code=404, detail='Respuesta no encontrada')
+    a.deleted_at = func.now()
+    db.add(a)
+    db.commit()
+    return {'ok': True}

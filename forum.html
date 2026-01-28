@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Foro — SenzillamentFinances</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Foro público</h1>
+    <div id="forum-controls"></div>
+    <div id="forum-container"></div>
+  </main>
+
+  <script>
+  const API_URL = window.API_URL || 'https://cartera-pr-pia.onrender.com';
+
+  async function getCurrentUser() {
+    const username = sessionStorage.getItem('usuario_actual');
+    const pass = sessionStorage.getItem('pass_actual');
+    if (!username || !pass) return null;
+    try {
+      const resp = await fetch(API_URL + '/me', { headers: { 'x-username': username, 'x-password': pass } });
+      if (!resp.ok) return null;
+      const j = await resp.json(); return j;
+    } catch(e) { return null; }
+  }
+
+  function renderQuestionList(questions, role) {
+    const container = document.getElementById('forum-container');
+    container.innerHTML = '';
+    const ul = document.createElement('ul');
+    ul.className = 'forum-list';
+    questions.forEach(q => {
+      const li = document.createElement('li');
+      li.innerHTML = `<h3>${escapeHtml(q.title)}</h3>
+                      <p>${escapeHtml(q.body || '')}</p>
+                      <div>by ${escapeHtml(q.author)} · ${q.answers_count} respuestas</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'forum-actions';
+      const viewBtn = document.createElement('button'); viewBtn.textContent = 'Ver';
+      viewBtn.addEventListener('click', ()=> showQuestionDetail(q.id, role));
+      actions.appendChild(viewBtn);
+      if (role === 'COLABORADOR' || role === 'ADMINISTRADOR') {
+        const answerBtn = document.createElement('button'); answerBtn.textContent = 'Responder';
+        answerBtn.addEventListener('click', ()=> showAnswerForm(q.id));
+        actions.appendChild(answerBtn);
+      }
+      if (role === 'ADMINISTRADOR') {
+        const delBtn = document.createElement('button'); delBtn.textContent = 'Eliminar';
+        delBtn.addEventListener('click', ()=> deleteQuestion(q.id));
+        actions.appendChild(delBtn);
+      }
+      li.appendChild(actions);
+      ul.appendChild(li);
+    });
+    container.appendChild(ul);
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"]+/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+  async function loadQuestionsAndRender() {
+    try {
+      const resp = await fetch(API_URL + '/api/forum/questions');
+      if (!resp.ok) throw new Error('No se pudo listar');
+      const qs = await resp.json();
+      const me = await getCurrentUser();
+      const role = me && me.role ? me.role : null;
+      renderForumControls(role);
+      renderQuestionList(qs, role);
+    } catch(e) { console.error('loadQuestions error', e); document.getElementById('forum-container').innerText = 'Error cargando foro'; }
+  }
+
+  function renderForumControls(role) {
+    const c = document.getElementById('forum-controls');
+    c.innerHTML = '';
+    if (role === 'MIEMBRO' || role === 'COLABORADOR' || role === 'ADMINISTRADOR') {
+      const btn = document.createElement('button'); btn.textContent = 'Nueva Pregunta';
+      btn.addEventListener('click', ()=> showNewQuestionForm());
+      c.appendChild(btn);
+    } else {
+      const p = document.createElement('p'); p.innerHTML = 'Inicia sesión para participar en el foro.'; c.appendChild(p);
+    }
+  }
+
+  function showNewQuestionForm(){
+    const container = document.getElementById('forum-container');
+    container.innerHTML = `
+      <h2>Nueva pregunta</h2>
+      <label>Título<br><input id="fq-title"></label><br>
+      <label>Texto<br><textarea id="fq-body"></textarea></label><br>
+      <button id="fq-submit">Enviar</button>
+      <button id="fq-cancel">Cancelar</button>
+    `;
+    document.getElementById('fq-cancel').addEventListener('click', loadQuestionsAndRender);
+    document.getElementById('fq-submit').addEventListener('click', async ()=>{
+      const title = document.getElementById('fq-title').value.trim();
+      const body = document.getElementById('fq-body').value.trim();
+      const username = sessionStorage.getItem('usuario_actual'); const pass = sessionStorage.getItem('pass_actual');
+      if (!username || !pass) { alert('Inicia sesión'); return; }
+      try {
+        const resp = await fetch(API_URL + '/api/forum/questions', { method: 'POST', headers: {'Content-Type':'application/json','x-username':username,'x-password':pass}, body: JSON.stringify({title, body}) });
+        if (!resp.ok) { alert('Error creando pregunta'); return; }
+        await loadQuestionsAndRender();
+      } catch(e){ alert('Error'); }
+    });
+  }
+
+  async function showQuestionDetail(id, role){
+    try {
+      const resp = await fetch(API_URL + '/api/forum/questions/' + id);
+      if (!resp.ok) { alert('No encontrada'); return; }
+      const j = await resp.json();
+      const container = document.getElementById('forum-container');
+      container.innerHTML = `<h2>${escapeHtml(j.question.title)}</h2><p>${escapeHtml(j.question.body||'')}</p><div id="answers"></div><div id="answer-form"></div><button id="back">Volver</button>`;
+      document.getElementById('back').addEventListener('click', loadQuestionsAndRender);
+      const answersDiv = document.getElementById('answers');
+      j.answers.forEach(a=>{
+        const el = document.createElement('div'); el.className='answer'; el.innerHTML = `<p>${escapeHtml(a.body)}</p><small>by ${escapeHtml(a.author)}</small>`;
+        if (role === 'ADMINISTRADOR'){
+          const del = document.createElement('button'); del.textContent='Eliminar'; del.addEventListener('click', ()=> deleteAnswer(a.id)); el.appendChild(del);
+        }
+        answersDiv.appendChild(el);
+      });
+      if (role === 'COLABORADOR' || role === 'ADMINISTRADOR') showAnswerForm(id);
+    } catch(e){ console.error(e); }
+  }
+
+  function showAnswerForm(qid){
+    const f = document.getElementById('answer-form') || document.createElement('div');
+    f.id = 'answer-form';
+    f.innerHTML = `<h3>Responder</h3><textarea id="answer-body"></textarea><br><button id="answer-submit">Enviar</button>`;
+    document.getElementById('forum-container').appendChild(f);
+    document.getElementById('answer-submit').addEventListener('click', async ()=>{
+      const body = document.getElementById('answer-body').value.trim();
+      const username = sessionStorage.getItem('usuario_actual'); const pass = sessionStorage.getItem('pass_actual');
+      if (!username || !pass) { alert('Inicia sesión'); return; }
+      try {
+        const resp = await fetch(API_URL + '/api/forum/questions/' + qid + '/answers', { method: 'POST', headers: {'Content-Type':'application/json','x-username':username,'x-password':pass}, body: JSON.stringify({ body }) });
+        if (!resp.ok) { alert('Error al responder'); return; }
+        await showQuestionDetail(qid, (await getCurrentUser()).role);
+      } catch(e){ alert('Error'); }
+    });
+  }
+
+  async function deleteQuestion(qid){
+    if (!confirm('Eliminar pregunta?')) return;
+    const username = sessionStorage.getItem('usuario_actual'); const pass = sessionStorage.getItem('pass_actual');
+    const resp = await fetch(API_URL + '/api/forum/questions/' + qid, { method: 'DELETE', headers: {'x-username':username,'x-password':pass} });
+    if (!resp.ok) { alert('Error al eliminar'); return; }
+    await loadQuestionsAndRender();
+  }
+
+  async function deleteAnswer(aid){
+    if (!confirm('Eliminar respuesta?')) return;
+    const username = sessionStorage.getItem('usuario_actual'); const pass = sessionStorage.getItem('pass_actual');
+    const resp = await fetch(API_URL + '/api/forum/answers/' + aid, { method: 'DELETE', headers: {'x-username':username,'x-password':pass} });
+    if (!resp.ok) { alert('Error al eliminar'); return; }
+    await loadQuestionsAndRender();
+  }
+
+  // cargar al inicio
+  document.addEventListener('DOMContentLoaded', ()=>{ loadQuestionsAndRender(); });
+  </script>
+</body>
+</html>
