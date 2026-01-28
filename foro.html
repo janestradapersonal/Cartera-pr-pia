@@ -138,6 +138,10 @@
       let currentUser = sessionStorage.getItem('usuario_actual');
       let currentRole = null; // MIEMBRO, COLABORADOR, ADMINISTRADOR
 
+      function canReply(role){ return role === 'COLABORADOR' || role === 'ADMINISTRADOR'; }
+      function canDelete(role){ return role === 'ADMINISTRADOR'; }
+      function canAsk(role){ return role === 'MIEMBRO' || role === 'COLABORADOR' || role === 'ADMINISTRADOR'; }
+
       async function fetchRole(){
         currentUser = sessionStorage.getItem('usuario_actual');
         const pass = sessionStorage.getItem('pass_actual');
@@ -163,7 +167,8 @@
           const el = document.createElement('div'); el.className='question-card';
           const title = document.createElement('h4'); title.textContent = q.title; title.style.cursor='pointer';
           title.addEventListener('click', ()=> showQuestionDetail(q.id));
-          const meta = document.createElement('div'); meta.className='q-meta'; meta.textContent = `Por ${q.author_username} · ${new Date(q.created_at).toLocaleString()}`;
+          const author = q.author_username || q.author || q.username || 'Anónimo';
+          const meta = document.createElement('div'); meta.className='q-meta'; meta.textContent = `Por ${author} · ${new Date(q.created_at).toLocaleString()}`;
           const cnt = document.createElement('div'); cnt.className='muted'; cnt.textContent = `${q.answers_count || 0} respuestas`;
           el.appendChild(title); el.appendChild(meta); el.appendChild(cnt);
           wrap.appendChild(el);
@@ -182,31 +187,36 @@
           const rwrap = $('respuestas'); rwrap.innerHTML = '';
           answers.forEach(a=>{
             const d = document.createElement('div'); d.className='answer';
-            const header = document.createElement('div'); header.className='q-meta'; header.textContent = `${a.author_username} · ${new Date(a.created_at).toLocaleString()}`;
+            const author = a.author_username || a.author || a.username || 'Anónimo';
+            const header = document.createElement('div'); header.className='q-meta'; header.textContent = `${author} · ${new Date(a.created_at).toLocaleString()}`;
             const body = document.createElement('div'); body.textContent = a.body;
             d.appendChild(header); d.appendChild(body);
             // eliminar si admin
-            if (currentRole === 'ADMINISTRADOR'){
+            if (canDelete(currentRole)){
               const del = document.createElement('button'); del.className='btn btn-borrar'; del.textContent='Eliminar';
               del.addEventListener('click', ()=> eliminarRespuesta(a.id)); d.appendChild(del);
             }
             rwrap.appendChild(d);
           });
           // responder botón
-          const canRespond = (currentRole === 'COLABORADOR' || currentRole === 'ADMINISTRADOR');
           const respondBoxId = 'respond-box-' + id;
-          let rb = document.getElementById(respondBoxId);
-          if (!rb){ rb = document.createElement('div'); rb.id = respondBoxId; rb.style.marginTop='8px';
-            const ta = document.createElement('textarea'); ta.id = respondBoxId + '-ta'; ta.placeholder = 'Escribe tu respuesta...'; ta.style.width='100%';
-            const btn = document.createElement('button'); btn.className='btn'; btn.textContent='Responder'; btn.style.marginTop='6px';
-            btn.disabled = !canRespond;
-            btn.addEventListener('click', ()=> crearRespuesta(id, document.getElementById(ta.id).value));
-            rb.appendChild(ta); rb.appendChild(btn);
-            if (currentRole === 'ADMINISTRADOR'){
-              const delQ = document.createElement('button'); delQ.className='btn btn-borrar'; delQ.textContent='Eliminar pregunta'; delQ.style.marginLeft='8px';
-              delQ.addEventListener('click', ()=> eliminarPregunta(id)); rb.appendChild(delQ);
+          // Sólo crear el cuadro de responder si el rol actual té permisos de resposta
+          if (canReply(currentRole)){
+            let rb = document.getElementById(respondBoxId);
+            if (!rb){ rb = document.createElement('div'); rb.id = respondBoxId; rb.style.marginTop='8px';
+              const ta = document.createElement('textarea'); ta.id = respondBoxId + '-ta'; ta.placeholder = 'Escribe tu respuesta...'; ta.style.width='100%';
+              const btn = document.createElement('button'); btn.className='btn'; btn.textContent='Responder'; btn.style.marginTop='6px';
+              btn.addEventListener('click', ()=> crearRespuesta(id, document.getElementById(ta.id).value));
+              rb.appendChild(ta); rb.appendChild(btn);
+              if (canDelete(currentRole)){
+                const delQ = document.createElement('button'); delQ.className='btn btn-borrar'; delQ.textContent='Eliminar pregunta'; delQ.style.marginLeft='8px';
+                delQ.addEventListener('click', ()=> eliminarPregunta(id)); rb.appendChild(delQ);
+              }
+              $('respuestas').appendChild(rb);
             }
-            $('respuestas').appendChild(rb);
+          } else {
+            // asegurarnos que no queda un respond box si no té permisos
+            const existing = document.getElementById(respondBoxId); if (existing) existing.remove();
           }
           $('detallePregunta').style.display = 'block';
         }catch(err){ console.log('Error mostrando detalle', err); }
