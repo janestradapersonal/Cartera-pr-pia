@@ -26,7 +26,16 @@
     .sim-btn--growth{ background:#2e7d32; color:#fff; }
     .sim-btn--growth:hover{ background:#1b5e20; }
     .sim-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    /* Fix column widths so headers align with cells */
+    .sim-table{ table-layout:fixed; }
+    .sim-table col.col-classe{ width:40%; }
+    .sim-table col.col-val{ width:18%; }
+    .sim-table col.col-pct{ width:12%; }
+    .sim-table col.col-diff{ width:12%; }
     .sim-table thead th{ background:#263238; color:#fff; padding:8px 10px; text-align:left; }
+    .sim-table thead th.pct-col{ text-align:center; }
+    .sim-table thead th.val-col{ text-align:center; }
+    .sim-table thead th.diff-col{ text-align:right; }
     .sim-table tbody tr:nth-child(odd){ background:#fff; }
     .sim-table tbody tr:nth-child(even){ background:#fafafa; }
     .sim-table tbody tr:hover{ background:#f1f8ff; }
@@ -39,6 +48,15 @@
     .diff-pos:hover{ color:#16a34a; }
     .diff-neg{ color:#ef4444; }
     .diff-neg:hover{ color:#dc2626; }
+    /* Percentage column: centered and colored */
+    .pct-col{ text-align:center; font-weight:700; }
+    /* Center numeric value columns (Abans / Després) */
+    .val-col{ text-align:center; }
+    .sim-table thead th.val-col{ text-align:center; }
+    .pct-pos{ color:#22c55e; }
+    .pct-pos:hover{ color:#16a34a; }
+    .pct-neg{ color:#ef4444; }
+    .pct-neg:hover{ color:#dc2626; }
     /* Impacto total emphasis */
     #impactoTotal{ font-size:1.05rem; font-weight:800; }
     /* flash animation */
@@ -207,7 +225,7 @@
       <div class="sim-grid" style="margin-top:12px;">
         <div class="sim-card sim-card--crisis">
           <h3>Aranzels de Trump <span class="sim-badge sim-badge--neg">-30%</span></h3>
-          <p>Escenari: Renda variable -30%, Renta fixa -2%, Colchó 0%.</p>
+          <p>Aquí la renda variable baixa molt (-30%) perquè els mercats reaccionen a aranzels i incertesa; la renda fixa només varia lleugerament (-2%) perquè té menys volatilitat, i el colchó es manté estable.</p>
           <div style="margin-top:8px;">
             <button id="btnEscenarioCrisis" class="sim-btn sim-btn--crisis">Aplicar escenari</button>
           </div>
@@ -215,7 +233,7 @@
 
         <div class="sim-card sim-card--growth">
           <h3>Creixement econòmic global <span class="sim-badge sim-badge--pos">+25%</span></h3>
-          <p>Escenari: Renda variable +25%, Renta fixa +3%, Colchó 0%.</p>
+          <p>Aquí la renda variable puja fort (+25%) per un impuls global i millora de beneficis; la renda fixa puja lleugerament (+3%) i el colchó romandrà sense canvi.</p>
           <div style="margin-top:8px;">
             <button id="btnEscenarioGrowth" class="sim-btn sim-btn--growth">Aplicar escenari</button>
           </div>
@@ -225,15 +243,22 @@
       <div id="simResultado" style="margin-top:18px; border-top:1px solid #eee; padding-top:12px; display:none;">
         <h3>Abans vs Després</h3>
         <table class="sim-table" id="tablaSim">
+          <colgroup>
+            <col class="col-classe" />
+            <col class="col-val" />
+            <col class="col-val" />
+            <col class="col-pct" />
+            <col class="col-diff" />
+          </colgroup>
           <thead>
-            <tr><th>Classe</th><th>Abans</th><th>Després</th><th>Diferència</th></tr>
+            <tr><th>Classe</th><th class="val-col">Abans</th><th class="val-col">Després</th><th class="pct-col">Percentatge</th><th class="diff-col">Diferència</th></tr>
           </thead>
           <tbody>
-            <tr><td>Renda variable</td><td id="rvAntes">-</td><td id="rvDespues">-</td><td id="rvDiff" class="diff-col">-</td></tr>
-            <tr><td>Renta fixa</td><td id="rfAntes">-</td><td id="rfDespues">-</td><td id="rfDiff" class="diff-col">-</td></tr>
-            <tr><td>Colchó</td><td id="cashAntes">-</td><td id="cashDespues">-</td><td id="cashDiff" class="diff-col">-</td></tr>
-            <tr><td><strong>Total</strong></td><td id="totalAntes"><strong>-</strong></td><td id="totalDespues"><strong>-</strong></td><td id="totalDiff" class="diff-col"><strong>-</strong></td></tr>
-            <tr><td><strong>Impacte total</strong></td><td colspan="3" id="impactoTotal">-</td></tr>
+              <tr><td>Renda variable</td><td id="rvAntes" class="val-col">-</td><td id="rvDespues" class="val-col">-</td><td id="rvPct" class="pct-col">-</td><td id="rvDiff" class="diff-col">-</td></tr>
+            <tr><td>Renta fixa</td><td id="rfAntes" class="val-col">-</td><td id="rfDespues" class="val-col">-</td><td id="rfPct" class="pct-col">-</td><td id="rfDiff" class="diff-col">-</td></tr>
+            <tr><td>Colchó</td><td id="cashAntes" class="val-col">-</td><td id="cashDespues" class="val-col">-</td><td id="cashPct" class="pct-col">-</td><td id="cashDiff" class="diff-col">-</td></tr>
+            <tr><td><strong>Total</strong></td><td id="totalAntes" class="val-col"><strong>-</strong></td><td id="totalDespues" class="val-col"><strong>-</strong></td><td id="totalPct" class="pct-col"><strong>-</strong></td><td id="totalDiff" class="diff-col"><strong>-</strong></td></tr>
+            <tr><td><strong>Impacte total</strong></td><td colspan="4" id="impactoTotal">-</td></tr>
           </tbody>
         </table>
         <div style="margin-top:8px;">
@@ -421,10 +446,35 @@
             }catch(e){ console.log('setDiff error', id, e); }
           }
 
+          function setPct(id, beforeVal, afterVal){
+            try{
+              const el = $(id);
+              if(!el) return;
+              el.classList.remove('pct-pos','pct-neg');
+              const b = Number(beforeVal) || 0;
+              const a = Number(afterVal) || 0;
+              if (b === 0){
+                if (a === 0){ el.textContent = '0.00%'; }
+                else { el.textContent = '—'; }
+                return;
+              }
+              const pct = ((a - b) / Math.abs(b)) * 100;
+              const prefix = pct >= 0 ? '+' : '-';
+              el.textContent = prefix + Math.abs(pct).toFixed(2) + '%';
+              if (pct > 0) el.classList.add('pct-pos'); else if (pct < 0) el.classList.add('pct-neg');
+            }catch(e){ console.log('setPct error', id, e); }
+          }
+
           setDiff('rvDiff', rvDiff);
           setDiff('rfDiff', rfDiff);
           setDiff('cashDiff', cashDiff);
           setDiff('totalDiff', totalDiff);
+
+          // porcentajes por fila (centrados, coloreados)
+          setPct('rvPct', res.before.rv, res.after.rv);
+          setPct('rfPct', res.before.rf, res.after.rf);
+          setPct('cashPct', res.before.cash, res.after.cash);
+          setPct('totalPct', res.before.total, res.after.total);
 
           const impactoEl = $('impactoTotal');
           const sign = res.impacto >= 0 ? '+' : '-';
@@ -459,7 +509,9 @@
         try{
           $('rvDespues').textContent = '-'; $('rfDespues').textContent = '-'; $('cashDespues').textContent = '-';
           $('rvAntes').textContent = '-'; $('rfAntes').textContent = '-'; $('cashAntes').textContent = '-';
-          $('totalAntes').textContent = '<strong>-</strong>'; $('totalDespues').textContent = '<strong>-</strong>';
+          $('totalAntes').textContent = '-'; $('totalDespues').textContent = '-';
+          // reset porcentajes
+          try{ $('rvPct').textContent = '-'; $('rfPct').textContent = '-'; $('cashPct').textContent = '-'; $('totalPct').textContent = '-'; }catch(e){}
           $('impactoTotal').textContent = '-';
           $('simResultado').style.display = 'none';
         }catch(e){ console.log('resetResultado: selector missing', e); }
