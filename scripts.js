@@ -730,7 +730,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let aviso = section.querySelector('.detail-warning');
     if (!aviso) {
       aviso = document.createElement('div');
-      aviso.className = 'detail-warning';
+      // apply both the existing detail-warning class and the new visual wrapper
+      aviso.className = 'detail-warning warning-banner';
       aviso.style.display = 'none';
       tabla.parentElement.insertBefore(aviso, tabla.nextSibling);
     }
