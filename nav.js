@@ -272,6 +272,14 @@
           delete btn.dataset.cancel_pending;
         } catch(e) { /* ignore */ }
       }
+
+  // Quick debug: add red outlines when URL contains ?debug_outline
+  try{
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.has('debug_outline')){
+      try{ document.documentElement.classList.add('debug-outline'); console.log('debug-outline enabled'); }catch(e){}
+    }
+  }catch(e){}
       // usuario en localStorage (la UI usa localStorage sf_user)
       const su = localStorage.getItem('sf_user');
       if (!su) {
