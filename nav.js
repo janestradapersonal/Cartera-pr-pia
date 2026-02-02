@@ -1156,6 +1156,9 @@
   const mqMobileNav = window.matchMedia('(max-width: 768px)');
   function updateScrollListener() {
     try {
+      // Marcar el documentElement para estilos/JS condicionales
+      try { document.documentElement.classList.toggle('mobile-lite', mqMobileNav.matches); } catch(e) {}
+      try { window.__MOBILE_LITE = !!mqMobileNav.matches; } catch(e) {}
       if (mqMobileNav.matches) {
         window.removeEventListener('scroll', checkScroll);
       } else {

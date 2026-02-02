@@ -1497,3 +1497,32 @@ main.container form button {
 
 /* Ensure banner floats above complex backgrounds */
 .warning-banner, .detail-warning { position: relative; z-index: 30; }
+
+/* Mobile-lite: desactivar efectos pesados y animaciones en pantallas pequeñas */
+@media (max-width: 768px) {
+  /* Quitar blur/backdrop y sombras costosas */
+  .mobile-menu, .warning-banner, .detail-warning, .global-greeting .global-inner, .mobile-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Evitar animaciones/transiciones que costen CPU y puedan interferir con toques */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Forzar que fondos fijos no usen fixed (mejor scrolling en móvil) */
+  body, .hero, .hero-section { background-attachment: scroll !important; }
+
+  /* Asegurar que no se muestren videos de fondo y que los elementos interactivos reciban toques */
+  video { display: none !important; }
+  a, button, input, textarea, select, label { pointer-events: auto !important; }
+
+  /* Quitar filtros en imágenes para ahorrar render */
+  img, picture, .hero-img { filter: none !important; -webkit-filter: none !important; }
+
+  /* Evitar pseudo-elementos con overlays pesados */
+  *::before, *::after { background: transparent !important; box-shadow: none !important; }
+}
