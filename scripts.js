@@ -156,6 +156,24 @@ function crearPieChart(ctx, etiquetas, datos, titulo, backgroundColors) {
   });
 }
 
+// Lazy-load images that are outside the first viewport to improve initial load on mobile
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const vh = window.innerHeight || 800;
+    const imgs = Array.from(document.images || []);
+    imgs.forEach(img => {
+      // skip if already explicit
+      if (img.hasAttribute('loading')) return;
+      // keep hero images (inside .hero) eager
+      if (img.closest && img.closest('.hero')) return;
+      const rect = img.getBoundingClientRect();
+      if (rect.top > vh) {
+        try{ img.setAttribute('loading','lazy'); }catch(e){}
+      }
+    });
+  }catch(e){ console.warn('lazy-images setup failed', e); }
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   // Asegurar que el total se calcule inmediatamente al cargar
   try { actualizarTotalGlobal(); } catch (err) { /* si la función no existe aún, seguirá más abajo */ }

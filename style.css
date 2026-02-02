@@ -24,6 +24,13 @@ body {
   pointer-events: none;
 }
 
+/* On small screens don't load/show the background video; use the poster image as hero background */
+@media (max-width: 768px) {
+  #bg-video, .bg-video { display: none !important; }
+  .hero { background-image: url("imagenes/im_fondo.png"); background-size: cover; background-position: center center; }
+  .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.46)); z-index: 0; }
+}
+
 /* Mantener el fallback por imagen/gradiente definido en body */
 
 /* HERO: portada grande sobre el video */
