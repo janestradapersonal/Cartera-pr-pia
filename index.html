@@ -86,6 +86,43 @@
   </script>
 </head>
 <body>
+  <script>
+    (function(){
+      // Create an unhideable debug panel and prepend it as first child of <body>
+      try {
+        const existing = document.getElementById('sf-debug-panel');
+        if (existing) existing.remove();
+        const panel = document.createElement('div');
+        panel.id = 'sf-debug-panel';
+        // inline styles as requested (impossible to hide)
+        panel.setAttribute('style', 'position:fixed;top:0;left:0;z-index:2147483647;background:#000;color:#fff;padding:6px 10px;font-size:13px;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;width:100%;max-width:none;box-sizing:border-box;');
+        panel.innerHTML = '<div style="font-weight:700;">DEBUG VISIBLE</div>' +
+          '<div style="margin-top:6px;line-height:1.2;">DOMContentLoaded: <strong id="sf-dom-val">no</strong></div>' +
+          '<div style="line-height:1.2;">window.load: <strong id="sf-load-val">no</strong></div>' +
+          '<div style="line-height:1.2;">botones con listeners: <strong id="sf-list-val">0</strong></div>' +
+          '<div id="sf-error-list" style="margin-top:6px;font-size:12px;line-height:1.2;max-height:160px;overflow:auto;">(ninguno)</div>';
+        // Prepend so it's first element in body
+        try { document.body.insertBefore(panel, document.body.firstChild); } catch(e){ document.documentElement.appendChild(panel); }
+
+        // Ensure it's not removed or hidden: observe DOM and re-append if removed
+        const obs = new MutationObserver((mutations)=>{
+          try {
+            if (!document.getElementById('sf-debug-panel')) {
+              try { document.body.insertBefore(panel, document.body.firstChild); } catch(e) { try { document.documentElement.appendChild(panel); } catch(e){} }
+            } else {
+              // enforce inline style to prevent CSS hiding
+              const p = document.getElementById('sf-debug-panel'); if (p) p.style.display = 'block';
+            }
+          } catch(e){}
+        });
+        obs.observe(document.documentElement || document.body, { childList:true, subtree:true });
+
+        // Basic status setters (will be updated by the later debug script if present)
+        window.addEventListener('DOMContentLoaded', ()=>{ try{ const el=document.getElementById('sf-dom-val'); if(el) { el.textContent='sí'; el.style.color='#7CFC7C'; } }catch(e){} });
+        window.addEventListener('load', ()=>{ try{ const el=document.getElementById('sf-load-val'); if(el) { el.textContent='sí'; el.style.color='#7CFC7C'; } }catch(e){} });
+      } catch(e){}
+    })();
+  </script>
   <!-- Video de fondo: archivo esperado en la raíz del proyecto -->
   <video id="bg-video" class="bg-video" autoplay muted loop playsinline preload="none" aria-hidden="true" poster="./imagenes/im_fondo.png">
     <source src="204306-923909642_medium.mp4" type="video/mp4" />
@@ -131,117 +168,7 @@
       </p>
     </section>
   </main>
-  <!-- Debug visible: indica en pantalla DOMContentLoaded, window.load y listeners en botones -->
-  <script>
-    (function(){
-      // panel
-      const panel = document.createElement('div');
-      panel.id = 'sf-debug-panel';
-      panel.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:2147483647;background:rgba(0,0,0,0.68);color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:240px;backdrop-filter:none;box-shadow:0 6px 18px rgba(0,0,0,0.4);';
-      panel.innerHTML = '<div style="font-weight:700;margin-bottom:6px;">Debug visible</div>' +
-        '<div style="line-height:1.3;margin-bottom:4px;">DOMContentLoaded: <strong id="sf-dom-val">no</strong></div>' +
-        '<div style="line-height:1.3;margin-bottom:4px;">window.load: <strong id="sf-load-val">no</strong></div>' +
-        '<div style="line-height:1.3;margin-bottom:6px;">botones con listeners: <strong id="sf-list-val">0</strong></div>' +
-        '<div style="margin-top:6px;max-height:120px;overflow:auto;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);">' +
-          '<div style="font-weight:700;margin-bottom:6px;font-size:12px;">Errores</div>' +
-          '<div id="sf-error-list" style="font-size:11px;line-height:1.2;color:#fff;opacity:0.95;word-break:break-word;">(ninguno)</div>' +
-        '</div>' +
-        '<div style="text-align:right;margin-top:6px;"><button id="sf-debug-reset" style="background:#fff;color:#000;border-radius:4px;padding:4px 6px;border:0;cursor:pointer;font-size:12px;">reset</button></div>';
-      try { document.documentElement.appendChild(panel); } catch(e) { try { document.body.appendChild(panel); } catch(e) {} }
-
-      const domEl = document.getElementById('sf-dom-val');
-      const loadEl = document.getElementById('sf-load-val');
-      const listEl = document.getElementById('sf-list-val');
-      const resetBtn = document.getElementById('sf-debug-reset');
-
-      function setStatus(el,val){ if(!el) return; el.textContent = val ? 'sí' : 'no'; el.style.color = val ? '#7CFC7C' : '#FF6B6B'; }
-      setStatus(domEl,false); setStatus(loadEl,false); listEl.textContent = '0';
-
-      // Track addEventListener registrations for buttons
-      const originalAdd = EventTarget.prototype.addEventListener;
-      let tracked = new WeakMap(); // element -> Set(types)
-      let totalButtonListeners = 0;
-
-      EventTarget.prototype.addEventListener = function(type, listener, options){
-        try{
-          if (type === 'click' || type === 'touchstart' || type === 'submit') {
-            const el = this;
-            if (el && el.nodeType === 1) {
-              try {
-                const isButton = (el.tagName && el.tagName.toLowerCase() === 'button') || (el.matches && el.matches('button, [role="button"], a[href]'));
-                if (isButton) {
-                  let s = tracked.get(el);
-                  if (!s) { s = new Set(); tracked.set(el,s); }
-                  if (!s.has(type)) { s.add(type); totalButtonListeners++; if (listEl) listEl.textContent = String(totalButtonListeners); }
-                }
-              } catch(e){}
-            }
-          }
-        } catch(e){}
-        return originalAdd.call(this,type,listener,options);
-      };
-
-      document.addEventListener('DOMContentLoaded', function(){
-        setStatus(domEl,true);
-        // Count inline onclick attributes as listeners (if any)
-        try {
-          const btns = document.querySelectorAll('button, a[role="button"], a[href]');
-          btns.forEach(b => {
-            try {
-              if (b.getAttribute && b.getAttribute('onclick')) {
-                const s = tracked.get(b);
-                if (!s || !s.has('click')) {
-                  let ss = tracked.get(b); if (!ss) { ss = new Set(); tracked.set(b,ss); }
-                  ss.add('click'); totalButtonListeners++; if (listEl) listEl.textContent = String(totalButtonListeners);
-                }
-              }
-            } catch(e){}
-          });
-        } catch(e){}
-      });
-
-      window.addEventListener('load', function(){ setStatus(loadEl,true); });
-
-      // Error capture visible
-      const errorListEl = document.getElementById('sf-error-list');
-      const maxErrors = 6;
-      const errors = [];
-
-      function pushError(text) {
-        try {
-          const t = (new Date()).toLocaleTimeString() + ' — ' + text;
-          errors.unshift(t);
-          if (errors.length > maxErrors) errors.length = maxErrors;
-          if (errorListEl) errorListEl.innerHTML = errors.map(e => '<div style="margin-bottom:6px;">' + e + '</div>').join('');
-        } catch(e){}
-      }
-
-      window.addEventListener('error', function(ev){
-        try {
-          const msg = ev && ev.message ? ev.message : String(ev);
-          const src = ev && ev.filename ? ev.filename : (ev && ev.target && ev.target.src) || 'n/a';
-          const line = ev && ev.lineno ? ev.lineno : 0;
-          const col = ev && ev.colno ? ev.colno : 0;
-          pushError('error: ' + msg + ' @ ' + src + ':' + line + ':' + col);
-        } catch(e){}
-      }, {capture:true});
-
-      window.addEventListener('unhandledrejection', function(ev){
-        try {
-          const reason = ev && ev.reason ? ev.reason : ev;
-          let text = '';
-          if (reason && reason.message) text = reason.message + (reason.stack ? '\n' + reason.stack.split('\n')[0] : '');
-          else text = String(reason);
-          pushError('unhandledrejection: ' + text);
-        } catch(e){}
-      });
-
-      resetBtn && resetBtn.addEventListener('click', function(){ totalButtonListeners = 0; tracked = new WeakMap(); if (listEl) listEl.textContent = '0'; });
-
-      // Expose for manual inspection if needed
-      try{ window.__SF_DEBUG = {panel, get domLoaded(){ return domEl && domEl.textContent==='sí'; }, get loadFinished(){ return loadEl && loadEl.textContent==='sí'; }, get listeners(){ return totalButtonListeners; }}; }catch(e){}
-    })();
-  </script>
+  <!-- legacy inline debug block removed (now injected at top for visibility) -->
 
   <script src="nav.js" defer></script>
   <footer class="site-footer" aria-label="Contacto">
