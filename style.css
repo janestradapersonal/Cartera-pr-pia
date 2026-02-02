@@ -1558,9 +1558,15 @@ main.container form button {
   #bg-video, .bg-video { display: none !important; visibility: hidden !important; max-height: 0 !important; height: 0 !important; }
   .hero::before, .hero::after { display: none !important; content: none !important; }
 
-  /* Make decorative layers non-interactive, but keep content interactive */
-  .hero, #bg-video, .hero * { pointer-events: none !important; }
-  .hero-content, .hero .hero-inner, .hero .hero-cta, .hero a, .hero button { pointer-events: auto !important; position: relative !important; z-index: 5 !important; }
+    /* Make decorative layers non-interactive only on the actual decorative elements.
+      Do NOT disable pointer-events on the whole .hero or all children (that breaks interactivity).
+      Keep hero interactive; neutralize only the video/overlay/pseudo-elements. */
+    #bg-video, .bg-video { display: none !important; pointer-events: none !important; }
+    .hero::before, .hero::after { pointer-events: none !important; }
+    /* Ensure content sits above decorations without forcing pointer-events globally */
+    .hero-content { position: relative !important; z-index: 2 !important; }
+    /* If there is an explicit overlay element, neutralize it */
+    .hero-overlay { pointer-events: none !important; z-index: 1 !important; }
 
   /* Remove heavy visual effects */
   * { animation: none !important; transition: none !important; }
