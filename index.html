@@ -58,6 +58,32 @@
       } catch(e){}
     })();
   </script>
+  <!-- TEMP: desactivar fuentes externas (Google Fonts, Typekit, etc.) para pruebas móviles -->
+  <script>
+    (function(){
+      try {
+        const disableFonts = function(){
+          try {
+            Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).forEach(l => {
+              try {
+                const href = l.getAttribute('href') || '';
+                if (/fonts\.googleapis|fonts\.gstatic|fonts\.adobe|typekit|fonts\.net/i.test(href)) {
+                  l.disabled = true;
+                  l.setAttribute('data-sf-disabled','1');
+                }
+              } catch(e){}
+            });
+          } catch(e){}
+        };
+        if (document.readyState === 'loading') {
+          disableFonts();
+          document.addEventListener('DOMContentLoaded', disableFonts);
+        } else {
+          disableFonts();
+        }
+      } catch(e){}
+    })();
+  </script>
 </head>
 <body>
   <!-- Video de fondo: archivo esperado en la raíz del proyecto -->
