@@ -1152,7 +1152,26 @@
     }
   }
   checkScroll();
-  window.addEventListener('scroll', checkScroll);
+  // Añadir/eliminar el listener de scroll según tamaño de pantalla (mobile-lite)
+  const mqMobileNav = window.matchMedia('(max-width: 768px)');
+  function updateScrollListener() {
+    try {
+      if (mqMobileNav.matches) {
+        window.removeEventListener('scroll', checkScroll);
+      } else {
+        // Asegurarnos de no duplicar listeners
+        window.removeEventListener('scroll', checkScroll);
+        window.addEventListener('scroll', checkScroll);
+        checkScroll();
+      }
+    } catch (e) {}
+  }
+  updateScrollListener();
+  if (mqMobileNav.addEventListener) {
+    mqMobileNav.addEventListener('change', updateScrollListener);
+  } else if (mqMobileNav.addListener) {
+    mqMobileNav.addListener(updateScrollListener);
+  }
 
   // Mobile mode detection: abbreviate brand and prepare mobile menu
   function enterMobileMode() {
