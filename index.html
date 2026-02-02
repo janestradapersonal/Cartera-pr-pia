@@ -6,6 +6,34 @@
   <title>SenzillamentFinances</title>
   <link rel="stylesheet" href="style.css" />
   <!-- Chart.js cargado solo en páginas que lo necesitan (no en la home) -->
+  <!-- TEMP: desactivar scripts externos (terceros) para pruebas en iOS -->
+  <script>
+    (function(){
+      try {
+        // Ejecutar lo más temprano posible: marcar scripts externos para que no se ejecuten
+        const disableExternal = function(){
+          try {
+            Array.from(document.querySelectorAll('script[src]')).forEach(s => {
+              try {
+                const src = s.getAttribute('src') || '';
+                const url = new URL(src, location.href);
+                if (url.origin !== location.origin) {
+                  s.type = 'text/plain';
+                  s.setAttribute('data-sf-disabled', '1');
+                }
+              } catch(e){}
+            });
+          } catch(e){}
+        };
+        if (document.readyState === 'loading') {
+          disableExternal();
+          document.addEventListener('DOMContentLoaded', disableExternal);
+        } else {
+          disableExternal();
+        }
+      } catch(e){}
+    })();
+  </script>
 </head>
 <body>
   <!-- Video de fondo: archivo esperado en la raíz del proyecto -->
