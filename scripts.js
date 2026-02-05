@@ -179,14 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
   try { actualizarTotalGlobal(); } catch (err) { /* si la función no existe aún, seguirá más abajo */ }
 
   // Detectar si existe carrusel móvil
-  let carouselExists = !!(document.getElementById('carouselColchon') && document.getElementById('carouselFija') && document.getElementById('carouselVariable'));
-  // Si estamos en móvil (<=768px), desactivar carrusel para evitar cargas/handlers pesados
-  try {
-    const __SF_IS_MOBILE = window.matchMedia && window.matchMedia('(max-width:768px)').matches;
-    if (__SF_IS_MOBILE) {
-      carouselExists = false;
-    }
-  } catch (e) {}
+  const carouselExists = !!(document.getElementById('carouselColchon') && document.getElementById('carouselFija') && document.getElementById('carouselVariable'));
 
   // Inicialización robusta de canvases y gráficos con reintentos
   let chartGlobal = null;
