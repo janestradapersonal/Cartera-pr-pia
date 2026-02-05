@@ -34,30 +34,6 @@
       } catch(e){}
     })();
   </script>
-  <!-- TEMP: ocultar y parar video de fondo para pruebas en iOS/disp móviles -->
-  <script>
-    (function(){
-      try {
-        const hideBg = function(){
-          try {
-            const v = document.getElementById('bg-video');
-            if (v) {
-              try { v.pause(); } catch(e){}
-              try { v.removeAttribute('autoplay'); } catch(e){}
-              try { v.src = ''; } catch(e){}
-              try { v.style.display = 'none'; v.setAttribute('data-sf-disabled','1'); } catch(e){}
-            }
-          } catch(e){}
-        };
-        if (document.readyState === 'loading') {
-          hideBg();
-          document.addEventListener('DOMContentLoaded', hideBg);
-        } else {
-          hideBg();
-        }
-      } catch(e){}
-    })();
-  </script>
 </head>
 <body>
   <!-- Video de fondo: archivo esperado en la raíz del proyecto -->
