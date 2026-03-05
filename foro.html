@@ -5,6 +5,9 @@
     // Foro: integración con backend (/api/forum/*)
     (function(){
       const API_URL = window.API_URL || 'https://cartera-pr-pia.onrender.com';
+      const DEFAULT_AVATAR_PATH = 'imagenes/foto_de_perfil.png';
+      const DEFAULT_AVATAR_FALLBACK = 'imagenes/foto_de_perfil.png';
+      const users = {};
 
       async function getCurrentUser(){
         const username = sessionStorage.getItem('usuario_actual');
@@ -57,6 +60,28 @@
           const body = document.createElement('div'); body.className = 'q-text'; body.textContent = q.body || '';
           header.appendChild(title); header.appendChild(meta);
           card.appendChild(header); card.appendChild(body);
+
+          // respuestas
+          if (q.answers && q.answers.length){
+            const box = document.createElement('div'); box.className='answers';
+            q.answers.forEach(a=>{
+              const aDiv = document.createElement('div'); aDiv.className='answer';
+              const aHeader = document.createElement('div'); aHeader.className='q-header';
+              const aImg = document.createElement('img'); aImg.className='avatar-img';
+              const aBy = a.by || a.author || a.username || '';
+              const aSrc = (users[aBy] && users[aBy].avatar) ? users[aBy].avatar : DEFAULT_AVATAR_PATH;
+              aImg.src = aSrc; aImg.alt = aBy + ' avatar'; aImg.onerror = ()=>{ aImg.src = DEFAULT_AVATAR_FALLBACK; };
+              const aMeta = document.createElement('div'); aMeta.className='q-meta';
+              const aName = document.createElement('div'); aName.className='name'; aName.textContent = aBy;
+              const aDate = document.createElement('div'); aDate.className='date'; aDate.textContent = (a.at || a.created_at) ? new Date(a.at || a.created_at).toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+              aMeta.appendChild(aName); aMeta.appendChild(aDate);
+              aHeader.appendChild(aImg); aHeader.appendChild(aMeta);
+              const aText = document.createElement('div'); aText.className='q-text'; aText.textContent = a.text || a.body || '';
+              aDiv.appendChild(aHeader); aDiv.appendChild(aText);
+              box.appendChild(aDiv);
+            });
+            card.appendChild(box);
+          }
 
           const actions = document.createElement('div'); actions.className = 'q-actions';
           const viewBtn = document.createElement('button'); viewBtn.textContent = 'Ver'; viewBtn.className='btn';
